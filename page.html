@@ -81,5 +81,5 @@ __GAME__
   /* ios safari ignores user-scalable=no: block pinch and double-tap zoom by hand */
   for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false })
   let lastTouch = 0
-  document.addEventListener('touchend', e => { const now = e.timeStamp; if (now - lastTouch < 350 && e.target.id !== 'cv') e.preventDefault(); lastTouch = now }, { passive: false })
+  document.addEventListener('touchend', e => { const now = e.timeStamp; if (now - lastTouch < 350 && !e.target.closest('a, button, [role=button]')) e.preventDefault(); lastTouch = now }, { passive: false })
 </script>

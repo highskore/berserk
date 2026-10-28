@@ -1,4 +1,4 @@
-/* ---------- APOSTLE BOSSES: nosferatu zodd, grunbeld, the count, rosine ----------
+/* ---------- APOSTLE BOSSES: nosferatu zodd, grunbeld, the count (rosine, wyald, silat and ganishka are drawn in figs.js) ----------
    drop-in for figs.js: same local frame (x forward, y left, z up, feet at the origin, ~100 units = guts' height)
    and the same primitives. each takes o = {v: 'A'..'D', t, atk}; v picks the design take. */
 const bzBez = (A, B, C, n) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t; o.push([0, 1, 2].map(k => u * u * A[k] + 2 * u * t * B[k] + t * t * C[k])) } return o }
@@ -218,65 +218,20 @@ function drawCount(o) {
   bzCountMan(mb, P.ms, P.arms, 20)
 }
 
-/* ---------- ROSINE: the moth elf ---------- */
-const ROSINE = {
-  /* A the elf queen: upright, hovering, wings raised like a butterfly's, arms open */
-  A: { hz: 80, lean: 0.05, fore: [112, 0.55, 0.2], hind: [76], arms: [['T', 14, 40, 26], ['T', 14, -40, 26]], feet: [[-2, 8, 28], [-6, -8, 32]] },
-  /* B the moth: a furred thorax, a heavy banded abdomen, wings laid open flat to show the eyes, an extra pair of insect arms */
-  B: { hz: 94, lean: 0.32, fore: [126, 0.12, 0.12], hind: [88], abd: 1.35, ruff: 1.5, xarms: 1, arms: [['T', 22, 12, 8], ['T', 22, -12, 8]], feet: [[-14, 8, 44], [-18, -8, 48]] },
-  /* C the drill: body flat out, arms locked forward into a point, wings swept back tight */
-  C: { hz: 62, lean: 1.38, fore: [100, 0.25, 1.15], hind: [70], arms: [['T', 4, 4, 70], ['T', 4, -4, 70]], feet: [[-74, 5, 56], [-78, -5, 60]], drill: 1 },
-  /* D the gale: wings thrown up and forward at the top of a beat, arms raised */
-  D: { hz: 84, lean: 0.12, fore: [122, 0.95, -0.35], hind: [84], abd: 0.8, arms: [['T', 6, 26, 56], ['T', 6, -26, 56]], feet: [[-4, 8, 34], [-8, -8, 38]] },
-}
-function bzMothWing(R, s, L, rise, sweep, th0, th1, hind, p) {
-  const e1 = v3.norm([-sweep, s * Math.cos(rise), Math.sin(rise)]), g = [-0.5, 0, 1], e2 = v3.norm(v3.sub(g, v3.mul(e1, v3.dot(g, e1)))), n = 9
-  const shape = q => (hind ? 0.5 + 0.5 * Math.sin(q * Math.PI) : 0.45 + 0.55 * Math.pow(Math.max(0, Math.sin(q * Math.PI * 0.72)), 1.6))
-  const P = (q, r) => { const th = lerp(th0, th1, q), rr = r * L * shape(q); return v3.add(v3.add(R, e1, Math.cos(th) * rr), e2, Math.sin(th) * rr) }
-  const sp = hind ? [0.62, 0.5, 0.2] : [0.64, 0.55, 0.15]
-  for (let i = 0; i < n; i++) {
-    const pat = layer => (x, y, u, v) => {
-      const r = u + v, q = (i + (r > 0 ? v / r : 0)) / n; if (r > 1 - 0.015 * Math.abs(Math.sin(q * n * Math.PI))) return -1
-      const e = Math.hypot((r - sp[0]) * 1.1, (q - sp[1]) * 1.6), band = Math.abs(r - 0.86) < 0.035, vein = (q * n * 1) % 1 < 0.07
-      const k = e < sp[2] * 0.35 ? 3 : e < sp[2] * 0.62 ? 2 : e < sp[2] ? 1 : band || r < 0.16 ? 1 : 0
-      if (layer !== k) return -1
-      return (vein ? 0.68 : 1) * (0.82 + n2(x * 0.2, y * 0.2) * 0.3) * (layer === 0 ? 0.85 + r * 0.25 : 1)
-    }
-    const A = P(i / n, 1), B = P((i + 1) / n, 1)
-    tri(R, A, B, MAT.LEATHER, 0.8, p, { tex: pat(0) }); tri(R, A, B, MAT.DARK, 0.3, p, { tex: pat(1) }); tri(R, A, B, MAT.BONE, 0.95, p, { tex: pat(2) }); tri(R, A, B, MAT.DARK, 0.2, p, { tex: pat(3) })
-  }
-}
-/* her body is drawn at 1.5x by widening the projection scale (positions and radii together); always restored */
-function drawRosine(o) { const u0 = CAM.u; CAM.u = u0 * 1.5; try { rosineBody(o) } finally { CAM.u = u0 } }
-function rosineBody(o) {
-  const P = o.P || ROSINE[o.v || 'A'], T = torsoF(P.hz, P.lean, 0), sk = MAT.SKIN, ch = MAT.BONE
-  for (const s of [1, -1]) { bzMothWing(T(-5, s * 5, 30), s, P.fore[0], P.fore[1], P.fore[2], -0.25, 1.3, 0, 1); bzMothWing(T(-5, s * 5, 22), s, P.hind[0], P.fore[1] - 0.25, P.fore[2] + 0.15, -1.45, -0.2, 1, 2) }
-  if (P.abd) { const a = P.abd; for (let k = 0; k < 6; k++) sph(T(-6 - k * 7 * a, 0, -2 - k * 6 * a), (10 - k * 1.2) * a, k % 2 ? MAT.LEATHER : ch, 0.8, 3, { tex: (x, y) => (y % 3 === 0 ? 0.75 : 1) }) }
-  P.feet.forEach((f, k) => { const s = k ? -1 : 1, hip = T(0, s * 6, -2), kn = ik3(hip, f, 30, 30, P.drill ? [0, s * 0.2, 1] : [1, 0, 0]); cap(hip, kn, 5, 3.4, ch, 0.86, s > 0 ? 4 : 5); cap(kn, f, 3.4, 1, ch, 0.86, s > 0 ? 4 : 5) })
-  sph(T(0, 0, 0), 8, ch, 0.86, 6); cap(T(0, 0, 3), T(1, 0, 22), 5.6, 7.6, ch, 0.86, 6, { tex: (x, y) => (y % 4 === 0 ? 0.78 : 1) }); sph(T(1, 0, 26), 8.6, ch, 0.88, 6)
-  const rf = P.ruff || 1; sph(T(-3, 0, 31), 9.5 * rf, MAT.BONE, 0.95, 7, { tex: (x, y, dx, dy) => (dx * dx + dy * dy > 0.6 && h2(x, y) < 0.5 ? -1 : 0.85 + h2(x, y) * 0.2) })
-  const H = T(3, 0, 41); cap(T(1, 0, 30), H, 3.4, 3.2, sk, 0.9, 8); sph(H, 7, sk, 0.92, 8)
-  sph(v3.add(H, [-2, 0, 1.5]), 7.2, MAT.GHOST, 0.85, 9, { tex: (x, y, dx, dy) => (dy > 0.25 && dx > -0.2 ? -1 : 0.85 + h2(x, y) * 0.2) })
-  for (let k = 0; k < 5; k++) cap(v3.add(H, [-4, (k - 2) * 2.4, -1]), v3.add(H, [-11 - k % 2 * 3, (k - 2) * 4, -18 - h1(k) * 8]), 2, 0.5, MAT.GHOST, 0.85, 9)
-  for (const s of [1, -1]) {
-    sph(v3.add(H, [5, s * 2.6, 0.6]), P.xarms ? 2.6 : 2, MAT.DARK, 0.1, 10); sph(v3.add(H, [5.6, s * 2.2, 1.4]), 0.6, MAT.EYE, 1, 10)
-    cap(v3.add(H, [0, s * 6, 0.5]), v3.add(H, [-3, s * 12, 5]), 1.6, 0.3, sk, 0.9, 10)
-    const ant = bzBez(v3.add(H, [3, s * 2, 6]), v3.add(H, [6, s * 14, 26]), v3.add(H, [-8, s * 30, 44]), 8); bzChain(ant, 0.9, 0.5, MAT.DARK, 0.3, 11)
-    for (let k = 2; k < 8; k++) { const q = ant[k], d = v3.norm(v3.sub(ant[k + 1], q)), w = v3.norm(v3.cross(d, [0, 0, 1])); for (const z of [1, -1]) cap(q, v3.add(v3.add(q, w, z * (5 - Math.abs(k - 5) * 0.8)), d, 2), 0.5, 0.3, MAT.DARK, 0.3, 11) }
-  }
-  P.arms.forEach((a, k) => { const s = k ? -1 : 1, S = T(1, s * 9, 31), Hh = bzAt(T, a), E = ik3(S, Hh, 18, 17, [-0.5, s, -0.4]), q = s > 0 ? 12 : 13
-    cap(S, E, 3.4, 2.6, sk, 0.9, q); cap(E, Hh, 2.6, 1.8, sk, 0.9, q); for (let i = -1; i <= 1; i++) cap(Hh, v3.add(v3.add(Hh, v3.norm(v3.sub(Hh, E)), 9), [0, i * 2, 0]), 0.9, 0.3, ch, 0.95, q) })
-  if (P.xarms) for (const s of [1, -1]) { const S = T(4, s * 6, 14), E = v3.add(S, [14, s * 12, -6]), Hh = v3.add(E, [12, s * 2, -14]); cap(S, E, 2.2, 1.6, ch, 0.85, 14); cap(E, Hh, 1.6, 0.6, ch, 0.85, 14) }
-  if (P.drill) for (let k = 0; k < 5; k++) { const c = T(4, 0, 50 + k * 14), r = 30 - k * 5; for (let j = 0; j < 10; j++) { const a0 = j * TAU / 10 + k, a1 = a0 + 0.42; cap(v3.add(c, [Math.cos(a0) * r * 0.6, Math.sin(a0) * r, 0]), v3.add(c, [Math.cos(a1) * r * 0.6, Math.sin(a1) * r, 4]), 0.9, 0.9, MAT.SMEAR, 0.9, 15) } }
-}
-
 /* registry: game sprite scale and box (figure units), the pose used between moves, the ground shadow (px) */
 const BOSS = {
   zodd: { draw: drawZodd, sc: 0.62, box: [640, 720, 0.8], idle: 'A', shadow: 30 },
   grunbeld: { draw: drawGrunbeld, sc: 0.56, box: [820, 820, 0.78], idle: 'B', shadow: 46 },
   count: { draw: drawCount, sc: 0.58, box: [760, 560, 0.72], idle: 'B', shadow: 44 },
-  rosine: { draw: drawRosine, sc: 0.72, box: [520, 520, 0.86], idle: 'A', shadow: 20 },
+  /* rosine now wears her true form, the giant luna moth */
+  rosine: { draw: o => simpleDraw(drawMoth, o), sc: 0.9, box: [360, 380, 0.82], idle: 'A', shadow: 20, simple: 1 },
+  wyald: { draw: o => simpleDraw(drawWyald, o), sc: 0.62, box: [380, 420, 0.82], idle: 'A', shadow: 34, simple: 1 },
+  silat: { draw: o => simpleDraw(KUSH.silat, o), sc: 1.05, box: [240, 210, 0.66], idle: 'A', shadow: 10, simple: 1 },
+  /* ganishka's fog form always faces you, so it is baked from one side only: a huge figure, few frames */
+  ganishka: { draw: o => simpleDraw(drawGanishka, o), sc: 0.95, box: [560, 820, 0.86], idle: 'A', shadow: 60, simple: 1, onedir: 1 },
 }
+/* the newer apostles are drawn from a handful of parameters instead of blended pose takes: stride, attack reach and time */
+function simpleDraw(fn, o) { const P = o.P, a = P.anim, k = P.k; fn({ t: k * 0.5 + (a === 'walk' ? 0 : 1.3), walk: a === 'walk' ? (k / 4) * TAU : 0, mv: a === 'walk' ? 1 : 0, atk: /^[A-D]$/.test(a) ? [0.3, 0.6, 1, 0.4][k] : a === 'hurt' || a === 'stagger' ? 0.15 : 0 }) }
 
 /* ---------- telegraphs: shapes on the ground (px), value 1 inside, 3 on a marking; each carries a bounding box ---------- */
 const bb = (f, b) => ((f.bb = b), f)
@@ -303,6 +258,29 @@ const inside = (sh, x, y) => { const v = sh(x, y); return v === 1 || v === 3 }
 const TS = 0.5
 const at = (e, a, r) => [e.x + Math.cos(a) * r, e.y + Math.sin(a) * r]
 const BMOVE = {
+  /* wyald: the chest maw lunges and grabs; a two-fisted pound; a leap; a clawing swipe */
+  wyald: {
+    A: { near: 1.5, far: 2.5, plan: (g, e, a, d) => { const L = Math.min(d + 50, 230), end = at(e, a, L); return { dur: 1.6, st: [{ t: 0.85, sh: SHP.lane(e.x, e.y, a, L, 24, 18), dmg: 24, hit: g2 => { g2.p.held = 1.1; g2.text(g2.p.x, g2.p.y, 60, 'GRABBED', 'hurt') } }],
+      upd: (g2, e2, t) => { if (t > 0.85 && t < 1.15) { const k = (t - 0.85) / 0.3; e2.x = lerp(e2.ax, end[0], k); e2.y = lerp(e2.ay, end[1], k) } } } } },
+    B: { near: 3, far: 0.3, plan: (g, e) => ({ dur: 1.4, st: [{ t: 0.95, sh: SHP.circle(e.x, e.y, 92), dmg: 22, kb: 220 }] }) },
+    C: { near: 0.4, far: 2, track: 1.1, plan: (g, e) => ({ dur: 2, st: [{ t: 1.5, sh: SHP.circle(e.tx, e.ty, 50), dmg: 26, kb: 180, on: (g2, e2) => { e2.x = e2.tx; e2.y = e2.ty; g2.shake = 9 } }], upd: (g2, e2, t) => { e2.z = t < 1.5 ? Math.sin(Math.min(1, t / 1.5) * Math.PI) * 90 : 0 } }) },
+    D: { near: 3, far: 0.5, plan: (g, e, a) => ({ dur: 1.1, st: [{ t: 0.7, sh: SHP.sector(e.x, e.y, a, 0.9, 15, 125), dmg: 18, kb: 160 }] }) },
+  },
+  /* silat: a double lash of the urumi, chakrams thrown on three lines, a katar dash, and a vanish behind you */
+  silat: {
+    A: { near: 3, far: 0.5, plan: (g, e, a) => ({ dur: 1.4, st: [{ t: 0.65, sh: SHP.sector(e.x, e.y, a - 0.3, 0.6, 8, 110), dmg: 14, kb: 90 }, { t: 1, sh: SHP.sector(e.x, e.y, a + 0.3, 0.6, 8, 110), dmg: 14, kb: 90 }] }) },
+    B: { near: 0.5, far: 3, plan: (g, e, a) => ({ dur: 1.2, st: [{ t: 0.6, sh: SHP.union(...[-0.35, 0, 0.35].map(o => SHP.lane(e.x, e.y, a + o, 220, 6))), on: g2 => { for (const o of [-0.35, 0, 0.35]) g2.eb.push({ x: e.x, y: e.y, vx: Math.cos(a + o) * 240, vy: Math.sin(a + o) * 240, life: 1.1, r: 5, dmg: 14, kind: 'orb' }) } }] }) },
+    C: { near: 1, far: 2.5, plan: (g, e, a, d) => { const L = d + 60, end = at(e, a, L); return { dur: 1.3, st: [{ t: 0.7, sh: SHP.lane(e.x, e.y, a, L, 12, 14), dmg: 20, kb: 140 }], upd: (g2, e2, t) => { if (t > 0.7 && t < 0.9) { const k = (t - 0.7) / 0.2; e2.x = lerp(e2.ax, end[0], k); e2.y = lerp(e2.ay, end[1], k) } } } } },
+    D: { near: 2, far: 1, plan: (g, e) => { const x = g.p.x, y = g.p.y, b = g.p.face + Math.PI; return { dur: 1.4, st: [{ t: 0.45, on: (g2, e2) => { e2.x = x + Math.cos(b) * 38; e2.y = y + Math.sin(b) * 30; e2.vanish = 0 } }, { t: 1, sh: SHP.circle(x, y, 40), dmg: 18, kb: 120 }], upd: (g2, e2, t) => { e2.vanish = t < 0.45 ? 1 : 0 } } } },
+  },
+  /* ganishka: lightning in many forms. after each strike the eyes open and the weak point between them takes real damage;
+     past two thirds he quickens, past one third the fog spawns beasts */
+  ganishka: {
+    A: { near: 2, far: 2, plan: (g, e) => { const n = e.hp / e.maxHp < 0.66 ? 9 : 6, c = []; for (let i = 0; i < n; i++) { const a = g.R() * TAU, r = i ? 30 + g.R() * 110 : 0; c.push(SHP.circle(g.p.x + Math.cos(a) * r, g.p.y + Math.sin(a) * r, 26)) } return { dur: 1.7, st: [{ t: 1.1, sh: SHP.union(...c), dmg: 26, on: (g2, e2) => { e2.weakT = 2.6; g2.flash('#efe8da', 0.3); g2.shake = 6 } }] } } },
+    B: { near: 1, far: 2.5, plan: (g, e, a) => ({ dur: 1.6, st: [{ t: 1, sh: SHP.union(...[-0.3, 0, 0.3].map(o => SHP.lane(e.x, e.y, a + o, 320, 14))), dmg: 28, on: (g2, e2) => { e2.weakT = 2.6; g2.shake = 7 } }] }) },
+    C: { near: 3, far: 0.5, plan: (g, e) => ({ dur: 1.7, st: [{ t: 1.2, sh: SHP.ring(e.x, e.y, 46, 150), dmg: 30, kb: 200, on: (g2, e2) => { e2.weakT = 3; g2.shake = 8 } }] }) },
+    D: { near: 1, far: 1, plan: (g, e) => ({ dur: 1.2, st: [{ t: 0.8, on: (g2, e2) => { const n = e2.hp / e2.maxHp < 0.33 ? 4 : 2; for (let i = 0; i < n; i++) { const a = g2.R() * TAU; g2.spawn(i % 2 ? 'daka' : 'hound', e2.x + Math.cos(a) * 70, e2.y + Math.sin(a) * 50) } e2.weakT = 3 } }] }) },
+  },
   zodd: {
     /* A: lowers his head and charges down a chevron lane, then skids out past the end */
     A: { near: 0.5, far: 3, plan: (g, e, a, d) => { const L = d + 70, end = at(e, a, L); return { dur: 1.9, st: [{ t: 1, sh: SHP.lane(e.x, e.y, a, L, 21, 18), dmg: 22, kb: 220 }],
@@ -396,7 +374,7 @@ function startMove(g, e, k) {
 }
 /* ---------- animation: a pose is two takes blended numerically, then nudged per frame (stride, gait, undulation,
    wing beat, anticipation, recoil, collapse). every frame is baked once into the sprite cache. ---------- */
-const TAKES = { zodd: ZODD, grunbeld: GRUN, count: COUNT, rosine: ROSINE }
+const TAKES = { zodd: ZODD, grunbeld: GRUN, count: COUNT }
 const clone = o => JSON.parse(JSON.stringify(o))
 /* numbers and matching arrays interpolate; a hand target that switches frame ('T' torso to 'W' world) or any flag flips at the midpoint */
 function blendP(a, b, k) {
@@ -416,12 +394,11 @@ const ANIM = {
   /* the count crawls in waves rolling down the slug, the body pulsing */
   count: { loco: (P, ph) => { P.sp.forEach((q, i) => { q[2] += Math.sin(ph + i * 1.6) * 16; q[1] += Math.sin(ph + i * 1.2) * 18 }); P.rf += Math.sin(ph) * 7 },
     rear: (P, k) => { P.sp[2][2] += 30 * k }, sink: (P, k) => { P.sp.forEach(q => (q[2] *= 1 - k * 0.45)); P.rf -= 8 * k } },
-  /* rosine hovers on a constant wing beat */
-  rosine: { lean: 'lean', loco: (P, ph) => { P.fore[1] += 0.6 * Math.sin(ph); P.fore[2] += 0.25 * Math.cos(ph); P.hz += 8 * Math.sin(ph) }, sink: (P, k) => { P.hz -= 24 * k; P.lean += 0.45 * k; P.fore[1] -= 0.3 * k } },
 }
 /* frames per anim: walk 4, idle 2 (breath), each move 4 (wind-up, wound, strike, recover), hurt 1, stagger 1, death 3 */
 const BFRAMES = { walk: 4, idle: 2, A: 4, B: 4, C: 4, D: 4, hurt: 1, stagger: 1, death: 3 }
 function bossPose(type, anim, k) {
+  if (BOSS[type].simple) return { anim, k }
   const T = TAKES[type], X = ANIM[type], idle = T[BOSS[type].idle], L = X.lean
   const lean = (P, d) => { if (L) P[L] += d; else if (X.rear) X.rear(P, -d * 3) }, jaw = (P, d) => { if ('jaw' in P) P.jaw += d; else if ('rf' in P) P.rf += d * 20 }
   let P

@@ -35,7 +35,9 @@ const SPEC = {
   boscogn: { draw: FOLK.boscogn, sc: 1.45, box: FOLKBOX }, godhand: { draw: drawGodhand, sc: 1.15, box: [200, 280, 0.78] },
   casca: { draw: FOLK.casca, sc: 0.95, box: FOLKBOX }, judeau: { draw: FOLK.judeau, sc: 0.92, box: FOLKBOX }, pippin: { draw: FOLK.pippin, sc: 1.05, box: FOLKBOX }, corkus: { draw: FOLK.corkus, sc: 0.92, box: FOLKBOX },
   serpico: { draw: FOLK.serpico, sc: 0.95, box: FOLKBOX }, isidro: { draw: FOLK.isidro, sc: 0.78, box: FOLKBOX }, schierke: { draw: FOLK.schierke, sc: 0.68, box: FOLKBOX }, sellsword: { draw: FOLK.sellsword, sc: 1.05, box: FOLKBOX },
-  skullknight: { draw: FOLK.skullknight, sc: 1.1, box: FOLKBOX }, puck: { draw: drawPuck, sc: 1, box: [60, 60, 0.75] },
+  skullknight: { draw: FOLK.skullknight, sc: 1.1, box: FOLKBOX },
+  ksoldier: { draw: KUSH.ksoldier, sc: 0.95, box: [220, 220, 0.7] }, karcher: { draw: KUSH.karcher, sc: 0.95, box: [220, 220, 0.7] }, bakiraka: { draw: KUSH.bakiraka, sc: 0.92, box: [240, 220, 0.68] },
+  daka: { draw: KUSH.daka, sc: 1.05, box: [240, 240, 0.7] }, sorcerer: { draw: KUSH.sorcerer, sc: 0.95, box: [220, 230, 0.72] }, elephant: { draw: drawElephant, sc: 0.95, box: [320, 380, 0.75] }, elfling: { draw: drawElfling, sc: 0.7, box: [140, 140, 0.76] }, puck: { draw: drawPuck, sc: 1, box: [60, 60, 0.75] },
   archer: { draw: FOLK.archer, sc: 0.92, box: FOLKBOX }, lancer: { draw: FOLK.lancer, sc: 1, box: FOLKBOX },
   hound: { draw: o => drawBeast(Object.assign({ k: 'crawler' }, o)), sc: 1.2, box: [150, 110, 0.62] }, spitter: { draw: o => drawBeast(Object.assign({ k: 'imp' }, o)), sc: 0.8, box: [200, 200, 0.75] },
   rickert: { draw: FOLK.rickert, sc: 0.8, box: FOLKBOX }, gaston: { draw: FOLK.gaston, sc: 1, box: FOLKBOX }, griffith: { draw: FOLK.griffith, sc: 0.98, box: FOLKBOX }, raider: { draw: FOLK.raider, sc: 0.92, box: FOLKBOX },
@@ -47,14 +49,14 @@ for (const [id, rig, k] of [['lzodd', 'zodd', 0.5], ['lgrun', 'grunbeld', 0.4], 
   SPEC[id] = { draw: o => BOSS[rig].draw({ P: o.mv ? bossPose(rig, 'walk', Math.round(o.walk / (Math.PI / 2)) & 3) : o.atk ? bossPose(rig, 'A', 2) : bossPose(rig, 'idle', 0), t: 1 }), sc: BOSS[rig].sc * k, box: BOSS[rig].box }
 /* apostles: every animation frame (walk, idle, each move's wind-up/strike/recover, hurt, stagger, death) per direction */
 function bossSprite(type, anim, k, dir) {
-  const key = 'B' + type + anim + k + '|' + dir; let s = SPR.get(key); if (s) return s
-  const B = BOSS[type], P = bossPose(type, anim, k); s = bake(() => B.draw({ P, t: 1 }), {}, dir * (Math.PI / 4), B.sc, B.box); SPR.set(key, s); return s
+  if (BOSS[type].onedir) dir = 2; const key = 'B' + type + anim + k + '|' + dir; let s = SPR.get(key); if (s) return s
+  const B = BOSS[type]; if (B.onedir) dir = 2; const P = bossPose(type, anim, k); s = bake(() => B.draw({ P, t: 1 }), {}, dir * (Math.PI / 4), B.sc, B.box); SPR.set(key, s); return s
 }
 for (const b in BOSS) SPEC[b] = { draw: o => BOSS[b].draw({ P: bossPose(b, 'death', 2), t: 1 }), sc: BOSS[b].sc, box: BOSS[b].box }
 /* the moment an apostle appears, queue all its frames for background baking: the ones it shows first, first */
 const bossWarm = (type, dir) => {
   const order = ['walk', 'idle', 'hurt', 'stagger', 'A', 'B', 'C', 'D', 'death']
-  for (let d = 0; d < 8; d++) { const dd = (dir + d + 8) % 8; for (const an of order) for (let k = 0; k < BFRAMES[an]; k++) WARM.push(() => bossSprite(type, an, k, dd)) }
+  for (let d = 0; d < (BOSS[type].onedir ? 1 : 8); d++) { const dd = (dir + d + 8) % 8; for (const an of order) for (let k = 0; k < BFRAMES[an]; k++) WARM.push(() => bossSprite(type, an, k, dd)) }
 }
 const SPR = new Map()
 const dirOf = a => ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8

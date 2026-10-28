@@ -32,6 +32,18 @@ const EN = {
   zodd: { hp: 1500, spd: 44, dmg: 20, r: 18, xp: 50, mass: 30, h: 100, boss: 'NOSFERATU ZODD', ai: 'apostle', sc: 1 },
   count: { hp: 1300, spd: 26, dmg: 18, r: 24, xp: 50, mass: 40, h: 80, boss: 'THE COUNT', ai: 'apostle', sc: 1 },
   grunbeld: { hp: 2600, spd: 30, dmg: 24, r: 26, xp: 90, mass: 80, h: 120, boss: 'GRUNBELD', ai: 'apostle', sc: 1 },
+  /* the kushan invasion: line infantry, archers, vanishing bakiraka, horned daka, war elephants with a howdah archer,
+     sorcerers who call up beasts; and rosine's elves swarming her valley */
+  ksoldier: { hp: 14, spd: 36, dmg: 8, r: 7, xp: 2, mass: 1.1, h: 46, sc: 0.95 },
+  karcher: { hp: 10, spd: 34, dmg: 5, r: 7, xp: 2, mass: 1, h: 46, sc: 0.95, role: 'ranged', shot: 'arrow' },
+  bakiraka: { hp: 16, spd: 62, dmg: 12, r: 7, xp: 3, mass: 1, h: 42, sc: 0.92, role: 'assassin' },
+  daka: { hp: 64, spd: 34, dmg: 15, r: 11, xp: 5, mass: 5, h: 58, sc: 1.05, role: 'charge' },
+  elephant: { hp: 280, spd: 26, dmg: 24, r: 24, xp: 16, mass: 40, h: 92, sc: 0.62, role: 'charge', howdah: 1 },
+  sorcerer: { hp: 22, spd: 30, dmg: 6, r: 7, xp: 4, mass: 1, h: 52, sc: 0.95, role: 'summon' },
+  elfling: { hp: 6, spd: 72, dmg: 5, r: 5, xp: 1, mass: 0.4, h: 30, fly: 1, sc: 0.7 },
+  wyald: { hp: 1600, spd: 46, dmg: 22, r: 20, xp: 60, mass: 40, h: 110, boss: 'WYALD', ai: 'apostle', sc: 1 },
+  silat: { hp: 900, spd: 72, dmg: 16, r: 9, xp: 50, mass: 6, h: 48, boss: 'SILAT', ai: 'apostle', sc: 1 },
+  ganishka: { hp: 5200, spd: 16, dmg: 30, r: 34, xp: 160, mass: 200, h: 200, boss: 'EMPEROR GANISHKA', ai: 'apostle', fly: 1, sc: 1 },
   rosine: { hp: 1200, spd: 50, dmg: 16, r: 14, xp: 60, mass: 15, h: 90, boss: 'ROSINE', ai: 'apostle', fly: 1, sc: 1 },
   boscogn: { hp: 1700, spd: 30, dmg: 22, r: 16, xp: 50, mass: 40, h: 64, boss: 'BOSCOGN', ai: 'axe', sc: 1.45 },
   godhand: { hp: 2400, spd: 22, dmg: 24, r: 18, xp: 80, mass: 60, h: 92, boss: 'A HAND OF GOD', ai: 'god', fly: 1, sc: 1.15 },
@@ -156,9 +168,11 @@ const BIOMES = [
   { name: 'DOLDREY', tile: 'stone', props: ['pillar', 'brazier', 'banner', 'rock', 'pillar', 'torch', 'brazier'] },
   { name: 'THE MISTY VALLEY', tile: 'field', mist: 1, props: ['tree', 'tree', 'tree', 'rock', 'tree', 'campfire', 'stake'] },
   { name: 'THE HILL OF SWORDS', tile: 'field', props: ['sword', 'sword', 'cross', 'wheel', 'tree', 'rock', 'campfire', 'torch'] },
+  /* mid-to-late: a burning midland village overrun by the kushan */
+  { name: 'THE KUSHAN INVASION', tile: 'field', kushan: 1, props: ['campfire', 'wagon', 'torch', 'banner', 'stake', 'wagon', 'campfire', 'rock'] },
 ]
 /* each biome's day boss: zodd's duel on the battlefield, boscogn at doldrey, rosine in her valley, grunbeld late on the hill */
-const DAYBOSS = ['zodd', 'boscogn', 'rosine', 'grunbeld'], NIGHTBOSS = ['wraith', 'zodd', 'godhand', 'count', 'grunbeld']
+const DAYBOSS = ['zodd', 'wyald', 'rosine', 'grunbeld', 'silat'], NIGHTBOSS = ['wraith', 'zodd', 'godhand', 'count', 'grunbeld', 'boscogn']
 
 function Game(opts) { this.opts = opts || {}; this.reset() }
 const GP = Game.prototype
@@ -223,7 +237,7 @@ GP.spawn = function (type, x, y, o) {
   if (d.boss) { g.boss = e; g.banner(d.boss, BOSSSUB[type] || '', 2.4); g.shake = Math.max(g.shake, 6) }
   g.en.push(e); return e
 }
-const BOSSSUB = { zodd: 'the immortal comes for a duel', count: 'the apostle feeds', grunbeld: 'the dragon of fire and crystal', rosine: 'the elf queen of the misty valley', boscogn: 'the tudor iron wall', godhand: 'it does not touch the ground', wraith: 'a hundred dead voices', pitlord: 'it was waiting under the sand' }
+const BOSSSUB = { wyald: 'leader of the black dog knights', silat: 'of the bakiraka, for a duel', ganishka: 'the fog takes the shape of his face', zodd: 'the immortal comes for a duel', count: 'the apostle feeds', grunbeld: 'the dragon of fire and crystal', rosine: 'the elf queen of the misty valley', boscogn: 'the tudor iron wall', godhand: 'it does not touch the ground', wraith: 'a hundred dead voices', pitlord: 'it was waiting under the sand' }
 GP.spawnRing = function (type, n, r) { for (let i = 0; i < n; i++) { const a = (i / n) * TAU; this.spawn(type, this.p.x + Math.cos(a) * r, this.p.y + Math.sin(a) * r) } }
 GP.rateSpawn = function (dt, rate, pick, cap) {
   const g = this; if (g.en.length >= (cap || 190) + Math.min(120, g.t / 5)) return
@@ -233,7 +247,7 @@ GP.rateSpawn = function (dt, rate, pick, cap) {
 /* ---------- damage, death and gore ---------- */
 GP.damage = function (e, dmg, kx, ky, kb, o) {
   const g = this; if (e.dead) return; o = o || {}
-  const crit = g.R() < g.p.crit; dmg *= g.p.might * g.dmgMul() * (crit ? 2 : 1) * (e.mut === 'iron' ? 0.6 : 1); if (!(dmg < 1e300)) dmg = 1e300
+  const crit = g.R() < g.p.crit; dmg *= g.p.might * g.dmgMul() * (crit ? 2 : 1) * (e.mut === 'iron' ? 0.6 : 1) * (e.type === 'ganishka' ? (e.weakT > 0 ? 2.5 : 0.15) : 1); if (!(dmg < 1e300)) dmg = 1e300
   g.dmgAcc = (g.dmgAcc || 0) + Math.min(dmg, Math.max(0, e.hp)); e.hp -= dmg; e.flash = 0.09
   if (kb) { const l = Math.hypot(kx, ky) || 1, m = Math.sqrt(e.d.mass); e.kx += (kx / l) * kb / m; e.ky += (ky / l) * kb / m }
   if ((dmg >= 10 && !o.quiet && g.texts.length < 36) || crit) g.text(e.x + (g.R() - 0.5) * 6, e.y, e.d.h + 2, fmtN(dmg), crit ? 'crit' : 'dmg')
@@ -454,6 +468,7 @@ GP.updateWorld = function (dt) {
   if (ph.k === 'night') {
     if (g.nightN === 1) { /* the eclipse runs its own waves and lords (eclipseTick) */ }
     else if (g.pit) g.once('pit' + g.nightN, ph.u > 0.06, () => { const b = g.bounds; g.bounds = null; const e = g.spawn('pitlord', g.p.x, g.p.y - 140); g.bounds = b; e.hp = e.maxHp = 1300 + g.nightN * 500 })
+    else if (BIOMES[(g.nightN - 1) % BIOMES.length].kushan) g.once('ganishka' + g.nightN, ph.u > 0.25, () => { g.spawn('ganishka', g.p.x, g.p.y - 150); g.flash('#efe8da', 0.8); g.banner('EMPEROR GANISHKA', 'strike between the eyes when they open', 3) })
     else g.once('nboss' + g.nightN, ph.u > 0.45, () => { g.spawn(NIGHTBOSS[(g.nightN - 2) % NIGHTBOSS.length]); g.flash('#efe8da', 0.5) })
     if (g.skRoll) { g.skT -= dt; if (g.skT <= 0) { g.skRoll = false; g.skullKnight() } }
   }
@@ -494,7 +509,10 @@ GP.spawnTick = function (dt) {
   const sp = Math.min(0.4, 0.08 + t / 2500)
   if (g.eclipseOn()) g.eclipseTick(dt, ph)
   else if (g.pit) { const w = g.nightN; g.rateSpawn(dt, 1.3 + w * 0.3 + ph.u * 3, r => (r < 0.25 ? 'crawler' : r < 0.45 ? 'troll' : r < 0.6 ? 'imp' : r < 0.7 ? 'hound' : r < 0.85 ? 'knight' : 'ghost'), 150 + w * 10) }
+  else if (n > 0.5 && BIOMES[(g.dayN - 1) % BIOMES.length].kushan) g.rateSpawn(dt, 2.6 + t * 0.03, r => (r < 0.3 ? 'daka' : r < 0.5 ? 'hound' : r < 0.62 ? 'sorcerer' : r < 0.8 ? 'ghost' : 'imp'), 220)
   else if (n > 0.5) g.rateSpawn(dt, 2.6 + t * 0.03, r => (r < sp ? (r < sp / 2 ? 'hound' : 'spitter') : r < 0.6 ? 'ghost' : r < 0.82 ? 'imp' : r < 0.93 ? 'crawler' : 'troll'), 220)
+  else if (ph.k === 'day' && g.biome().kushan) g.rateSpawn(dt, (1.3 + t * 0.045) * (g.boss && g.boss.type === 'silat' ? 0.35 : 1), r => (r < 0.34 ? 'ksoldier' : r < 0.54 ? 'karcher' : r < 0.64 ? 'bakiraka' : r < 0.8 ? 'daka' : r < 0.9 ? 'sorcerer' : r < 0.95 ? 'elephant' : 'ksoldier'))
+  else if (ph.k === 'day' && g.biome().mist && g.R() < 0.35) g.rateSpawn(dt, 0.5 + t * 0.01, () => 'elfling')
   else if (ph.k === 'day') g.rateSpawn(dt, 1.3 + t * 0.045, d === 1 ? r => (t < 35 ? 'soldier' : r < 0.6 ? 'soldier' : r < 0.75 ? 'archer' : r < 0.82 ? 'lancer' : 'knight') : r => (r < sp ? (r < sp / 2 ? 'lancer' : 'archer') : r < 0.35 ? 'soldier' : r < 0.55 ? 'knight' : r < 0.8 ? 'crawler' : 'troll'))
 }
 /* the eclipse: apostles flood in from every side in waves, with two lesser apostle lords as mini-bosses */
@@ -520,7 +538,8 @@ GP.step = function (dt) {
   let slow = 1; for (const f of g.fx) if ((f.kind === 'acid' || f.kind === 'dust') && Math.hypot(p.x - f.x, p.y - f.y) < f.rad) slow = Math.min(slow, f.kind === 'acid' ? 0.5 : 0.6)
   const spd = p.spd * g.spdMul() * slow; p.moving = il > 0.15
   /* input is in screen space; the ground is squashed, so vertical screen motion covers more ground */
-  if (p.moving) { p.x += ix * spd * dt; p.y += (iy * spd * dt) / Math.sqrt(CAM.ky); p.walk += dt * spd * 0.12; if (!p.swing && !p.spin) p.face = Math.atan2(iy, ix); p.mdx = ix / (il || 1); p.mdy = iy / (il || 1) }
+  if (p.held > 0) { p.held -= dt; p.moving = false }
+  else if (p.moving) { p.x += ix * spd * dt; p.y += (iy * spd * dt) / Math.sqrt(CAM.ky); p.walk += dt * spd * 0.12; if (!p.swing && !p.spin) p.face = Math.atan2(iy, ix); p.mdx = ix / (il || 1); p.mdy = iy / (il || 1) }
   if (p.dash) { p.x += p.dash.vx * dt; p.y += p.dash.vy * dt; p.dash.t -= dt; if (p.dash.t <= 0) p.dash = null }
   if (g.bounds) { p.x = clamp(p.x, g.bounds.x0 + 10, g.bounds.x1 - 10); p.y = clamp(p.y, g.bounds.y0 + 10, g.bounds.y1 - 10) }
   if (p.inv > 0) p.inv -= dt; if (p.hurtT > 0) p.hurtT -= dt; if (p.regen) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt)
@@ -562,7 +581,7 @@ GP.updateEnemies = function (dt) {
   for (let i = 0; i < en.length; i++) { const e = en[i], cx = Math.floor((e.x - ox) / CS), cy = Math.floor((e.y - oy) / CS); e._c = -1; if (cx < 0 || cy < 0 || cx >= GW || cy >= GH) continue; const c = cy * GW + cx; e._c = c; g.gridN[i] = g.gridH[c]; g.gridH[c] = i }
   for (let i = 0; i < en.length; i++) {
     const e = en[i]; if (e.dead) continue; const d = e.d
-    e.anim += dt * (d.fly ? 7 : e.spd * 0.11); if (e.flash > 0) e.flash -= dt; if (e.flinch > 0) e.flinch -= dt; if (e.burst) e.burst *= Math.pow(0.3, dt)
+    e.anim += dt * (d.fly ? 7 : e.spd * 0.11); if (e.flash > 0) e.flash -= dt; if (e.weakT > 0) e.weakT -= dt; if (e.flinch > 0) e.flinch -= dt; if (e.burst) e.burst *= Math.pow(0.3, dt)
     const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1
     if (e.stun > 0) e.stun -= dt
     else if (d.ai) BOSSAI[d.ai](g, e, dt, dx, dy, dist)
@@ -587,6 +606,18 @@ GP.updateEnemies = function (dt) {
 /* ranged foes hold a ring around guts and loose after a visible draw; chargers stop, lock a line, then run it.
    e.rs is the state (0 move, 1 wind-up, 2 charging, 3 recover); e.aim the locked angle the telegraph draws */
 const ROLE = {
+  /* the bakiraka close in, vanish, and reappear just behind you for a quick lunge */
+  assassin(g, e, dt, dx, dy, dist) {
+    if (e.vanish > 0) { if ((e.vanish -= dt) <= 0) { const b = g.p.face + Math.PI + (g.R() - 0.5); e.x = g.p.x + Math.cos(b) * 46; e.y = g.p.y + Math.sin(b) * 36; e.rs = 1; e.wind = 0.4; e.aim = Math.atan2(g.p.y - e.y, g.p.x - e.x) } return }
+    if (!e.rs && (e.cd = (e.cd == null ? 1 + g.R() * 2 : e.cd) - dt) <= 0 && dist < 150) { e.vanish = 1.1; e.cd = 4 + g.R() * 2; return }
+    ROLE.charge(g, e, dt, dx, dy, dist)
+  },
+  /* sorcerers keep their distance and, after a visible chant, call up a pair of pishacha */
+  summon(g, e, dt, dx, dy, dist) {
+    const want = dist > 200 ? 1 : dist < 140 ? -0.8 : 0; e.x += (dx / dist) * want * e.spd * dt; e.y += (dy / dist) * want * e.spd * dt
+    if ((e.cd = (e.cd == null ? 2 + g.R() * 3 : e.cd) - dt) <= 0) { e.cd = 7; e.chant = 0.9; g.fx.push({ kind: 'boom', x: e.x, y: e.y, rad: 26, t: 0, d: 0.9 }) }
+    if (e.chant > 0 && (e.chant -= dt) <= 0) for (let i = 0; i < 2; i++) { const a = g.R() * TAU; g.spawn('hound', e.x + Math.cos(a) * 24, e.y + Math.sin(a) * 18) }
+  },
   ranged(g, e, dt, dx, dy, dist) {
     e.cd = (e.cd == null ? 1 + g.R() * 2 : e.cd) - dt
     const want = dist > 175 ? 1 : dist < 115 ? -0.8 : 0, sw = Math.sin(g.t * 0.7 + e.ph) * 0.6
@@ -598,6 +629,8 @@ const ROLE = {
   },
   charge(g, e, dt, dx, dy, dist) {
     e.cd = (e.cd == null ? g.R() * 2 : e.cd) - dt
+    /* the war elephant's howdah archer shoots while the beast lumbers on */
+    if (e.d.howdah && (e.hcd = (e.hcd == null ? 2 : e.hcd) - dt) <= 0 && dist < 260) { e.hcd = 2.6; const an = Math.atan2(dy, dx); g.eb.push({ x: e.x, y: e.y, vx: Math.cos(an) * 175, vy: Math.sin(an) * 175, life: 2, r: 3, dmg: 10, kind: 'arrow' }) }
     if (!e.rs) { e.x += (dx / dist) * e.spd * dt; e.y += (dy / dist) * e.spd * dt; if (e.cd <= 0 && dist < 160) { e.rs = 1; e.wind = 0.65; e.aim = Math.atan2(dy, dx) } }
     else if (e.rs === 1) { if ((e.wind -= dt) <= 0) { e.rs = 2; e.wind = 0.55 } }
     else if (e.rs === 2) { const v = 290 + e.spd; e.x += Math.cos(e.aim) * v * dt; e.y += Math.sin(e.aim) * v * dt; if ((e.wind -= dt) <= 0) { e.rs = 3; e.wind = 0.9 } }

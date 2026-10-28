@@ -132,7 +132,9 @@ function drawWorld(g, st) {
     if (it.lit || it.smoke) { blit(it.s, st, it.x, it.y, 0, 1); const x = SX(it.x), y = SY(it.y) - (it.lit || LIT.torch).z; if (it.lit) flame(x, y + 2, it.lit.s, st, it.seed, g.rt); else { ctx.fillStyle = st === 'ink' ? '#0e0d0c' : '#5c5a5a'; for (let k = 0; k < 3; k++) ctx.fillRect(x + Math.round(Math.sin(g.rt * 2 + k) * 2), y - 3 - ((g.rt * 8 + k * 5) % 14), 1, 1) } continue }
     if (it.e && it.e.lantern) { blit(it.s, st, it.x, it.y, 0, 1, it.e.flash > 0); const x = SX(it.x + Math.cos(it.e.face + 1.2) * 8), y = SY(it.y + Math.sin(it.e.face + 1.2) * 8) - 16; ctx.fillStyle = '#1e140e'; ctx.fillRect(x - 2, y - 3, 4, 5); ctx.fillStyle = st === 'ink' ? '#efe8da' : '#ffd890'; ctx.fillRect(x - 1, y - 2, 2, 3); continue }
     if (it.a) { blit(it.s, st, it.x, it.y, it.a.z || 0, it.a.fade ? 1 - it.a.fade : it.a.down > 0 ? 0.35 : 1); if (it.a.brand) { const x = SX(it.x), y = SY(it.y) - it.s.py + it.s.top - 12; ctx.save(); ctx.translate(x, y); ctx.shadowColor = '#ff2a10'; ctx.shadowBlur = 6; ctx.fillStyle = '#ff4020'; ctx.fill(BRAND2D); ctx.restore() } continue }
-    blit(it.s, st, it.x, it.y, it.z || 0, it.e && it.e.flee ? 0.6 : 1, it.e && it.e.flash > 0)
+    blit(it.s, st, it.x, it.y, it.z || 0, it.e && it.e.vanish > 0 ? 0.12 : it.e && it.e.flee ? 0.6 : 1, it.e && it.e.flash > 0)
+    /* ganishka's weak point: while his eyes are open a gold-red diamond pulses between them */
+    if (it.e && it.e.type === 'ganishka' && it.e.weakT > 0) { const x = SX(it.x), y = SY(it.y) - it.s.py + it.s.top + Math.round(it.s.h * 0.2), r = 3 + (Math.sin(g.rt * 14) > 0 ? 1 : 0); ctx.fillStyle = '#ffe8b0'; for (let k = -r; k <= r; k++) ctx.fillRect(x - (r - Math.abs(k)), y + k, (r - Math.abs(k)) * 2 + 1, 1); ctx.fillStyle = '#d0281a'; ctx.fillRect(x - 1, y - 1, 3, 3) }
   }
   /* projectiles and enemy fire */
   for (const q of g.pr) {

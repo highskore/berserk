@@ -36,7 +36,7 @@ function altarHud(g, dt) {
   /* the boss cast bar: the move being wound up, and how close it is to landing */
   const b = g.boss, P = b && b.ai && b.ai.plan; hudSet($('cast'), 'hide', !P); if (P) { const t0 = (P.st.find(s => !s.done) || P.st[P.st.length - 1] || { t: P.dur }).t; hudSet($('castn'), 'text', castName(b)); $('castb').style.width = pct(b.ai.t / Math.max(0.01, t0)) }
 }
-const CASTN = { zoddA: 'Goring Charge', zoddB: 'Skyfall', zoddC: 'Gore', zoddD: 'Blade Ring', grunbeldA: 'Fire Breath', grunbeldB: 'Crystal Rain', grunbeldC: 'Tail Sweep', grunbeldD: 'Dragon Leap', countA: 'Slug Crush', countB: 'Tentacle Lash', countC: 'Bile', countD: 'Devour', rosineA: 'Lance Dive', rosineB: 'Wing Dust', rosineC: 'Proboscis', rosineD: 'Swarm' }
+const CASTN = { wyaldA: 'Chest Maw', wyaldB: 'Ground Pound', wyaldC: 'Leap', wyaldD: 'Swipe', silatA: 'Urumi Lash', silatB: 'Chakrams', silatC: 'Katar Dash', silatD: 'Vanish', ganishkaA: 'Lightning Rain', ganishkaB: 'Thunder Lanes', ganishkaC: 'Storm Ring', ganishkaD: 'Fog Beasts', zoddA: 'Goring Charge', zoddB: 'Skyfall', zoddC: 'Gore', zoddD: 'Blade Ring', grunbeldA: 'Fire Breath', grunbeldB: 'Crystal Rain', grunbeldC: 'Tail Sweep', grunbeldD: 'Dragon Leap', countA: 'Slug Crush', countB: 'Tentacle Lash', countC: 'Bile', countD: 'Devour', rosineA: 'Lance Dive', rosineB: 'Wing Dust', rosineC: 'Proboscis', rosineD: 'Swarm' }
 const castName = b => CASTN[b.type + b.ai.k] || 'Winding up'
 
 /* ---------- gear screen: a paper doll with five slots, stats, a pack grid, and a tooltip that compares ---------- */

@@ -4,8 +4,6 @@ The Black Swordsman as an endless survivor roguelike: golden age paint by day, a
 
 Move with WASD or the arrow keys, or drag anywhere on a phone. The Dragonslayer swings on its own; P pauses. Day 1 is the golden age with the Hawks, the first night is the Eclipse, then Brand nights forever. Nothing is saved: each visit starts fresh.
 
-> An unofficial fan work. Berserk and all of its characters are the creation of Kentaro Miura (1966–2021) and belong to their rights holders. Everything here is drawn by code; no art from the manga or anime is used.
-
 ## Building
 
 The game is one self-contained HTML page with no dependencies:

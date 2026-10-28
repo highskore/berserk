@@ -119,3 +119,7 @@
     .panel .tw { width: auto; height: auto } .panel .links { display: none } .panel .tn { position: static; display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 0; border-bottom: 1px solid #ffffff1c; text-align: left } .panel .tn img { width: 44px; height: 44px; flex: none }
     .panel .tn span { width: auto; margin: 0; flex: 1; font-size: 15px } .panel .tn em { position: static; background: none } .panel .tn .plus { display: block; font-style: normal; width: 36px; height: 36px; line-height: 34px; text-align: center; border: 1px solid #a8843c } .panel .btn.close { position: static; width: 100%; margin-top: 12px }
   }
+
+  /* while the eclipse sun crowns the screen: the timer sits in its black disc, the title just under the corona, the boss below */
+  #hud.sun .tc { top: calc(var(--sunY) - 15px) } #hud.sun .tc b { color: #ffe8b0 } #hud.sun .tc span { margin-top: calc(var(--sunR) * 0.8 - 6px) }
+  #hud.sun #boss { top: calc(var(--sunY) + var(--sunR) * 1.8 + 24px) }

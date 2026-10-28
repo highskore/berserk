@@ -300,42 +300,67 @@ function render(dt) {
   const sf = g.sense >= 2 ? 'grayscale(1) brightness(.72) blur(1px)' : g.sense === 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== sf) cv.style.filter = sf
 }
 /* the eclipse, unmistakable: the world goes black and blood-red (ink re-inked through a crimson multiply), and a small
-   pixel-art black sun hangs in the sky clear of the hud, its corona in dithered bands of the game's gold, orange and blood,
-   chunky flares flickering through four baked frames, the five of the god hand standing in silhouette beneath it */
+   pixel-art black sun hangs in the sky clear of the hud. its corona is three dithered bands of the game's gold, orange
+   and blood; long stepped rays, alternating long and short, flicker through four baked frames. the five of the god hand
+   stand beneath it as hand-placed pixel silhouettes, femto in the middle, largest, wings spread and rim-lit */
 const ECOL = ['#ffe8b0', '#f8a048', '#d0281a', '#7e1616'], BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
-let ESUN = null, GODSIL = null
+let ESUN = null, GODS = null
 function eclipseSun(r) {
-  const fl = Math.round(r * 2.7), S = fl * 2 + 1, frames = []
+  const fl = Math.round(r * 3.8), S = fl * 2 + 1, frames = []
   for (let fr = 0; fr < 4; fr++) {
     const c = mkCanvas(S, S), x = c.getContext('2d'), img = x.createImageData(S, S), d = img.data
-    const flare = Array.from({ length: 12 }, (_, i) => ({ a: (i / 12) * TAU + (h1(i * 7 + fr) - 0.5) * 0.25, l: r * (2 + 0.7 * h1(i * 13 + fr * 5)), w: 0.12 + 0.08 * h1(i + fr * 3) }))
+    const rays = Array.from({ length: 16 }, (_, i) => ({ a: (i / 16) * TAU + 0.1, l: r * ((i & 1 ? 2.4 : 3.6) - 0.3 * h1(i * 13 + fr * 5)) }))
     const put = (i, hex) => { const v = parseInt(hex.slice(1), 16); d[i] = v >> 16; d[i + 1] = (v >> 8) & 255; d[i + 2] = v & 255; d[i + 3] = 255 }
     for (let py = 0; py < S; py++) for (let px = 0; px < S; px++) {
       const dx = px - fl, dy = py - fl, dist = Math.hypot(dx, dy), i = (py * S + px) * 4, th = (BAYER[(py & 3) * 4 + (px & 3)] + 0.5) / 16
       if (dist <= r) { put(i, dist > r - 1 ? '#2a0604' : '#050303'); continue }
-      /* corona: three bands, each dithered into the next with a bayer threshold */
-      const u = (dist - r) / (r * 0.95)
-      if (u < 1) { const band = u * 3, k = Math.floor(band), f2 = band - k; put(i, ECOL[f2 > th ? k + 1 : k]); continue }
-      /* flares: chunky 2px wedges beyond the corona */
-      const cx2 = (px >> 1) * 2 - fl, cy2 = (py >> 1) * 2 - fl, cd = Math.hypot(cx2, cy2), ca = Math.atan2(cy2, cx2)
-      for (const F of flare) { let da = Math.abs(((ca - F.a + 3 * Math.PI) % TAU) - Math.PI); if (cd < F.l && da < F.w * (1 - (cd - r) / (F.l - r))) { put(i, cd < r * 2.1 ? ECOL[1] : (cd / F.l > th ? ECOL[3] : ECOL[2])); break } }
+      const u = (dist - r) / (r * 0.8)
+      if (u < 1) { const band = u * 3, k = Math.floor(band); put(i, ECOL[band - k > th ? k + 1 : k]); continue }
+      /* the rays: 2px-stepped wedges, two cells wide at the root narrowing to one, dithered gold to blood along their length */
+      const cx2 = (px >> 1) * 2 + 1 - fl, cy2 = (py >> 1) * 2 + 1 - fl, cd = Math.hypot(cx2, cy2), ca = Math.atan2(cy2, cx2)
+      for (const R of rays) { const da = Math.abs(angDiff(R.a, ca)), half = (cd < r * 2 ? 2.6 : 1.8) / cd; if (cd < R.l && da < half) { const v = (cd - r * 1.8) / (R.l - r * 1.8); put(i, v < 0 ? ECOL[1] : ECOL[v > th ? 3 : 2]); break } }
     }
     x.putImageData(img, 0, 0); frames.push(c)
   }
   return { r, fl, frames }
+}
+/* the god hand in pixels, about 18-34px tall each, drawn by hand with a few primitives: black bodies, crimson for void's
+   brain, dull gold for ubik's glasses, red eyes, and a pale rim along femto's helm and wings */
+function godHand() {
+  const W2 = 150, H2 = 44, c = mkCanvas(W2, H2), x = c.getContext('2d'), K = '#050303', px = (X, Y, w, h, col) => { x.fillStyle = col || K; x.fillRect(Math.round(X), Math.round(Y), w || 1, h || 1) }
+  const ell = (cx, cy, rx, ry, col) => { for (let y = -ry; y <= ry; y++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry)))); px(cx - w, cy + y, w * 2 + 1, 1, col) } }
+  const trap = (cx, y0, y1, w0, w1, col) => { for (let y = y0; y <= y1; y++) { const w = Math.round(w0 + (w1 - w0) * ((y - y0) / Math.max(1, y1 - y0))); px(cx - w, y, w * 2 + 1, 1, col) } }
+  const eyes = (cx, y, gap) => { px(cx - gap, y, 1, 1, '#ff3a1a'); px(cx + gap, y, 1, 1, '#ff3a1a') }
+  const G = H2 - 1
+  /* conrad: squat, lumpy, hooded, two low eyes */
+  trap(12, G - 16, G, 4, 9); ell(12, G - 15, 6, 5); for (const [dx, dy, r] of [[-7, -9, 2], [6, -11, 2], [-5, -3, 2], [8, -4, 2], [0, -17, 2]]) ell(12 + dx, G + dy, r, r); px(11, G - 22, 2, 3); eyes(12, G - 13, 2)
+  /* void: tall robe, an oversized bare brain with folds, stitched eyelids, long thin hands */
+  const VX = 36; trap(VX, G - 20, G, 3, 8); ell(VX, G - 25, 8, 7, '#3a0a08'); for (const [dx, dy] of [[-4, -29], [2, -30], [-1, -26], [4, -25], [-5, -23]]) px(VX + dx, G + dy, 3, 1, '#1a0403'); trap(VX, G - 21, G - 18, 4, 5)
+  px(VX - 3, G - 20, 7, 1, '#7e1616'); for (let k = 0; k < 3; k++) px(VX - 3 + k * 3, G - 21, 1, 3, '#7e1616'); px(VX - 9, G - 14, 1, 7); px(VX + 9, G - 14, 1, 7)
+  /* femto: centred, largest: hawk-beaked helm, slim body and cape, big dark wings spread with feathered tips, pale rim light */
+  const FX = 75
+  for (const sd of [-1, 1]) for (let k = 0; k < 7; k++) { const x0 = FX + sd * (4 + k * 3), top = G - 34 + k * 2, len = 10 + (k < 4 ? k * 2 : 14 - k); px(sd > 0 ? x0 : x0 - 3, top, 4, len); px(sd > 0 ? x0 + 1 : x0 - 2, top + len, 2, 2 + (k & 1)); px(sd > 0 ? x0 : x0 - 3, top, 4, 1, '#8a6a48') }
+  trap(FX, G - 22, G, 3, 7); ell(FX, G - 26, 4, 4); px(FX + 3, G - 27, 4, 2); px(FX + 6, G - 26, 2, 1); for (const sd of [-1, 1]) px(FX + sd * 3, G - 31, 1, 3)
+  px(FX - 4, G - 30, 8, 1, '#c8a070'); px(FX + 3, G - 28, 4, 1, '#c8a070'); eyes(FX + 1, G - 26, 1)
+  /* slan: female, long hair to the waist, small horns, batlike membrane wings with a scalloped hem */
+  const SX2 = 112
+  for (const sd of [-1, 1]) for (let k = 0; k < 9; k++) { const h = 14 - Math.abs(k - 3) * 1.4 - (k % 3 === 2 ? 2 : 0); px(SX2 + sd * (3 + k) - (sd < 0 ? 0 : 0), G - 26 + k, 1, Math.max(2, Math.round(h))) }
+  trap(SX2, G - 17, G - 9, 2, 1); trap(SX2, G - 9, G, 1, 4); ell(SX2, G - 21, 3, 3); trap(SX2, G - 22, G - 12, 3, 4); px(SX2 - 3, G - 26, 1, 2); px(SX2 + 3, G - 26, 1, 2); eyes(SX2, G - 21, 1)
+  /* ubik: the smallest, an egg floating above the ground, glasses fused to his face, stubby arms */
+  const UX = 139, UY = G - 10; ell(UX, UY - 6, 5, 7); px(UX - 7, UY - 6, 2, 1); px(UX + 6, UY - 6, 2, 1)
+  for (const sd of [-1, 1]) { px(UX + sd * 2 - 1, UY - 10, 3, 1, '#d0a850'); px(UX + sd * 2 - 1, UY - 8, 3, 1, '#d0a850'); px(UX + sd * 2 - 1, UY - 9, 1, 1, '#d0a850'); px(UX + sd * 2 + 1, UY - 9, 1, 1, '#d0a850') }
+  px(UX - 3, G - 1, 7, 1, '#2a0604')
+  return { c, w: W2, h: H2, fx: FX }
 }
 function drawEclipse(g, ph, st) {
   const k = ph.night === 1 ? (ph.k === 'dusk' ? ph.u : ph.k === 'night' ? 1 : ph.k === 'dawn' ? 1 - ph.u : 0) : 0; if (k <= 0) return
   if (st === 'ink' && g.eclipseOn()) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#c42a1c'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over' }
   else { ctx.globalAlpha = 0.55 * k; ctx.fillStyle = '#2a0604'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
   /* about a sixth of the screen tall, at whole internal pixels: left of the boss bar on a wide screen, under it on a tall one */
-  const r = Math.max(6, Math.round(H * 0.034)); if (!ESUN || ESUN.r !== r) ESUN = eclipseSun(r)
-  const tall = H > W, cx = Math.round(tall ? W * 0.2 : W * 0.27), cy = Math.round(tall ? H * 0.2 : H * 0.15)
-  if (!GODSIL) { const sp = bake(o => drawGodhand(o), { t: 0.4 }, 2 * (Math.PI / 4), 0.42, [200, 280, 0.78]), c = mkCanvas(sp.w, sp.h), x = c.getContext('2d'); x.drawImage(sp.golden, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#050303'; x.fillRect(0, 0, sp.w, sp.h); GODSIL = { c, sp } }
+  const r = Math.max(6, Math.round(H * 0.034)); if (!ESUN || ESUN.r !== r) ESUN = eclipseSun(r); if (!GODS) GODS = godHand()
+  const tall = H > W, cx = Math.round(tall ? W * 0.32 : W * 0.25), cy = Math.round(tall ? H * 0.28 : H * 0.17)
   ctx.globalAlpha = k; ctx.drawImage(ESUN.frames[Math.floor(g.rt * 5) & 3], cx - ESUN.fl, cy - ESUN.fl)
-  const { c, sp } = GODSIL, base = cy + Math.round(r * 2.9)
-  for (const dx of [-2, -1, 0, 1, 2]) { const x = cx + dx * Math.round(sp.w * 0.8) - (sp.w >> 1), y = base - sp.h - (dx === 0 ? 3 : Math.abs(dx) === 2 ? -2 : 0); ctx.drawImage(c, x, y); ctx.fillStyle = '#ff3a1a'; const ey = y + Math.round(sp.h * 0.18), ex = x + (sp.w >> 1); ctx.fillRect(ex - 1, ey, 1, 1); ctx.fillRect(ex + 1, ey, 1, 1) }
-  ctx.globalAlpha = 1
+  ctx.drawImage(GODS.c, cx - GODS.fx, cy + Math.round(r * 3.4) - GODS.h); ctx.globalAlpha = 1
 }
 
 /* ---------- hud: the brand sigil (hud.css). state rides on classes: ink, night, sense, hot brand, frenzy, hit, level-up ---------- */

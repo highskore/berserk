@@ -1,6 +1,6 @@
-// Builds public/berserk.html — the Berserk survivor as one self-contained file — from the sources in berserk/.
-// /berserk is rewritten to it in next.config.js. Run: pnpm build:berserk
-import { readFileSync, writeFileSync } from 'node:fs'
+// Builds dist/berserk.html — the Berserk survivor as one self-contained file — from the sources here.
+// Run: node build.mjs (highskore.com copies the result to its public/berserk.html, served at /berserk).
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -27,5 +27,6 @@ const head = `<!doctype html>
 <meta property="og:type" content="website">
 `
 
-writeFileSync(join(here, '..', 'public', 'berserk.html'), head + page.slice(0, split) + '\n</head>\n<body>\n' + page.slice(split) + '\n</body>\n</html>\n')
-console.log('public/berserk.html written')
+mkdirSync(join(here, 'dist'), { recursive: true })
+writeFileSync(join(here, 'dist', 'berserk.html'), head + page.slice(0, split) + '\n</head>\n<body>\n' + page.slice(split) + '\n</body>\n</html>\n')
+console.log('dist/berserk.html written')

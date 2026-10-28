@@ -299,43 +299,42 @@ function render(dt) {
   /* sense loss works on the world only (the hud is dom over the canvas and keeps its colours): grey, then dim and blurred */
   const sf = g.sense >= 2 ? 'grayscale(1) brightness(.72) blur(1px)' : g.sense === 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== sf) cv.style.filter = sf
 }
-/* the eclipse, unmistakable: the world goes black and blood-red (ink re-inked through a crimson multiply), and a small
-   pixel-art black sun hangs in the sky clear of the hud, its corona in dithered bands of the game's gold, orange and blood,
-   chunky flares flickering through four baked frames, the five of the god hand standing in silhouette beneath it */
+/* the eclipse, unmistakable: the world goes black and blood-red (ink re-inked through a crimson multiply), and a pixel-art
+   black sun crowns the top of the screen: the timer sits in its disc, the title and the boss stack beneath it. its corona is
+   three dithered bands of the game's gold, orange and blood; long stepped rays fan up and out (only short ones point down,
+   so nothing crosses the text below), flickering through four baked frames */
 const ECOL = ['#ffe8b0', '#f8a048', '#d0281a', '#7e1616'], BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
-let ESUN = null, GODSIL = null
+let ESUN = null
 function eclipseSun(r) {
-  const fl = Math.round(r * 2.7), S = fl * 2 + 1, frames = []
+  const fl = Math.round(r * 3.8), S = fl * 2 + 1, frames = []
   for (let fr = 0; fr < 4; fr++) {
     const c = mkCanvas(S, S), x = c.getContext('2d'), img = x.createImageData(S, S), d = img.data
-    const flare = Array.from({ length: 12 }, (_, i) => ({ a: (i / 12) * TAU + (h1(i * 7 + fr) - 0.5) * 0.25, l: r * (2 + 0.7 * h1(i * 13 + fr * 5)), w: 0.12 + 0.08 * h1(i + fr * 3) }))
+    const rays = Array.from({ length: 16 }, (_, i) => { const a = (i / 16) * TAU + 0.1, down = Math.sin(a) > 0.25; return { a, l: r * (down ? 1.95 : (i & 1 ? 2.4 : 3.6) - 0.3 * h1(i * 13 + fr * 5)) } })
     const put = (i, hex) => { const v = parseInt(hex.slice(1), 16); d[i] = v >> 16; d[i + 1] = (v >> 8) & 255; d[i + 2] = v & 255; d[i + 3] = 255 }
     for (let py = 0; py < S; py++) for (let px = 0; px < S; px++) {
       const dx = px - fl, dy = py - fl, dist = Math.hypot(dx, dy), i = (py * S + px) * 4, th = (BAYER[(py & 3) * 4 + (px & 3)] + 0.5) / 16
       if (dist <= r) { put(i, dist > r - 1 ? '#2a0604' : '#050303'); continue }
-      /* corona: three bands, each dithered into the next with a bayer threshold */
-      const u = (dist - r) / (r * 0.95)
-      if (u < 1) { const band = u * 3, k = Math.floor(band), f2 = band - k; put(i, ECOL[f2 > th ? k + 1 : k]); continue }
-      /* flares: chunky 2px wedges beyond the corona */
-      const cx2 = (px >> 1) * 2 - fl, cy2 = (py >> 1) * 2 - fl, cd = Math.hypot(cx2, cy2), ca = Math.atan2(cy2, cx2)
-      for (const F of flare) { let da = Math.abs(((ca - F.a + 3 * Math.PI) % TAU) - Math.PI); if (cd < F.l && da < F.w * (1 - (cd - r) / (F.l - r))) { put(i, cd < r * 2.1 ? ECOL[1] : (cd / F.l > th ? ECOL[3] : ECOL[2])); break } }
+      const u = (dist - r) / (r * 0.8)
+      if (u < 1) { const band = u * 3, k = Math.floor(band); put(i, ECOL[band - k > th ? k + 1 : k]); continue }
+      /* the rays: 2px-stepped wedges, two cells wide at the root narrowing to one, dithered gold to blood along their length */
+      const cx2 = (px >> 1) * 2 + 1 - fl, cy2 = (py >> 1) * 2 + 1 - fl, cd = Math.hypot(cx2, cy2), ca = Math.atan2(cy2, cx2)
+      for (const R of rays) { const da = Math.abs(angDiff(R.a, ca)), half = (cd < r * 2 ? 2.6 : 1.8) / cd; if (cd < R.l && da < half) { const v = (cd - r * 1.8) / (R.l - r * 1.8); put(i, v < 0 ? ECOL[1] : ECOL[v > th ? 3 : 2]); break } }
     }
     x.putImageData(img, 0, 0); frames.push(c)
   }
   return { r, fl, frames }
 }
+let SUNCSS = ''
 function drawEclipse(g, ph, st) {
-  const k = ph.night === 1 ? (ph.k === 'dusk' ? ph.u : ph.k === 'night' ? 1 : ph.k === 'dawn' ? 1 - ph.u : 0) : 0; if (k <= 0) return
+  const k = ph.night === 1 ? (ph.k === 'dusk' ? ph.u : ph.k === 'night' ? 1 : ph.k === 'dawn' ? 1 - ph.u : 0) : 0
+  /* the hud's top stack makes room for the sun while it hangs there */
+  const on = k > 0, r = Math.max(8, Math.round(H * 0.05)), cy = Math.round(r * 1.95) + 3, sc = cv.clientHeight / H
+  const css = on ? (cy * sc).toFixed(1) + ',' + (r * sc).toFixed(1) : ''; if (css !== SUNCSS) { SUNCSS = css; const h = $('hud'); if (on) { h.style.setProperty('--sunY', (cy * sc).toFixed(1) + 'px'); h.style.setProperty('--sunR', (r * sc).toFixed(1) + 'px') } }
+  if (!on) return
   if (st === 'ink' && g.eclipseOn()) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#c42a1c'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over' }
   else { ctx.globalAlpha = 0.55 * k; ctx.fillStyle = '#2a0604'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
-  /* about a sixth of the screen tall, at whole internal pixels: left of the boss bar on a wide screen, under it on a tall one */
-  const r = Math.max(6, Math.round(H * 0.034)); if (!ESUN || ESUN.r !== r) ESUN = eclipseSun(r)
-  const tall = H > W, cx = Math.round(tall ? W * 0.2 : W * 0.27), cy = Math.round(tall ? H * 0.2 : H * 0.15)
-  if (!GODSIL) { const sp = bake(o => drawGodhand(o), { t: 0.4 }, 2 * (Math.PI / 4), 0.42, [200, 280, 0.78]), c = mkCanvas(sp.w, sp.h), x = c.getContext('2d'); x.drawImage(sp.golden, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#050303'; x.fillRect(0, 0, sp.w, sp.h); GODSIL = { c, sp } }
-  ctx.globalAlpha = k; ctx.drawImage(ESUN.frames[Math.floor(g.rt * 5) & 3], cx - ESUN.fl, cy - ESUN.fl)
-  const { c, sp } = GODSIL, base = cy + Math.round(r * 2.9)
-  for (const dx of [-2, -1, 0, 1, 2]) { const x = cx + dx * Math.round(sp.w * 0.8) - (sp.w >> 1), y = base - sp.h - (dx === 0 ? 3 : Math.abs(dx) === 2 ? -2 : 0); ctx.drawImage(c, x, y); ctx.fillStyle = '#ff3a1a'; const ey = y + Math.round(sp.h * 0.18), ex = x + (sp.w >> 1); ctx.fillRect(ex - 1, ey, 1, 1); ctx.fillRect(ex + 1, ey, 1, 1) }
-  ctx.globalAlpha = 1
+  if (!ESUN || ESUN.r !== r) ESUN = eclipseSun(r)
+  ctx.globalAlpha = k; ctx.drawImage(ESUN.frames[Math.floor(g.rt * 5) & 3], Math.round(W / 2) - ESUN.fl, cy - ESUN.fl); ctx.globalAlpha = 1
 }
 
 /* ---------- hud: the brand sigil (hud.css). state rides on classes: ink, night, sense, hot brand, frenzy, hit, level-up ---------- */
@@ -367,7 +366,7 @@ function hud() {
   const g = game, p = g.p, ph = g.phase(), now = performance.now(), dt = Math.min(0.1, (now - (hudT || now)) / 1000); hudT = now
   if (CHIP.hit > 0) CHIP.hit -= dt
   const hpv = p.hp / p.maxHp, hc = chip('hp', hpv, dt), ink = g.style() === 'ink'
-  hudSet($('hud'), 'cls', [ink ? 'ink' : 'gold', nightAmt(ph) > 0.5 ? 'night' : '', g.eclipseOn() ? 'eclipse' : '', g.inkMode || g.brand > 70 ? 'hot' : '', g.armorT > 0 ? 'frenzy' : '', CHIP.hit > 0 ? 'hit' : '', XP.flash > 0 ? 'lvup' : ''].filter(Boolean).join(' '))
+  hudSet($('hud'), 'cls', [ink ? 'ink' : 'gold', nightAmt(ph) > 0.5 ? 'night' : '', g.eclipseOn() ? 'eclipse' : '', SUNCSS ? 'sun' : '', g.inkMode || g.brand > 70 ? 'hot' : '', g.armorT > 0 ? 'frenzy' : '', CHIP.hit > 0 ? 'hit' : '', XP.flash > 0 ? 'lvup' : ''].filter(Boolean).join(' '))
   hudSet($('hpb'), 'w', pct(hpv)); hudSet($('hpc'), 'w', pct(hc)); hudSet($('hpt'), 'text', fmtN(Math.ceil(p.hp)) + ' / ' + fmtN(p.maxHp))
   hudSet($('mb'), 'hide', !g.branded); hudSet($('mbf'), 'w', pct(g.brand / 100))
   hudSet($('mr'), 'hide', !g.rageOn); hudSet($('mrl'), 'text', g.armorT > 0 ? 'FRENZY' : 'RAGE'); hudSet($('mrf'), 'w', pct(g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100)); hudSet($('mro'), 'w', pct(g.armorT > 0 ? g.rage / 100 : 0))

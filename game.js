@@ -235,7 +235,8 @@ GP.blood = function (x, y, z, n, kx, ky, spirit) {
 }
 GP.hurt = function (dmg, src) {
   const g = this, p = g.p; if (p.inv > 0 || g.over || g.opts.god) return
-  dmg = Math.max(1, dmg * p.dmgTaken * Math.min(1, 0.55 + g.t / 240) * (1 + Math.max(0, g.t - 120) / 300) - p.armor * (1 - Math.min(0.5, g.t / 1200)))
+  /* past ten minutes hits ramp a little harder, so frequent level-up heals don't make the late game safe */
+  dmg = Math.max(1, dmg * p.dmgTaken * Math.min(1, 0.55 + g.t / 240) * (1 + Math.max(0, g.t - 120) / 300) * (1 + Math.max(0, g.t - 600) / 900) - p.armor * (1 - Math.min(0.5, g.t / 1200)))
   p.hp -= dmg; p.inv = 0.6; p.hurtT = 0.6; g.shake = Math.max(g.shake, 3); g.text(p.x, p.y, 54, '-' + Math.round(dmg), 'hurt'); g.blood(p.x, p.y, 26, 6, 0, 0)
   if (g.rageOn && g.armorT <= 0) g.rage = Math.min(100, g.rage + dmg * 2.2 * g.rageMul)
   if (src && src.d && src.d.spirit && g.branded) { g.brand = Math.min(100, g.brand + 5 * g.brandRate); if (g.thorns) g.damage(src, g.thorns, 0, 0, 40) }
@@ -243,7 +244,12 @@ GP.hurt = function (dmg, src) {
 }
 
 /* ---------- level-ups ---------- */
-GP.gainXp = function (v) { const p = this.p; p.xp += v; while (p.xp >= p.next) { p.xp -= p.next; p.lvl++; p.next = Math.round(5 + p.lvl * 4 + p.lvl * p.lvl * 0.25); this.queueLv++ } }
+/* a level-up heals guts to full on the spot, before the card he picks is applied; the frenzy's drain keeps running */
+GP.gainXp = function (v) {
+  const p = this.p; p.xp += v; let up = false
+  while (p.xp >= p.next) { p.xp -= p.next; p.lvl++; p.next = Math.round(5 + p.lvl * 4 + p.lvl * p.lvl * 0.25 + Math.max(0, p.lvl - 30) ** 3 * 0.02); this.queueLv++; up = true }
+  if (up && !this.over) { if (p.hp < p.maxHp) this.text(p.x, p.y, 58, '+HP', 'heal'); p.hp = p.maxHp; p.healT = 0.5 }
+}
 GP.pool = function () {
   const g = this, a = ['w:sweep', 'w:knives', 'w:bolts', 'w:bombs', ...PASSIVES, 'evo_beast', 'evo_salamander']
   a.push('banner', ...Object.keys(ALLY).map(id => 'ally:' + id))
@@ -443,6 +449,7 @@ GP.updateFx = function (dt) {
   for (const pl of g.pools) if (pl.t < 1) pl.t += dt * 1.5
   if (g.shake > 0) g.shake = Math.max(0, g.shake - dt * 30)
   if (g.flashT > 0) g.flashT -= dt * 2.2
+  if (g.p.healT > 0) g.p.healT -= dt
   if (g.ban) { g.ban.a += dt; if (g.ban.a > g.ban.d) g.ban = null }
 }
 GP.updateEnemies = function (dt) {

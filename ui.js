@@ -105,7 +105,7 @@ function drawWorld(g, st) {
   L.sort((a, b) => a.y - b.y)
   for (const it of L) {
     if (it.c) { drawCorpse(it.c, st); continue }
-    if (it.guts) { const p = g.p; if (g.armorT > 0) frenzyAura(g, st, it.s); blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); continue }
+    if (it.guts) { const p = g.p; if (g.armorT > 0) frenzyAura(g, st, it.s); blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); if (p.healT > 0) healFlash(it.s, st, p); continue }
     if (it.lit || it.smoke) { blit(it.s, st, it.x, it.y, 0, 1); const x = SX(it.x), y = SY(it.y) - (it.lit || LIT.torch).z; if (it.lit) flame(x, y + 2, it.lit.s, st, it.seed, g.rt); else { ctx.fillStyle = st === 'ink' ? '#0e0d0c' : '#5c5a5a'; for (let k = 0; k < 3; k++) ctx.fillRect(x + Math.round(Math.sin(g.rt * 2 + k) * 2), y - 3 - ((g.rt * 8 + k * 5) % 14), 1, 1) } continue }
     if (it.e && it.e.lantern) { blit(it.s, st, it.x, it.y, 0, 1, it.e.flash > 0); const x = SX(it.x + Math.cos(it.e.face + 1.2) * 8), y = SY(it.y + Math.sin(it.e.face + 1.2) * 8) - 16; ctx.fillStyle = '#1e140e'; ctx.fillRect(x - 2, y - 3, 4, 5); ctx.fillStyle = st === 'ink' ? '#efe8da' : '#ffd890'; ctx.fillRect(x - 1, y - 2, 2, 3); continue }
     if (it.a) { blit(it.s, st, it.x, it.y, 0, it.a.fade ? 1 - it.a.fade : 1); if (it.a.brand) { ctx.fillStyle = COL.ink.blood; ctx.fillRect(SX(it.x) - 1, SY(it.y) - it.s.py + 8, 3, 3) } continue }
@@ -182,6 +182,13 @@ function drawNight(g, n) {
   if (n > 0.4) { ctx.globalCompositeOperation = 'lighter'; for (const e of g.en) { const c = EYES[e.type]; if (!c || !onScreen(e.x, e.y, 10)) continue; const s = sprite(e.type, dirOf(e.face), 4, 0), x = SX(e.x) + Math.round(Math.cos(e.face) * 2 * e.d.sc), y = SY(e.y) - s.py + s.top + Math.round(3 * e.d.sc), a = (n - 0.4) * 1.6
       ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${Math.min(1, a)})`; ctx.fillRect(x - 2, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillStyle = `rgba(${c[0]},${c[1] >> 1},${c[2] >> 2},${Math.min(0.5, a * 0.5)})`; ctx.fillRect(x - 3, y - 1, 6, 3) }
     ctx.globalCompositeOperation = 'source-over' }
+}
+/* the level-up heal: a green-white glow washes over guts (plain white in ink) */
+function healFlash(s, st, p) {
+  const k = p.healT / 0.5, x = SX(p.x), y = SY(p.y)
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = k * 0.9; ctx.drawImage(s[st], x - s.px, y - s.py)
+  ctx.globalAlpha = k * (st === 'ink' ? 0.6 : 0.45); ctx.fillStyle = st === 'ink' ? '#ffffff' : '#a8ffb8'; ctx.beginPath(); ctx.ellipse(x, y - 22, 16 + (1 - k) * 10, 26 + (1 - k) * 10, 0, 0, TAU); ctx.fill()
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1
 }
 /* frenzy: the armor's red-black flames lick up around guts, embers trail him, an afterimage lags behind */
 const AFT = [], EMB = []
@@ -266,13 +273,28 @@ function render(dt) {
 const hudSet = (el, k, v) => { if (el['_' + k] !== v) { el['_' + k] = v; if (k === 'text') el.textContent = v; else if (k === 'w') el.style.width = v; else if (k === 'hide') el.hidden = v; else if (k === 'cls') el.className = v } }
 function meter(label, v, cls) { return `<div class="m ${cls || ''}"><span>${label}</span><i><b style="width:${Math.round(clamp(v, 0, 1) * 100)}%"></b></i></div>` }
 let lastMeters = ''
+/* the xp bar eases toward its target; on a level-up it runs to full, wraps to empty, flashes and throws sparks */
+const XP = { shown: 0, lvl: 1, wrap: 0, t: 0 }
+function xpBar(p) {
+  const now = performance.now(), dt = Math.min(0.1, (now - (XP.t || now)) / 1000); XP.t = now
+  if (p.lvl < XP.lvl) { XP.lvl = p.lvl; XP.shown = 0; XP.wrap = 0 }
+  if (p.lvl > XP.lvl) { XP.wrap += p.lvl - XP.lvl; XP.lvl = p.lvl; levelBurst() }
+  const target = clamp(p.xp / p.next, 0, 1)
+  if (XP.wrap) { XP.shown += (1.05 - XP.shown) * Math.min(1, dt * 14); if (XP.shown >= 1) { XP.shown = 0; XP.wrap-- } } else XP.shown += (target - XP.shown) * Math.min(1, dt * 8)
+  hudSet($('xpb'), 'w', (XP.shown * 100).toFixed(1) + '%'); hudSet($('lvl'), 'text', 'LV ' + p.lvl); hudSet($('xpn'), 'text', Math.floor(p.xp) + ' / ' + p.next + ' xp')
+}
+function levelBurst() {
+  const w = $('xpw'), b = $('xpburst'); w.classList.remove('lvup'); void w.offsetWidth; w.classList.add('lvup')
+  b.innerHTML = ''; for (let i = 0; i < 14; i++) { const s = document.createElement('i'), a = Math.random() * Math.PI - Math.PI, r = 18 + Math.random() * 30; s.style.left = 4 + Math.random() * 92 + '%'; s.style.top = '3px'; s.style.setProperty('--dx', (Math.cos(a) * r).toFixed(0) + 'px'); s.style.setProperty('--dy', (Math.sin(a) * r).toFixed(0) + 'px'); b.appendChild(s) }
+  setTimeout(() => { b.innerHTML = '' }, 800)
+}
 function hud() {
   const g = game, p = g.p, ph = g.phase(), hide = g.sense >= 2
   hudSet($('hud'), 'cls', (hide ? 'faded ' : '') + (g.style() === 'ink' ? 'ink' : 'gold'))
   hudSet($('hpb'), 'w', Math.round((p.hp / p.maxHp) * 100) + '%'); hudSet($('hpt'), 'text', Math.ceil(p.hp) + ' / ' + Math.round(p.maxHp))
-  hudSet($('xpb'), 'w', Math.round((p.xp / p.next) * 100) + '%'); hudSet($('clock'), 'text', fmtT(g.t))
+  xpBar(p); hudSet($('clock'), 'text', fmtT(g.t))
   hudSet($('phase'), 'text', g.pit ? 'THE PIT · NIGHT ' + g.nightN : ph.k === 'day' ? 'DAY ' + g.dayN + ' · ' + g.biome().name : ph.k === 'night' ? (g.nightN === 1 ? 'THE ECLIPSE' : 'NIGHT ' + g.nightN) : ph.k.toUpperCase())
-  hudSet($('lvl'), 'text', 'LV ' + p.lvl); hudSet($('kills'), 'text', p.kills + ' slain'); hudSet($('gold'), 'text', p.gold + ' gold')
+  hudSet($('kills'), 'text', p.kills + ' slain'); hudSet($('gold'), 'text', p.gold + ' gold')
   let m = ''
   if (g.branded) m += meter('BRAND', g.brand / 100, 'red')
   if (g.rageOn) m += g.armorT > 0 ? meter('FRENZY', g.armorT / g.armorDur, 'red') + meter('OVER', g.rage / 100) : meter('RAGE', g.rage / 100)

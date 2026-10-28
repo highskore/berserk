@@ -9,12 +9,13 @@ function torsoF(hz, lean, tw) {
   const cl = Math.cos(lean), sl = Math.sin(lean), ct = Math.cos(tw), st = Math.sin(tw)
   return (x, y, z) => { const X = x * ct - y * st, Y = x * st + y * ct; return [X * cl + z * sl, Y, hz + z * cl - X * sl] }
 }
-/* legs with a walk cycle; the knee bends forward */
+/* legs with a walk cycle. the bones are sized from the standing hip height so a planted leg is nearly
+   straight (knees only bend on the bob and the stride), and the knee points forward and a touch out */
 function legs(T, o, k) {
-  const p = o.walk || 0, mv = o.mv || 0, st = k.stance || 6, l1 = k.l1 || 24, l2 = k.l2 || 23
+  const p = o.walk || 0, mv = o.mv || 0, st = k.stance || 6, Ls = (k.hipZ - 2 - 4) / 0.975, l1 = Ls * 0.51, l2 = Ls * 0.49
   for (const s of [1, -1]) {
-    const ph = s > 0 ? p : p + Math.PI, foot = [(k.fx || 0) * s + Math.sin(ph) * 11 * mv, s * (k.wide || 6.5), Math.max(0, Math.cos(ph)) * 5 * mv]
-    const hip = T(0, s * st, -2), ank = [foot[0] - 1, foot[1], foot[2] + 4], kn = ik3(hip, ank, l1, l2, [1, 0, 0.15])
+    const ph = s > 0 ? p : p + Math.PI, foot = [(k.fx || 0) * s + Math.sin(ph) * 10 * mv, s * (k.wide || 6.5), Math.max(0, Math.cos(ph)) * 4.5 * mv]
+    const hip = T(0, s * st, -2), ank = [foot[0] - 1, foot[1], foot[2] + 4], kn = ik3(hip, ank, l1, l2, [1, s * 0.18, 0.1])
     k.thigh(hip, kn, s); k.shin(kn, ank, s); k.boot(ank, foot, s)
   }
 }
@@ -58,10 +59,10 @@ function drawGuts(o) {
   const hz = 47 + (mv ? -1.6 * Math.abs(Math.cos(p)) : 0), lean = 0.08 + mv * 0.12 + (sw != null ? 0.14 : 0) + (A ? 0.1 : 0)
   const tw = sw != null ? Math.max(-0.7, Math.min(0.7, Math.atan2(Math.sin(sw), Math.cos(sw)) * 0.45)) : 0, T = torsoF(hz, lean, tw)
   const PL = A ? MAT.IRON : MAT.ARMOR
-  legs(T, { walk: p, mv }, { fx: sw != null ? 6 : 4, wide: sw != null ? 9 : 6.5, stance: 6,
-    thigh: (a, b, s) => cap(a, b, 6.6, 4.8, A ? MAT.IRON : MAT.CLOTH, 0.55, s > 0 ? 7 : 5, { tex: clothFold }),
-    shin: (a, b, s) => { cap(a, b, 4.6, 3.4, PL, 0.64, s > 0 ? 8 : 6, { tex: grime(0.1) }); sph(a, 4.3, PL, 0.72, s > 0 ? 8 : 6) },
-    boot: (a, f, s) => cap(a, [f[0] + 8, f[1], f[2] + 1.5], 3.6, 2.6, A ? MAT.IRON : MAT.LEATHER, 0.7, s > 0 ? 8 : 6) })
+  legs(T, { walk: p, mv }, { hipZ: 47, fx: sw != null ? 6 : 3, wide: sw != null ? 10 : 7.5, stance: 6.5,
+    thigh: (a, b, s) => cap(a, b, 6.4, 5, A ? MAT.IRON : MAT.CLOTH, 0.55, s > 0 ? 7 : 5, { tex: clothFold }),
+    shin: (a, b, s) => { const c = v3.lerp(a, b, 0.3); cap(a, c, 4.6, 4.9, PL, 0.64, s > 0 ? 8 : 6, { tex: grime(0.1) }); cap(c, b, 4.9, 3.6, PL, 0.64, s > 0 ? 8 : 6, { tex: grime(0.1) }); sph(a, 4.6, PL, 0.74, s > 0 ? 8 : 6) },
+    boot: (a, f, s) => { const bm = A ? MAT.IRON : MAT.LEATHER; sph([a[0] - 1.2, a[1], f[2] + 2.8], 3.6, bm, 0.66, s > 0 ? 8 : 6); cap([a[0], a[1], f[2] + 2.8], [f[0] + 8.5, f[1], f[2] + 1.8], 3.8, 2.8, bm, 0.7, s > 0 ? 8 : 6) } })
   sph(T(0, 0, 0), 9, MAT.CLOTH, 0.6, 10)
   sph(T(1, 0, -2), 9.6, PL, 0.55, 12, { tex: (x, y) => (y % 3 === 0 ? 0.7 : 1), sq: 0.8 })
   cap(T(0, 0, 3), T(1, 0, 14), 9, 10, A ? MAT.IRON : MAT.LEATHER, 0.6, 11)
@@ -114,7 +115,7 @@ function beastHelm(H, t) {
 function drawFolk(o) {
   const t = o.t || 0, mv = o.mv == null ? 1 : o.mv, p = o.walk || 0, atk = o.atk || 0, bw = o.bw || 1
   const hz = 44 - (mv ? 1.4 * Math.abs(Math.cos(p)) : 0), T = torsoF(hz, 0.1 + atk * 0.1, 0), tm = MAT[o.torso || 'MAIL'], tt = tm === MAT.MAIL ? mail : grime(0.12, 0.15), lm = MAT[o.legs || 'CLOTH']
-  legs(T, { walk: p, mv }, { fx: 3, wide: 5.5 * bw, stance: 5 * bw, l1: 22, l2: 21,
+  legs(T, { walk: p, mv }, { hipZ: 44, fx: 3, wide: 6.2 * bw, stance: 5.2 * bw,
     thigh: (a, b, s) => cap(a, b, 5 * bw, 3.8 * bw, lm, 0.7, s > 0 ? 5 : 2, { tex: clothFold }),
     shin: (a, b, s) => cap(a, b, 3.6 * bw, 2.8 * bw, lm === MAT.ARMOR ? MAT.ARMOR : MAT.LEATHER, 0.65, s > 0 ? 6 : 3),
     boot: (a, f, s) => cap(a, [f[0] + 7, f[1], f[2] + 1.2], 3, 2.3, MAT.LEATHER, 0.6, s > 0 ? 6 : 3) })
@@ -137,6 +138,7 @@ function drawFolk(o) {
     sph(v3.add(Hc, [3, 0, -0.6]), 3.8, skin, 0.85, 10); sph(v3.add(Hc, [6.2, 0, -0.4]), 1.2, skin, 0.9, 10)
     for (const s of [1, -1]) sph(v3.add(Hc, [6, s * 1.8, 0.6]), 0.5, MAT.DARK, 0.1, 10, { fl: 1 })
     if (hd === 'kettle') { sph(v3.add(Hc, [0, 0, 2.6]), 5.8, MAT.STEEL, 0.9, 11, { sq: 0.75 }); disc(v3.add(Hc, [0, 0, 2]), 9, MAT.STEEL, 0.78, 11, -1.2) }
+    else if (hd === 'witch') { const C = v3.add(Hc, [-0.5, 0, 3]); disc(C, 11, MAT.CLOAK, 0.6, 11, -1); for (let k = 0; k < 10; k++) { const a0 = (k / 10) * TAU, a1 = ((k + 1) / 10) * TAU; tri(v3.add(C, [-5, 2, 17]), v3.add(C, [Math.cos(a0) * 5.5, Math.sin(a0) * 5.5, 0]), v3.add(C, [Math.cos(a1) * 5.5, Math.sin(a1) * 5.5, 0]), MAT.CLOAK, 0.65, 11) } }
     else if (o.hairM) { sph(v3.add(Hc, [-1.2, 0, 1.6]), 5.8, MAT[o.hairM], 0.75, 11, { tex: (x, y, dx, dy) => (dx * dx + dy * dy > 0.75 && n2(dx * 3, dy * 3) < 0.4 ? -1 : 0.8 + h2(x, y) * 0.3) }); if (o.long) cap(v3.add(Hc, [-3, 0, 0]), v3.add(Hc, [-6, 0, -9]), 4, 2.4, MAT[o.hairM], 0.72, 11) }
   }
   /* weapon in the right hand, shield or second hand on the left */
@@ -148,6 +150,8 @@ function drawFolk(o) {
     if (wp === 'spear') tri(v3.add(tip, w, -2.4), v3.add(tip, d, 11), v3.add(tip, w, 2.4), MAT.STEEL, 1, 12)
     else if (wp === 'axe') { tri(v3.add(tip, d, -12), v3.add(v3.add(tip, w, 13), d, -4), v3.add(tip, d, 3), MAT.STEEL, 1, 12); tri(v3.add(tip, d, -12), v3.add(v3.add(tip, w, -13), d, -4), v3.add(tip, d, 3), MAT.STEEL, 0.9, 12) }
     else cap(v3.add(tip, w, -6), v3.add(tip, w, 7), 4, 2, MAT.IRON, 0.8, 12)
+  } else if (wp === 'staff') {
+    HR = T(10, -8, 10 + atk * 8); cap(v3.add(HR, [0, 0, -30]), v3.add(HR, [2, 0, 28]), 1, 1, MAT.WOOD, 0.8, 12); sph(v3.add(HR, [2, 0, 31]), 2.6, MAT.EYE, 1, 12)
   } else if (wp === 'crossbow') {
     HR = T(10, -5, 18); HL = T(12, 3, 18); const d = [1, 0, 0.05]; cap(v3.add(HR, d, -6), v3.add(HR, d, 16), 1.5, 1.2, MAT.WOOD, 0.8, 12)
     cap(v3.add(v3.add(HR, d, 14), [0, -1, 0], 9), v3.add(v3.add(HR, d, 14), [0, 1, 0], 9), 0.9, 0.9, MAT.STEEL, 0.9, 12)
@@ -169,6 +173,10 @@ const FOLK = {
   judeau: o => drawFolk(Object.assign({ torso: 'LEATHER', head: 'bare', hairM: 'WOOD', long: 1, weap: 'knife', cloak: 'CLOTH' }, o)),
   pippin: o => drawFolk(Object.assign({ torso: 'ARMOR', head: 'bare', weap: 'hammer', bw: 1.35 }, o)),
   corkus: o => drawFolk(Object.assign({ torso: 'MAIL', head: 'bare', hairM: 'WOOD', weap: 'crossbow', cloak: 'CLOTH' }, o)),
+  serpico: o => drawFolk(Object.assign({ torso: 'LEATHER', head: 'bare', hairM: 'BONE', weap: 'sword', cloak: 'CLOTH', bw: 0.92 }, o)),
+  isidro: o => drawFolk(Object.assign({ torso: 'CLOTH', head: 'bare', hairM: 'HAIR', weap: 'knife', bw: 0.85 }, o)),
+  schierke: o => drawFolk(Object.assign({ torso: 'CLOAK', legs: 'CLOAK', head: 'witch', weap: 'staff', cloak: 'CLOAK', bw: 0.8 }, o)),
+  sellsword: o => drawFolk(Object.assign({ torso: 'MAIL', head: 'kettle', weap: 'axe', tabard: 1, bw: 1.15 }, o)),
   skullknight: o => drawFolk(Object.assign({ torso: 'IRON', legs: 'ARMOR', head: 'skull', shield: 'IRON', cloak: 'CLOAK', weap: 'sword', bw: 1.15 }, o)),
 }
 
@@ -269,6 +277,9 @@ function drawProp(k, s) {
   else if (k === 'wheel') { cap([0, 0, 0], [0, 0, 70], 2.2, 1.8, MAT.WOOD, 0.7, 1); for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU, b = ((i + 1) / 12) * TAU; cap([Math.cos(a) * 14, Math.sin(a) * 14, 72], [Math.cos(b) * 14, Math.sin(b) * 14, 72], 1.4, 1.4, MAT.WOOD, 0.7, 2) } sph([2, 0, 76], 6, MAT.FLESH, 0.6, 3); cap([2, 0, 76], [10, 6, 70], 2, 1.4, MAT.FLESH, 0.6, 3) }
   else if (k === 'banner') { cap([0, 0, 0], [0, 0, 70], 1.2, 1.2, MAT.WOOD, 0.8, 1); quad([0, 0, 68], [0, -18, 64 + r(1) * 4], [0, -16, 44], [0, 0, 46], MAT.TABARD, 0.8, 2) }
   else if (k === 'pillar') { cap([0, 0, 0], [0, 0, 40 + r(1) * 30], 8, 7, MAT.STONE, 0.75, 1, { tex: (x, y) => (y % 6 === 0 ? 0.7 : 1) }) }
+  else if (k === 'torch') { cap([0, 0, 0], [0, 0, 52], 1.6, 1.4, MAT.WOOD, 0.75, 1); cap([0, 0, 50], [0, 0, 56], 2.6, 2, MAT.CLOTH, 0.6, 2) }
+  else if (k === 'campfire') { for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU + r(1); cap([Math.cos(a) * 10, Math.sin(a) * 10, 2], [-Math.cos(a) * 3, -Math.sin(a) * 3, 7], 2, 1.6, MAT.WOOD, 0.6, 1) } for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU; sph([Math.cos(a) * 13, Math.sin(a) * 13, 2], 3, MAT.STONE, 0.7, 2, { sq: 0.7 }) } }
+  else if (k === 'wagon') { quad([-20, -10, 14], [20, -10, 14], [20, 10, 14], [-20, 10, 14], MAT.WOOD, 0.6, 1, { n: [0, 0, 1], tex: (x, y) => (x % 5 === 0 ? 0.6 : 0.9 + h2(x, y) * 0.2) }); for (const s of [-1, 1]) { quad([-20, s * 10, 14], [20, s * 10, 14], [20, s * 10, 24], [-20, s * 10, 24], MAT.WOOD, 0.55, 2, { tex: (x, y) => (h2(x >> 1, y) < 0.15 ? -1 : 0.85) }); for (const xw of [-12, 12]) { const C = [xw, s * 12, 9]; for (let i = 0; i < 10; i++) { const a = (i / 10) * TAU, b = ((i + 1) / 10) * TAU; cap(v3.add(C, [Math.cos(a) * 9, 0, Math.sin(a) * 9]), v3.add(C, [Math.cos(b) * 9, 0, Math.sin(b) * 9]), 1.2, 1.2, MAT.WOOD, 0.6, 3) } } } sph([4, 0, 16], 7, MAT.DARK, 0.2, 4, { sq: 0.6 }) }
   else if (k === 'brazier') { cap([0, 0, 0], [0, 0, 22], 2, 2, MAT.IRON, 0.7, 1); sph([0, 0, 24], 7, MAT.IRON, 0.7, 2, { sq: 0.5 }); for (let i = 0; i < 4; i++) sph([(r(i) - 0.5) * 6, (r(i + 4) - 0.5) * 6, 28 + i * 2], 2.6 - i * 0.4, MAT.EYE, 1, 3) }
   else if (k === 'flesh') { for (let i = 0; i < 4; i++) sph([(r(i) - 0.5) * 20, (r(i + 9) - 0.5) * 20, 4 + r(i + 3) * 6], 6 + r(i + 5) * 6, MAT.FLESH, 0.7, 1 + i, { tex: veins }); sph([0, 0, 12], 3, MAT.EYE, 1, 6) }
   else if (k === 'sword') { const d = v3.norm([r(1) - 0.5, r(2) - 0.5, 3]); cap([0, 0, 0], v3.add([0, 0, 0], d, 40), 2.2, 1.4, MAT.STEEL, 0.9, 1); cap(v3.add([0, 0, 0], d, 34), v3.add(v3.add([0, 0, 0], d, 34), [0, 6, 0]), 1.2, 1.2, MAT.IRON, 0.8, 2) }

@@ -50,24 +50,37 @@ Object.assign(UPG, {
   regen: { name: 'Elf Dust', desc: () => '+0.6 HP regen per second.', apply: g => (g.p.regen += 0.6) },
   meat: { name: 'Roast Meat', filler: true, desc: () => 'Heal 30 HP.', apply: g => g.heal(30) },
   /* the berserker armor card wakes the rage; its own levels add raw power */
-  armor: { name: 'Berserker Armor', desc: (g, l) => (l === 1 ? 'Taking hits fills Rage. At full Rage the armor locks on: a whirlwind that drinks your HP. +12% damage, +8% speed, +1 plate.' : '+12% damage, +8% speed, +1 plate.'), req: g => g.eclipsed, apply: g => { g.p.might += 0.12; g.p.spd *= 1.08; g.p.armor += 1; if (!g.rageOn) { g.rageOn = true; g.banner('THE ARMOR AWAKENS', 'rage fills as you bleed', 2.4) } } },
+  armor: { name: 'Berserker Armor', desc: (g, l) => (l === 1 ? 'Taking hits fills Rage. At full Rage the armor clamps shut: a frenzy of faster, harder, wider swings that drinks your HP. +12% damage, +8% speed, +1 plate.' : '+12% damage, +8% speed, +1 plate.'), req: g => g.eclipsed, apply: g => { g.p.might += 0.12; g.p.spd *= 1.08; g.p.armor += 1; if (!g.rageOn) { g.rageOn = true; g.banner('THE ARMOR AWAKENS', 'rage fills as you bleed', 2.4) } } },
   fury: { name: 'Fury', desc: () => '+30% rage gain.', req: g => g.rageOn, apply: g => (g.rageMul *= 1.3) },
   ironwill: { name: 'Iron Will', desc: () => 'The armor drains 35% less HP (diminishing).', req: g => g.rageOn, apply: g => (g.drain = Math.max(0.6, g.drain * 0.65)) },
-  bloodrush: { name: 'Blood Rush', desc: () => '+2s in the armor.', req: g => g.rageOn, apply: g => (g.armorDur += 2) },
+  bloodrush: { name: 'Blood Rush', desc: g => (g.armorDur >= 12 ? 'The frenzy is as long as it gets; Rage fills 15% faster instead.' : '+2s of frenzy (up to 12s).'), req: g => g.rageOn, apply: g => { if (g.armorDur >= 12) g.rageMul *= 1.15; else g.armorDur += 2 } },
   hunger: { name: "Beast's Hunger", desc: () => 'Each kill in the armor heals 1 HP.', req: g => g.rageOn, apply: g => (g.hunger += 1) },
   torch: { name: 'Torchlight', desc: () => '+25% light radius at night (soft cap). Spirits in the light take 3 damage a second.', req: g => g.eclipsed, apply: g => { g.light = Math.min(2.4, g.light * 1.25); g.burn += 3 } },
   talisman: { name: "Schierke's Talisman", desc: () => 'The Brand fills 30% slower. Spirits that touch you take 15 damage.', req: g => g.eclipsed, apply: g => { g.brandRate = Math.max(0.15, g.brandRate * 0.7); g.thorns += 15 } },
-  banner: { name: 'Hawk Banner', desc: () => 'Allies deal +25% damage.', req: g => !g.eclipsed, apply: g => (g.allyMul += 0.25) },
+  banner: { name: 'Hawk Banner', rar: 'rare', desc: () => 'Allies deal +25% damage.', req: g => (!g.eclipsed || g.dayN >= 3) && g.allies.length > 0, apply: g => (g.allyMul += 0.25) },
   evo_beast: { name: 'Beast Swing', evo: true, desc: () => 'EVOLVE Dragonslayer + Berserker Armor: twin full spins, huge reach.', req: g => g.wlvl('sweep') >= 8 && g.ulvl('armor') >= 1, apply: g => { g.removeWeapon('sweep'); g.addWeapon('beast'); g.banner('BEAST SWING', 'the armor drinks the swing', 2.2) } },
   evo_salamander: { name: 'Salamander Bombs', evo: true, desc: () => 'EVOLVE Powder Bombs + Might: bombs leave burning ground and chain.', req: g => g.wlvl('bombs') >= 7 && g.ulvl('might') >= 1, apply: g => { g.p.salamander = true; g.banner('SALAMANDER BOMBS', '', 1.6) } },
 })
+/* companions: the hawks before the eclipse; after it, guts' later companions and hired swords.
+   hawks lost to the eclipse can return from day 3, starting over at level 1. the party caps at four. */
 const ALLY = {
-  casca: { name: 'Casca', desc: l => (l === 1 ? 'Recruit Casca: a fast duelist who dashes in and cuts.' : '+damage, faster cuts.') },
-  judeau: { name: 'Judeau', desc: l => (l === 1 ? 'Recruit Judeau: throws knives at whatever gets close.' : '+knives, +damage.') },
-  pippin: { name: 'Pippin', desc: l => (l === 1 ? 'Recruit Pippin: a wall of a man who slams the ground and stuns.' : '+slam size, +damage.') },
-  corkus: { name: 'Corkus', desc: l => (l === 1 ? 'Recruit Corkus: a crossbow sniper who picks off the toughest foe.' : '+damage, faster reload.') },
+  casca: { name: 'Casca', ai: 'duel', hawk: 1, desc: l => (l === 1 ? 'Recruit Casca: a fast duelist who dashes in and cuts.' : '+damage, faster cuts.') },
+  judeau: { name: 'Judeau', ai: 'knives', hawk: 1, desc: l => (l === 1 ? 'Recruit Judeau: throws knives at whatever gets close.' : '+knives, +damage.') },
+  pippin: { name: 'Pippin', ai: 'slam', hawk: 1, desc: l => (l === 1 ? 'Recruit Pippin: a wall of a man who slams the ground and stuns.' : '+slam size, +damage.') },
+  corkus: { name: 'Corkus', ai: 'snipe', hawk: 1, desc: l => (l === 1 ? 'Recruit Corkus: a crossbow sniper who picks off the toughest foe.' : '+damage, faster reload.') },
+  serpico: { name: 'Serpico', ai: 'duel', desc: l => (l === 1 ? 'Serpico joins: a fencer who darts through the crowd, cutting.' : '+damage, faster cuts.') },
+  isidro: { name: 'Isidro', ai: 'knives', desc: l => (l === 1 ? 'Isidro tags along: a thief who flings knives at anything close.' : '+knives, +damage.') },
+  schierke: { name: 'Schierke', ai: 'snipe', desc: l => (l === 1 ? 'Schierke joins: a witch whose spirit bolts seek the strongest foe.' : '+damage, faster casting.') },
+  sellsword: { name: 'Sellsword', ai: 'slam', desc: l => (l === 1 ? 'Hire a sellsword: a brute whose poleaxe knocks the horde flat.' : '+slam size, +damage.') },
 }
-for (const id in ALLY) UPG['ally:' + id] = { name: ALLY[id].name, desc: (g, l) => ALLY[id].desc(l), req: g => !g.eclipsed, apply: g => { const a = g.allies.find(a => a.id === id); if (a) a.lvl++; else g.allies.push(mkAlly(g, id)) } }
+const MAXALLY = 4, liveAllies = g => g.allies.filter(a => a.doom == null)
+for (const id in ALLY) UPG['ally:' + id] = {
+  name: ALLY[id].name, title: g => (g.lost[id] ? ALLY[id].name + ' returns' : ALLY[id].name),
+  desc: (g, l) => (l === 1 && g.lost[id] ? 'The Hawk you lost at the Eclipse fights beside you again, starting over at level 1.' : ALLY[id].desc(l)),
+  rar: g => (ALLY[id].hawk && g.eclipsed ? 'epic' : 'rare'),
+  req: g => { if (liveAllies(g).some(a => a.id === id)) return true; if (liveAllies(g).length >= MAXALLY) return false; return ALLY[id].hawk ? !g.eclipsed || (g.lost[id] && g.dayN >= 3) : g.eclipsed && g.dayN >= 2 },
+  apply: g => { const a = liveAllies(g).find(a => a.id === id); if (a) a.lvl++; else { g.allies.push(mkAlly(g, id)); if (g.eclipsed) g.banner(UPG['ally:' + id].title(g).toUpperCase(), g.lost[id] ? 'back from the Eclipse' : 'a new companion', 1.8); delete g.lost[id] } },
+}
 /* relics drop from bosses (the descent's stage rewards) */
 const RELICS = {
   r_godo: { name: "Godo's Forging", desc: () => '+25% damage and +15% weapon area.', apply: g => { g.p.might += 0.25; g.p.area += 0.15 } },
@@ -79,6 +92,11 @@ const RELICS = {
 }
 for (const k in RELICS) UPG[k] = Object.assign({ relic: true, max: 1 }, RELICS[k])
 for (const k in UPG) { const u = UPG[k]; if (u.max == null) u.max = u.evo ? 1 : u.filler ? 99 : 1e9 }
+/* rarity: a tier per card, weighted when cards are drawn; deeper runs tilt the odds toward the rare ones */
+const RARW = { common: 1, rare: 0.5, epic: 0.22, legendary: 0.09 }
+Object.assign(UPG.armor, { rar: 'epic' }); Object.assign(UPG.bloodrush, { rar: 'epic' }); for (const k of ['might', 'haste', 'torch', 'talisman', 'fury', 'ironwill', 'hunger', 'r_hawk', 'r_rations', 'r_spur']) UPG[k].rar = 'rare'
+UPG.r_godo.rar = UPG.r_arm.rar = 'epic'; UPG.r_behelit.rar = 'legendary'
+function rarOf(g, id, cur) { const u = UPG[id]; if (typeof u.rar === 'function') return u.rar(g); if (u.rar) return u.rar; if (u.evo) return 'legendary'; if (u.weapon) return cur === 0 ? 'rare' : 'common'; return 'common' }
 /* the shop between nights: godo's forge and puck's market, with tag sets */
 const ITEMS = {
   dust: { name: 'Elf Dust', v: 'market', tags: ['elf'], price: 15, desc: '+0.8 HP regen.', apply: g => (g.p.regen += 0.8) },
@@ -91,6 +109,9 @@ const ITEMS = {
   gears: { name: "Rickert's Gearwork", v: 'forge', tags: ['steel'], price: 22, desc: '-10% cooldowns.', apply: g => (g.p.cdr *= 0.9) },
   pelt: { name: 'Wolf Pelt', v: 'market', tags: ['beast'], price: 14, desc: '+12% move speed.', apply: g => (g.p.spd *= 1.12) },
   boar: { name: 'Roast Boar', v: 'market', tags: [], price: 10, desc: 'Heal 40 HP.', apply: g => g.heal(40) },
+  contract: { name: 'Mercenary Contract', v: 'market', tags: ['steel'], price: 34, rar: 'epic', desc: 'Hire a companion: a sellsword, Isidro, Serpico or Schierke. A full party trains one instead.', req: g => g.eclipsed,
+    apply: g => { const ids = ['sellsword', 'isidro', 'serpico', 'schierke'], free = ids.filter(id => !liveAllies(g).some(a => a.id === id)); const pick = liveAllies(g).length < MAXALLY && free.length ? g.pick(free) : null
+      if (pick) g.applyUpg('ally:' + pick); else if (g.allies.length) g.pick(liveAllies(g)).lvl++; else g.allyMul += 0.1 } },
 }
 for (const w of ['sweep', 'knives', 'bolts', 'cannon', 'bombs', 'cleave']) ITEMS['W' + w] = { name: WEAP[w].name, v: 'forge', tags: ['weapon'], weapon: w, price: { sweep: 30, knives: 22, bolts: 26, cannon: 32, bombs: 28, cleave: 28 }[w], apply: g => g.addWeapon(w) }
 const SETS = { elf: { n: 3, name: 'Puck joins the fight', apply: g => g.addWeapon('puck') }, brand: { n: 3, name: 'Brand Hunger: +20% damage, heal on kill', apply: g => { g.p.might += 0.2; g.hungerHeal = 1 } }, steel: { n: 3, name: 'Iron Body: +3 plate', apply: g => (g.p.armor += 3) } }
@@ -105,9 +126,9 @@ function phaseAt(t) {
 }
 const nightAmt = ph => (ph.k === 'night' ? 1 : ph.k === 'dusk' ? ph.u : ph.k === 'dawn' ? 1 - ph.u : 0)
 const BIOMES = [
-  { name: 'MIDLAND BATTLEFIELD', tile: 'field', props: ['tree', 'spear', 'banner', 'rock', 'stake', 'sword', 'spear'] },
-  { name: 'DOLDREY', tile: 'stone', props: ['pillar', 'brazier', 'banner', 'rock', 'pillar'] },
-  { name: 'THE HILL OF SWORDS', tile: 'field', props: ['sword', 'sword', 'cross', 'wheel', 'tree', 'rock'] },
+  { name: 'MIDLAND BATTLEFIELD', tile: 'field', props: ['tree', 'spear', 'banner', 'rock', 'stake', 'sword', 'spear', 'campfire', 'wagon', 'torch'] },
+  { name: 'DOLDREY', tile: 'stone', props: ['pillar', 'brazier', 'banner', 'rock', 'pillar', 'torch', 'brazier'] },
+  { name: 'THE HILL OF SWORDS', tile: 'field', props: ['sword', 'sword', 'cross', 'wheel', 'tree', 'rock', 'campfire', 'torch'] },
 ]
 
 function Game(opts) { this.opts = opts || {}; this.reset() }
@@ -120,7 +141,7 @@ GP.reset = function () {
   g.flags = {}; g.cam = { x: 0, y: 0 }; g.shake = 0; g.hitstop = 0; g.spawnAcc = 0; g.input = { x: 0, y: 0 }; g.ban = null; g.boss = null; g.flashT = 0; g.flashC = null; g.bounds = null; g.choices = 3
   g.eclipsed = false; g.branded = false; g.brand = 0; g.brandRate = 1; g.light = 1; g.bleed = 0; g.burn = 0; g.thorns = 0; g.skT = 0; g.skRoll = false
   g.rageOn = false; g.rage = 0; g.rageMul = 1; g.armorT = 0; g.armorDur = 8; g.drain = 3.2; g.hunger = 0; g.sense = 0; g.tired = 0
-  g.allyMul = 1; g.tags = {}; g.sets = {}; g.reroll = 2; g.shops = 0; g.pit = false; g.lastPh = 'day'; g.nightN = 0; g.dayN = 1
+  g.allyMul = 1; g.lost = {}; g.tags = {}; g.sets = {}; g.reroll = 2; g.shops = 0; g.pit = false; g.lastPh = 'day'; g.nightN = 0; g.dayN = 1
   g.addWeapon('sweep'); g.allies.push(mkAlly(g, 'casca')); g.ups['ally:casca'] = 1
   g.banner('THE GOLDEN AGE', 'day 1 - ' + BIOMES[0].name.toLowerCase(), 3)
 }
@@ -139,10 +160,14 @@ GP.nearest = function (x, y, maxD) { let best = null, bd = (maxD || 1e9) ** 2; f
 GP.phase = function () { return phaseAt(this.t) }
 GP.biome = function () { return BIOMES[(this.dayN - 1) % 3] }
 GP.depth = function () { return this.dayN + this.nightN }
-GP.style = function () { return this.sense >= 3 || this.pit || nightAmt(this.phase()) > 0.5 ? 'ink' : 'golden' }
-GP.dmgMul = function () { return (this.branded ? 1 + this.brand / 200 : 1) * (this.sense >= 3 ? 1.3 : 1) * (this.eclipsed && this.nightN === 1 && this.phase().k === 'night' ? 1.45 : 1) }
+/* ink is a state, not a time of day: the burning brand, the eclipse, or the last sense lost */
+GP.inkOn = function () { return this.sense >= 3 || this.inkMode || (this.nightN === 1 && this.phase().k === 'night') }
+GP.style = function () { return this.inkOn() ? 'ink' : 'golden' }
+/* frenzy power scales with fury and the beast swing; frenzy inside ink is the rare peak */
+GP.frenzyMul = function () { return this.armorT > 0 ? (1 + 0.6 * (1 + 0.1 * this.ulvl('fury') + (this.wlvl('beast') ? 0.2 : 0))) * (this.inkMode ? 1.15 : 1) : 1 }
+GP.dmgMul = function () { return (this.inkMode ? 1.5 : this.branded ? 1 + this.brand / 400 : 1) * this.frenzyMul() * (this.sense >= 3 ? 1.3 : 1) * (this.eclipsed && this.nightN === 1 && this.phase().k === 'night' ? 1.45 : 1) }
 GP.lootMul = function () { return this.sense >= 3 ? 3 : this.sense >= 1 ? 2 : 1 }
-GP.spdMul = function () { return this.armorT > 0 ? 1.45 : this.tired > 0 ? 0.7 : 1 }
+GP.spdMul = function () { return this.armorT > 0 ? 1.3 : this.tired > 0 ? 0.7 : 1 }
 
 /* ---------- spawning: off screen on the open field, behind red warnings inside the pit ---------- */
 GP.spawn = function (type, x, y, o) {
@@ -152,6 +177,7 @@ GP.spawn = function (type, x, y, o) {
     const a = g.R() * TAU, vw = g.view || { w: 480, h: 270 }; x = g.p.x + Math.cos(a) * (vw.w / 2 + 40); y = g.p.y + Math.sin(a) * ((vw.h / 2 + 60) / CAM.ky)
   }
   const elite = !d.boss && g.R() < clamp((g.t - 110) / 700, 0, 0.3); if (elite) sc *= 6
+  if (type === 'soldier' && nightAmt(g.phase()) > 0.3 && g.R() < 0.08) (o = o || {}).lantern = 1
   const e = Object.assign({ type, d, x, y, elite, hp: d.hp * sc, maxHp: d.hp * sc, kx: 0, ky: 0, flash: 0, face: 0, anim: g.R() * 4, dead: false, stun: 0, ai: { t: 0, s: 0 }, ph: g.R() * TAU, spd: d.spd * (0.9 + g.R() * 0.2), born: g.t }, o || {})
   if (d.boss) { g.boss = e; g.banner(d.boss, BOSSSUB[type] || '', 2.4); g.shake = Math.max(g.shake, 6) }
   g.en.push(e); return e
@@ -170,7 +196,7 @@ GP.damage = function (e, dmg, kx, ky, kb, o) {
   if (kb) { const l = Math.hypot(kx, ky) || 1, m = Math.sqrt(e.d.mass); e.kx += (kx / l) * kb / m; e.ky += (ky / l) * kb / m }
   if ((dmg >= 10 && !o.quiet && g.texts.length < 36) || crit) g.text(e.x + (g.R() - 0.5) * 6, e.y, e.d.h + 2, Math.round(dmg), crit ? 'crit' : 'dmg')
   g.blood(e.x, e.y, e.d.h * 0.55, Math.min(8, 2 + dmg / 8), kx, ky, e.d.spirit)
-  if (e.d.boss) { g.hitstop = Math.max(g.hitstop, 0.03); g.shake = Math.max(g.shake, 2) }
+  if (e.d.boss) { g.hitstop = Math.max(g.hitstop, 0.03); g.shake = Math.max(g.shake, 2) } else if (g.armorT > 0) g.shake = Math.max(g.shake, 1.5)
   if (e.hp <= 0) g.kill(e, kx, ky)
 }
 GP.kill = function (e, kx, ky) {
@@ -215,8 +241,8 @@ GP.hurt = function (dmg, src) {
 GP.gainXp = function (v) { const p = this.p; p.xp += v; while (p.xp >= p.next) { p.xp -= p.next; p.lvl++; p.next = Math.round(5 + p.lvl * 4 + p.lvl * p.lvl * 0.25); this.queueLv++ } }
 GP.pool = function () {
   const g = this, a = ['w:sweep', 'w:knives', 'w:bolts', 'w:bombs', ...PASSIVES, 'evo_beast', 'evo_salamander']
-  if (!g.eclipsed) a.push('ally:casca', 'ally:judeau', 'ally:pippin', 'ally:corkus', 'banner')
-  else a.push('w:cleave', 'w:lunge', 'w:cannon', 'w:puck', 'torch', 'talisman', 'armor', 'fury', 'ironwill', 'bloodrush', 'hunger')
+  a.push('banner', ...Object.keys(ALLY).map(id => 'ally:' + id))
+  if (g.eclipsed) a.push('w:cleave', 'w:lunge', 'w:cannon', 'w:puck', 'torch', 'talisman', 'armor', 'fury', 'ironwill', 'bloodrush', 'hunger')
   return a
 }
 GP.rollChoices = function (n, pool) {
@@ -226,12 +252,17 @@ GP.rollChoices = function (n, pool) {
     if (u.weapon) { if (WEAP[u.weapon].evo) return false; if (g.wlvl(u.weapon) === 0 && g.weapons.filter(w => !WEAP[w.id].evo).length >= 6) return false; if (u.weapon === 'sweep' && g.wlvl('beast')) return false; return true }
     return g.ulvl(id) < u.max
   })
-  const evo = avail.filter(id => UPG[id].evo), rest = avail.filter(id => !UPG[id].evo), out = []
+  const cur = id => (UPG[id].weapon ? g.wlvl(UPG[id].weapon) : g.ulvl(id)), evo = avail.filter(id => UPG[id].evo), rest = avail.filter(id => !UPG[id].evo), out = []
   if (evo.length) out.push(evo[0])
-  while (out.length < n && rest.length) out.push(rest.splice(Math.floor(g.R() * rest.length), 1)[0])
+  const tilt = 1 + (g.depth() - 1) * 0.06
+  while (out.length < n && rest.length) {
+    const w = rest.map(id => { const r = rarOf(g, id, cur(id)); return RARW[r] * (r === 'common' ? 1 : tilt) }); let x = g.R() * w.reduce((s, v) => s + v, 0), i = 0
+    while (i < w.length - 1 && (x -= w[i]) > 0) i++; out.push(rest.splice(i, 1)[0])
+  }
   while (out.length < n) out.push('meat')
-  return out.map(id => { const u = UPG[id], cur = u.weapon ? g.wlvl(u.weapon) : g.ulvl(id); return { id, name: u.name, lvl: cur + 1, isNew: cur === 0 && !u.filler, evo: !!u.evo, relic: !!u.relic, desc: u.desc(g, cur + 1) } })
+  return out.map(id => g.card(id))
 }
+GP.card = function (id) { const u = UPG[id], c = u.weapon ? this.wlvl(u.weapon) : this.ulvl(id); return { id, name: u.title ? u.title(this) : u.name, lvl: c + 1, isNew: c === 0 && !u.filler, evo: !!u.evo, relic: !!u.relic, rar: rarOf(this, id, c), desc: u.desc(this, c + 1) } }
 GP.applyUpg = function (id) { const u = UPG[id]; if (!u) return; if (!u.weapon) this.ups[id] = (this.ups[id] || 0) + 1; u.apply(this) }
 GP.choose = function (i) {
   const g = this, pd = g.pending; if (!pd) return
@@ -241,16 +272,16 @@ GP.choose = function (i) {
 GP.relicChest = function () {
   const g = this, pool = Object.keys(RELICS).filter(k => !g.ups[k]), ch = []
   while (ch.length < 3 && pool.length) ch.push(pool.splice(Math.floor(g.R() * pool.length), 1)[0])
-  const choices = ch.length ? ch.map(id => ({ id, name: UPG[id].name, lvl: 1, isNew: true, relic: true, desc: UPG[id].desc(g, 1) })) : g.rollChoices(g.choices)
+  const choices = ch.length ? ch.map(id => g.card(id)) : g.rollChoices(g.choices)
   g.setPending({ type: 'chest', title: ch.length ? 'A RELIC FOR THE ROAD' : 'TREASURE', choices })
 }
 /* shop */
 GP.openShop = function () { this.shops++; this.reroll = 2 + this.shops; this.setPending({ type: 'shop', title: "BETWEEN NIGHTS · GODO'S FORGE AND PUCK'S MARKET", items: this.shopRoll(), gold: this.p.gold }) }
 GP.shopRoll = function () {
-  const g = this, keys = Object.keys(ITEMS).filter(k => { const it = ITEMS[k]; return !it.weapon || g.wlvl(it.weapon) > 0 || g.weapons.length < 6 }), out = []
+  const g = this, keys = Object.keys(ITEMS).filter(k => { const it = ITEMS[k]; return (!it.req || it.req(g)) && (!it.weapon || g.wlvl(it.weapon) > 0 || g.weapons.length < 6) }), out = []
   while (out.length < 4 && keys.length) {
     const k = keys.splice(Math.floor(g.R() * keys.length), 1)[0], it = ITEMS[k], l = it.weapon ? g.wlvl(it.weapon) : 0
-    out.push({ key: k, name: it.name + (it.weapon && l ? ' T' + (l + 1) : ''), vendor: it.v === 'forge' ? "Godo's Forge" : "Puck's Market", tags: it.tags, price: Math.round(it.price * (1 + g.shops * 0.15)), desc: it.weapon ? UPG['w:' + it.weapon].desc(g, l + 1) : it.desc, sold: false })
+    out.push({ key: k, rar: it.rar || (it.price >= 28 ? 'rare' : 'common'), name: it.name + (it.weapon && l ? ' T' + (l + 1) : ''), vendor: it.v === 'forge' ? "Godo's Forge" : "Puck's Market", tags: it.tags, price: Math.round(it.price * (1 + g.shops * 0.15)), desc: it.weapon ? UPG['w:' + it.weapon].desc(g, l + 1) : it.desc, sold: false })
   }
   return out
 }
@@ -265,17 +296,19 @@ GP.shopChoose = function (i) {
 }
 
 /* ---------- the hawks ---------- */
-function mkAlly(g, id) { const slots = { casca: [-28, -14], judeau: [26, -16], pippin: [-20, 18], corkus: [30, 16] }; return { id, lvl: 1, x: g.p.x + slots[id][0], y: g.p.y + slots[id][1], slot: slots[id], face: 0, anim: 0, cd: 0.5, moving: 0 } }
+const SLOTS = [[-28, -14], [26, -16], [-20, 18], [30, 16]]
+function mkAlly(g, id) { const used = liveAllies(g).map(a => a.slot), slot = SLOTS.find(s => !used.includes(s)) || SLOTS[0]; return { id, lvl: 1, x: g.p.x + slot[0], y: g.p.y + slot[1], slot, face: 0, anim: 0, cd: 0.5, moving: 0 } }
 GP.updateAllies = function (dt) {
   const g = this, p = g.p
   for (const a of g.allies) {
-    if (a.doom != null) { a.doom -= dt; if (a.doom <= 0) { a.fade = (a.fade || 0) + dt * 1.4; if (a.fade >= 1 && !a.gone) { a.gone = true; g.blood(a.x, a.y, 20, 26, 0, 0); g.pools.push({ x: a.x, y: a.y, s: 1, r: 1, t: 0 }); g.text(a.x, a.y, 44, ALLY[a.id].name.toUpperCase(), 'crit'); for (let k = 0; k < 3; k++) g.spawn('ghost', a.x + (g.R() - 0.5) * 30, a.y + (g.R() - 0.5) * 20) } } continue }
+    if (a.doom != null) { a.doom -= dt; if (a.doom <= 0) { a.fade = (a.fade || 0) + dt * 1.4; if (a.fade >= 1 && !a.gone) { a.gone = true; g.lost[a.id] = 1; g.ups['ally:' + a.id] = 0; g.blood(a.x, a.y, 20, 26, 0, 0); g.pools.push({ x: a.x, y: a.y, s: 1, r: 1, t: 0 }); g.text(a.x, a.y, 44, ALLY[a.id].name.toUpperCase(), 'crit'); for (let k = 0; k < 3; k++) g.spawn('ghost', a.x + (g.R() - 0.5) * 30, a.y + (g.R() - 0.5) * 20) } } continue }
     a.cd -= dt; const hx = p.x + a.slot[0], hy = p.y + a.slot[1], L = a.lvl, mul = g.allyMul
     const move = (tx, ty, s) => { const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy); a.moving = d > 3; if (d > 2) { const v = Math.min(d, s * dt); a.x += (dx / d) * v; a.y += (dy / d) * v; a.face = Math.atan2(dy, dx); a.anim += dt * 6 } return d }
-    if (a.id === 'casca') { const e = g.nearest(a.x, a.y, 110); if (e && Math.hypot(e.x - hx, e.y - hy) < 140) { const d = move(e.x, e.y, 160 + L * 12); if (d < 18 && a.cd <= 0) { a.cd = Math.max(0.22, 0.75 - L * 0.06); g.damage(e, (10 + L * 5) * mul, e.x - a.x, e.y - a.y, 60); g.fx.push({ kind: 'slash', x: e.x, y: e.y, t: 0, d: 0.2 }) } } else move(hx, hy, 135) }
-    else if (a.id === 'judeau') { move(hx, hy, 110); const e = g.nearest(a.x, a.y, 190); if (e && a.cd <= 0) { a.cd = Math.max(0.25, 0.8 - L * 0.06); for (let k = 0; k < Math.min(6, 1 + Math.floor(L / 2)); k++) { const an = Math.atan2(e.y - a.y, e.x - a.x) + (k - L / 4) * 0.15; g.pr.push({ x: a.x, y: a.y, z: 18, vx: Math.cos(an) * 290, vy: Math.sin(an) * 290, life: 0.8, dmg: (6 + L * 2) * mul, pierce: 1, r: 5, kind: 'knife', hit: new Set() }) } a.face = Math.atan2(e.y - a.y, e.x - a.x) } }
-    else if (a.id === 'pippin') { move(hx, hy, 100); if (a.cd <= 0 && g.nearest(a.x, a.y, 60)) { a.cd = Math.max(0.9, 3 - L * 0.2); const R = Math.min(110, 38 + L * 6); g.fx.push({ kind: 'boom', x: a.x + Math.cos(a.face) * 10, y: a.y, rad: R * 0.6, t: 0, d: 0.3 }); g.shake = Math.max(g.shake, 3); for (const e of g.en) if (Math.hypot(e.x - a.x, e.y - a.y) < R) { g.damage(e, (16 + L * 7) * mul, e.x - a.x, e.y - a.y, 160); if (!e.d.boss) e.stun = 0.8 } } }
-    else if (a.id === 'corkus') { move(hx, hy, 110); if (a.cd <= 0) { let best = null, bh = 0; for (const e of g.en) { if (Math.hypot(e.x - a.x, e.y - a.y) < 250 && e.hp > bh) { bh = e.hp; best = e } } if (best) { a.cd = Math.max(0.3, 1.3 - L * 0.1); const an = Math.atan2(best.y - a.y, best.x - a.x); a.face = an; g.pr.push({ x: a.x, y: a.y, z: 20, vx: Math.cos(an) * 400, vy: Math.sin(an) * 400, life: 0.9, dmg: (14 + L * 6) * mul, pierce: 2, r: 5, kind: 'bolt', hit: new Set() }) } } }
+    const ai = ALLY[a.id].ai
+    if (ai === 'duel') { const e = g.nearest(a.x, a.y, 110); if (e && Math.hypot(e.x - hx, e.y - hy) < 140) { const d = move(e.x, e.y, 160 + L * 12); if (d < 18 && a.cd <= 0) { a.cd = Math.max(0.22, 0.75 - L * 0.06); g.damage(e, (10 + L * 5) * mul, e.x - a.x, e.y - a.y, 60); g.fx.push({ kind: 'slash', x: e.x, y: e.y, t: 0, d: 0.2 }) } } else move(hx, hy, 135) }
+    else if (ai === 'knives') { move(hx, hy, 110); const e = g.nearest(a.x, a.y, 190); if (e && a.cd <= 0) { a.cd = Math.max(0.25, 0.8 - L * 0.06); for (let k = 0; k < Math.min(6, 1 + Math.floor(L / 2)); k++) { const an = Math.atan2(e.y - a.y, e.x - a.x) + (k - L / 4) * 0.15; g.pr.push({ x: a.x, y: a.y, z: 18, vx: Math.cos(an) * 290, vy: Math.sin(an) * 290, life: 0.8, dmg: (6 + L * 2) * mul, pierce: 1, r: 5, kind: 'knife', hit: new Set() }) } a.face = Math.atan2(e.y - a.y, e.x - a.x) } }
+    else if (ai === 'slam') { move(hx, hy, 100); if (a.cd <= 0 && g.nearest(a.x, a.y, 60)) { a.cd = Math.max(0.9, 3 - L * 0.2); const R = Math.min(110, 38 + L * 6); g.fx.push({ kind: 'boom', x: a.x + Math.cos(a.face) * 10, y: a.y, rad: R * 0.6, t: 0, d: 0.3 }); g.shake = Math.max(g.shake, 3); for (const e of g.en) if (Math.hypot(e.x - a.x, e.y - a.y) < R) { g.damage(e, (16 + L * 7) * mul, e.x - a.x, e.y - a.y, 160); if (!e.d.boss) e.stun = 0.8 } } }
+    else if (ai === 'snipe') { move(hx, hy, 110); if (a.cd <= 0) { let best = null, bh = 0; for (const e of g.en) { if (Math.hypot(e.x - a.x, e.y - a.y) < 250 && e.hp > bh) { bh = e.hp; best = e } } if (best) { a.cd = Math.max(0.3, 1.3 - L * 0.1); const an = Math.atan2(best.y - a.y, best.x - a.x); a.face = an; g.pr.push({ x: a.x, y: a.y, z: 20, vx: Math.cos(an) * 400, vy: Math.sin(an) * 400, life: 0.9, dmg: (14 + L * 6) * mul, pierce: 2, r: 5, kind: 'bolt', hit: new Set() }) } } }
   }
   g.allies = g.allies.filter(a => !a.gone)
   /* the skull knight rides through once in a while at night */
@@ -331,24 +364,31 @@ GP.updateWorld = function (dt) {
     else g.once('nboss' + g.nightN, ph.u > 0.45, () => { g.spawn(['wraith', 'zodd', 'godhand'][(g.nightN - 2) % 3]); g.flash('#efe8da', 0.5) })
     if (g.skRoll) { g.skT -= dt; if (g.skT <= 0) { g.skRoll = false; g.skullKnight() } }
   }
-  /* the brand: fills at night, bleeds you when full, boosts your damage */
+  /* the brand fills at night and when spirits touch you. full, it burns: the world turns to ink for ten
+     seconds while it drains, you hit half again as hard, and you bleed */
   if (g.branded) {
-    if (ph.k === 'night') g.brand = Math.min(100, g.brand + 2 * g.brandRate * dt); else if (ph.k === 'day') g.brand = Math.max(0, g.brand - 2.5 * dt)
-    if (g.brand >= 100) { g.brand = 0; g.bleed = 5; g.banner('THE BRAND BLEEDS', '', 2); g.flash('#b3141a', 0.7); g.spawnRing('ghost', 16, 130) }
-    if (g.bleed > 0) { g.bleed -= dt; if (!g.opts.god) { g.p.hp -= 4 * dt; if (g.p.hp <= 0) { g.p.hp = 0; g.over = true; g.setPending({ type: 'dead' }) } } if (g.R() < dt * 20) g.blood(g.p.x + 2, g.p.y, 30, 1, 0, 0) }
+    if (!g.inkMode) {
+      if (ph.k === 'night') g.brand = Math.min(100, g.brand + 2 * g.brandRate * dt)
+      if (g.brand < 100 && ph.k === 'day') g.brand = Math.max(0, g.brand - 2.5 * dt)
+      if (g.brand >= 100) { g.inkMode = true; g.brand = 100; g.banner('THE BRAND BURNS', 'the world turns to ink', 2.2); g.flash('#b3141a', 0.7); g.spawnRing('ghost', 12, 130) }
+    } else {
+      g.brand -= 10 * dt
+      if (!g.opts.god) { g.p.hp -= 3 * dt; if (g.p.hp <= 0) { g.p.hp = 0; g.over = true; g.setPending({ type: 'dead' }) } } if (g.R() < dt * 20) g.blood(g.p.x + 2, g.p.y, 30, 1, 0, 0)
+      if (g.brand <= 0) { g.brand = 0; g.inkMode = false; g.banner('THE BRAND COOLS', '', 1.4) }
+    }
+    g.bleed = g.inkMode ? 1 : 0
     if (g.burn && nightAmt(ph) > 0.5) { g.burnT = (g.burnT || 0) - dt; if (g.burnT <= 0) { g.burnT = 1; const R = 85 * g.light; for (const e of g.en) if (e.d.spirit && Math.hypot(e.x - g.p.x, e.y - g.p.y) < R) g.damage(e, g.burn, 0, 0, 0) } }
   }
-  /* the berserker armor */
+  /* the berserker armor: full rage clamps it shut for a frenzy. faster, harder, wider swings, paid for in hp */
   if (g.rageOn) {
     const p = g.p; if (g.tired > 0) g.tired -= dt
-    if (g.armorT <= 0 && g.rage >= 100) { g.armorT = g.armorDur; g.rage = 0; p.spin = { t: 0, a: p.face, w: -14, dur: 0, every: 0.2, tick: 0, R: 58 * p.area, dmg: 12, kb: 120 }; g.banner('BERSERKER ARMOR', 'it hungers', 1.6); g.flash('#0e0d0c', 0.5); g.shake = 6 }
+    if (g.armorT <= 0 && g.rage >= 100) { g.armorT = g.armorDur; g.rage = 0; p.spin = { t: 0, a: p.face, w: -16, dur: 0.7, every: 0.15, tick: 0, R: 70 * p.area, dmg: 20 + p.lvl * 2, kb: 160 }; g.banner('BERSERKER FRENZY', g.inkMode ? 'ink and blood' : 'it hungers', 1.8); g.flash('#0e0d0c', 0.5); g.shake = 6 }
     if (g.armorT > 0) {
-      g.armorT -= dt; p.spin.R = 58 * p.area; p.spin.dmg = 12 + p.lvl * 1.2; if (!g.opts.god) p.hp = Math.max(1, p.hp - g.drain * dt); p.inv = Math.max(p.inv, 0.05)
+      g.armorT -= dt; if (!g.opts.god) p.hp = Math.max(1, p.hp - g.drain * dt)
       if (g.rage >= 100) { g.rage = 0; g.sense = Math.min(3, g.sense + 1); const s = SENSES[g.sense - 1]; g.banner('SENSE LOSS', s[0] + ' - ' + s[1], 3); g.flash('#efe8da', 0.8); if (g.sense >= 2) g.choices = 4 }
-      if (g.armorT <= 0) { p.spin = null; g.tired = 2; g.banner('THE ARMOR RELEASES', '', 1.2) }
+      if (g.armorT <= 0) { g.tired = 2; g.banner('THE ARMOR RELEASES', '', 1.2) }
     }
   }
-  if (g.eclipsed) g.allies.forEach(a => { if (a.doom == null) { a.doom = 0.6; a.brand = true } })
 }
 GP.spawnTick = function (dt) {
   const g = this, ph = g.phase(), t = g.t, n = nightAmt(ph), d = g.dayN
@@ -373,8 +413,7 @@ GP.step = function (dt) {
   g.cam.x += (p.x - g.cam.x) * Math.min(1, dt * 8); g.cam.y += (p.y - g.cam.y) * Math.min(1, dt * 8)
   g.updateWorld(dt); g.spawnTick(dt)
   for (const tl of g.tele) { tl.t -= dt; if (tl.t <= 0) { const b = g.bounds; g.bounds = null; g.spawn(tl.type, tl.x, tl.y, tl.o); g.bounds = b } } g.tele = g.tele.filter(t => t.t > 0)
-  for (const w of g.weapons) { w.cd -= dt; if (w.cd <= 0) { const nd = WFIRE[w.id](g, w); w.cd = (nd == null ? WEAP[w.id].cd(wl(w)) : nd) * Math.max(0.3, p.cdr) } if (w.id === 'bolts') boltTick(g, w, dt); if (w.id === 'puck') w.ang += dt * 2.4 }
-  if (g.armorT > 0) for (const w of g.weapons) if (w.id === 'sweep' || w.id === 'cleave' || w.id === 'lunge') w.cd = Math.max(w.cd, 0.3)
+  for (const w of g.weapons) { w.cd -= dt * (g.armorT > 0 ? 1.3 : 1); if (w.cd <= 0) { const nd = WFIRE[w.id](g, w); w.cd = (nd == null ? WEAP[w.id].cd(wl(w)) : nd) * Math.max(0.3, p.cdr) } if (w.id === 'bolts') boltTick(g, w, dt); if (w.id === 'puck') w.ang += dt * 2.4 }
   g.updateSwing(dt); g.updateSpin(dt); g.updateEnemies(dt); g.updateProj(dt); g.updateAllies(dt)
   const mg = p.magnet
   for (const k of g.gems) { k.t += dt; const dx = p.x - k.x, dy = p.y - k.y, d = Math.hypot(dx, dy) || 1; if (d < mg || k.mag) { k.mag = true; const s = Math.min(380, 70 + k.t * 50); k.x += (dx / d) * s * dt * Math.min(1, d); k.y += (dy / d) * s * dt * Math.min(1, d) } if (d < 9) { k.got = true; g.gainXp(k.v) } }
@@ -446,7 +485,7 @@ const BOSSAI = {
 
 /* ---------- weapons ---------- */
 function aimDir(g, range) { const p = g.p, e = g.nearest(p.x, p.y, range); return e ? Math.atan2(e.y - p.y, e.x - p.x) : p.face }
-function startSwing(g, dir, arc, R, dmg, kb, dur, o) { const p = g.p, sg = Math.cos(dir) >= 0 ? 1 : -1; p.face = dir; p.swing = Object.assign({ t: 0, dur: dur || 0.26, dir, a0: dir - (arc / 2) * sg, a1: dir + (arc / 2) * sg, R, dmg, kb, hit: new Set() }, o || {}) }
+function startSwing(g, dir, arc, R, dmg, kb, dur, o) { if (g.armorT > 0) { arc = Math.min(TAU * 0.95, arc * 1.3); R *= 1.1; kb *= 1.5 } const p = g.p, sg = Math.cos(dir) >= 0 ? 1 : -1; p.face = dir; p.swing = Object.assign({ t: 0, dur: dur || 0.26, dir, a0: dir - (arc / 2) * sg, a1: dir + (arc / 2) * sg, R, dmg, kb, hit: new Set() }, o || {}) }
 GP.updateSwing = function (dt) {
   const g = this, p = g.p, s = p.swing; if (!s) return; s.t += dt
   const u = Math.min(1, s.t / s.dur), e2 = 1 - Math.pow(1 - u, 2.2), a = s.a0 + (s.a1 - s.a0) * e2; s.cur = a

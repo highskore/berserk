@@ -20,28 +20,39 @@ const COL = {
   golden: { blood: '#7e1616', blood2: '#5e1a14', soot: '#2c2418', shadow: 'rgba(28,18,12,0.4)', steel: '#ece0c4', dark: '#1e140e', light: '#fff4dc', gem: '#e0a46a', gem2: '#fff8d0', coin: '#f0c48a', num: '#f8dcae', crit: '#d85a3a', heal: '#c8d890', hurt: '#d85a3a', spirit: '#d0d4e0', fire: '#f8a048' },
   ink: { blood: '#b3141a', blood2: '#b3141a', soot: '#0e0d0c', shadow: null, steel: '#0e0d0c', dark: '#0e0d0c', light: '#efe8da', gem: '#efe8da', gem2: '#0e0d0c', coin: '#efe8da', num: '#efe8da', crit: '#efe8da', heal: '#efe8da', hurt: '#b3141a', spirit: '#efe8da', fire: '#efe8da' },
 }
-const HATCH = (() => { const c = mkCanvas(4, 4), x = c.getContext('2d'); x.fillStyle = '#0e0d0c'; for (let i = 0; i < 4; i++) { x.fillRect(i, 3 - i, 1, 1); x.fillRect(i, i, 1, 1) } return ctx.createPattern(c, 'repeat') })()
-const LINES = (() => { const c = mkCanvas(4, 4), x = c.getContext('2d'); x.fillStyle = '#0e0d0c'; for (let i = 0; i < 4; i++) x.fillRect(i, 3 - i, 1, 1); return ctx.createPattern(c, 'repeat') })()
-const SHADEPAT = (() => { const c = mkCanvas(2, 2), x = c.getContext('2d'); x.fillStyle = '#0e0d0c'; x.fillRect(0, 0, 1, 1); x.fillRect(1, 1, 1, 1); return ctx.createPattern(c, 'repeat') })()
+/* diagonal line screens for the night falloff: one direction only, so they never read as a checker */
+const diag = n => { const c = mkCanvas(n, n), x = c.getContext('2d'); x.fillStyle = '#0e0d0c'; for (let i = 0; i < n; i++) x.fillRect(i, n - 1 - i, 1, 1); return ctx.createPattern(c, 'repeat') }
+const DENSE = diag(3), SPARSE = diag(6)
 
 /* ---------- world rendering ---------- */
 let game = null, ox = 0, oy = 0
 const SX = x => Math.round(x - game.cam.x + W / 2 + ox), SY = y => Math.round((y - game.cam.y) * KY + H / 2 + 14 + oy)
 const onScreen = (x, y, m) => { const sx = SX(x), sy = SY(y); return sx > -m && sx < W + m && sy > -m && sy < H + m * 1.6 }
 function blit(s, st, x, y, z, a, lighter) { const c = s[st]; if (a != null && a < 1) ctx.globalAlpha = a; ctx.drawImage(c, SX(x) - s.px, SY(y) - s.py - (z || 0)); if (lighter) { ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(c, SX(x) - s.px, SY(y) - s.py - (z || 0)); ctx.globalCompositeOperation = 'source-over' } ctx.globalAlpha = 1 }
-function shadow(st, x, y, rx) { const sx = SX(x), sy = SY(y); ctx.beginPath(); ctx.ellipse(sx, sy, rx, rx * KY * 0.7, 0, 0, TAU); if (st === 'ink') { ctx.fillStyle = SHADEPAT; ctx.fill() } else { ctx.fillStyle = COL.golden.shadow; ctx.fill() } }
+function shadow(st, x, y, rx) { const sx = SX(x), sy = SY(y); ctx.beginPath(); ctx.ellipse(sx, sy, rx, rx * KY * 0.7, 0, 0, TAU); if (st === 'ink') { ctx.fillStyle = '#0e0d0c'; ctx.fill() } else { ctx.fillStyle = COL.golden.shadow; ctx.fill() } }
 /* props live on a world grid turned 45 degrees; chunks are seeded so the same field comes back */
 const CH = 220
+/* things that burn: light radius, colour, flame height above the ground (px) and size */
+const LIT = { torch: { r: 90, c: [255, 160, 80], z: 30, s: 1 }, campfire: { r: 130, c: [255, 150, 70], z: 5, s: 1.7 }, brazier: { r: 100, c: [255, 170, 90], z: 15, s: 1.2 }, wagon: { r: 150, c: [255, 130, 60], z: 12, s: 2.2 } }
+const EYES = { crawler: [255, 120, 40], troll: [255, 120, 40], imp: [255, 150, 60], zodd: [255, 90, 40], count: [255, 200, 90], pitlord: [255, 200, 90], ghost: [190, 220, 255], wraith: [190, 220, 255], godhand: [255, 60, 40] }
+let LIGHTS = []
+function flame(x, y, s, st, seed, t) {
+  for (let i = 0; i < 4; i++) {
+    const k = n2(t * 9 + i * 3.1, seed), w = (2.6 - i * 0.5) * s, h = (5 + k * 4 - i) * s, fx = x + (i - 1.5) * 1.2 * s + Math.sin(t * 11 + i) * 0.8
+    ctx.fillStyle = st === 'ink' ? (i === 0 ? '#0e0d0c' : '#efe8da') : ['#7e2a10', '#e0601c', '#f8a048', '#ffe8b0'][i]
+    ctx.beginPath(); ctx.moveTo(fx - w, y); ctx.quadraticCurveTo(fx - w * 0.6, y - h * 0.5, fx, y - h); ctx.quadraticCurveTo(fx + w * 0.6, y - h * 0.5, fx + w, y); ctx.fill()
+  }
+}
 function propsInView(g) {
   const out = [], B = g.biome(), kinds = g.nightN === 1 && g.phase().k === 'night' ? ['flesh', 'cross', 'wheel', 'flesh'] : B.props, x0 = Math.floor((g.cam.x - W / 2 - 80) / CH), x1 = Math.floor((g.cam.x + W / 2 + 80) / CH), y0 = Math.floor((g.cam.y - H / KY / 2 - 80) / CH), y1 = Math.floor((g.cam.y + H / KY / 2 + 160) / CH)
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
     const h = i => h2(cx * 7 + i * 131 + g.dayN * 17, cy * 13 + i * 71), bx = cx * CH, by = cy * CH
     if (Math.abs(bx + CH / 2) < CH && Math.abs(by + CH / 2) < CH) continue
-    const kind = kinds[Math.floor(h(1) * kinds.length)]
-    if (h(2) < 0.35) { const dx = Math.SQRT1_2, dy = h(3) < 0.5 ? Math.SQRT1_2 : -Math.SQRT1_2, n = 3 + Math.floor(h(4) * 4); for (let i = 0; i < n; i++) out.push({ x: bx + 40 + h(5) * 80 + dx * i * 30, y: by + 40 + h(6) * 80 + dy * i * 30, kind, seed: i % 3 }) }
-    else for (let i = 0; i < 2; i++) out.push({ x: bx + h(10 + i) * CH, y: by + h(20 + i) * CH, kind: kinds[Math.floor(h(30 + i) * kinds.length)], seed: Math.floor(h(40 + i) * 3) })
+    const kind = kinds[Math.floor(h(1) * kinds.length)], id = cx + ',' + cy + ','
+    if (h(2) < 0.35 && !LIT[kind]) { const dx = Math.SQRT1_2, dy = h(3) < 0.5 ? Math.SQRT1_2 : -Math.SQRT1_2, n = 3 + Math.floor(h(4) * 4); for (let i = 0; i < n; i++) out.push({ x: bx + 40 + h(5) * 80 + dx * i * 30, y: by + 40 + h(6) * 80 + dy * i * 30, kind, seed: i % 3, id: id + i }) }
+    else for (let i = 0; i < 2; i++) out.push({ x: bx + h(10 + i) * CH, y: by + h(20 + i) * CH, kind: kinds[Math.floor(h(30 + i) * kinds.length)], seed: Math.floor(h(40 + i) * 3), id: id + 'b' + i })
   }
-  if (g.bounds) { const b = g.bounds; for (let x = b.x0; x <= b.x1; x += 52) { out.push({ x, y: b.y0 - 4, kind: 'pillar', seed: (x / 52) & 1 }); out.push({ x, y: b.y1 + 8, kind: x % 104 === 0 ? 'brazier' : 'pillar', seed: 2 }) } for (let y = b.y0 + 52; y < b.y1; y += 52) { out.push({ x: b.x0 - 8, y, kind: 'brazier', seed: 1 }); out.push({ x: b.x1 + 8, y, kind: 'brazier', seed: 0 }) } }
+  if (g.bounds) { const b = g.bounds; for (let x = b.x0; x <= b.x1; x += 52) { out.push({ x, y: b.y0 - 4, kind: 'pillar', seed: (x / 52) & 1 }); out.push({ x, y: b.y1 + 8, kind: x % 104 === 0 ? 'brazier' : 'pillar', seed: 2, id: 'pb' + x }) } for (let y = b.y0 + 52; y < b.y1; y += 52) { out.push({ x: b.x0 - 8, y, kind: 'brazier', seed: 1, id: 'pl' + y }); out.push({ x: b.x1 + 8, y, kind: 'brazier', seed: 0, id: 'pr' + y }) } }
   return out
 }
 function gutsFrame(g) {
@@ -54,28 +65,46 @@ function gutsFrame(g) {
 function drawWorld(g, st) {
   const C = COL[st], tile = tileCanvas(st === 'golden' ? g.biome().tile : g.nightN === 1 && g.phase().k !== 'day' ? 'eclipse' : 'paper')
   ctx.save(); ctx.translate((((W / 2 - g.cam.x + ox) % 256) + 256) % 256 - 256, (((H / 2 + 14 - g.cam.y * KY + oy) % 256) + 256) % 256 - 256); ctx.fillStyle = ctx.createPattern(tile, 'repeat'); ctx.fillRect(0, 0, W + 512, H + 512); ctx.restore()
-  for (const pl of g.pools) { if (!onScreen(pl.x, pl.y, 40)) continue; const c = POOLS[st][pl.r * 6 + pl.s], k = 0.4 + 0.6 * ease(pl.t), w = c.width * k, h = c.height * k; ctx.drawImage(c, SX(pl.x) - w / 2, SY(pl.y) - h / 2, w, h) }
-  for (const s of g.stains) { if (!onScreen(s.x, s.y, 4)) continue; ctx.fillStyle = s.soot ? C.soot : s.s > 1 ? C.blood2 : C.blood; if (s.soot) { ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.ellipse(SX(s.x), SY(s.y), 9, 5, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1 } else ctx.fillRect(SX(s.x), SY(s.y), s.s, 1) }
+  /* at night the blood thins out to a few clean pools, so it reads as pools and not as noise */
+  const night = st === 'ink'
+  for (const pl of g.pools) { if (!onScreen(pl.x, pl.y, 40)) continue; const c = POOLS[st][pl.r * 6 + pl.s], k = (0.4 + 0.6 * ease(pl.t)) * (night ? 0.7 : 1), w = c.width * k, h = c.height * k; ctx.drawImage(c, SX(pl.x) - w / 2, SY(pl.y) - h / 2, w, h) }
+  for (let i = night ? g.stains.length % 4 : 0; i < g.stains.length; i += night ? 4 : 1) { const s = g.stains[i]; if (!onScreen(s.x, s.y, 4) || (night && s.soot)) continue; ctx.fillStyle = s.soot ? C.soot : s.s > 1 ? C.blood2 : C.blood; if (s.soot) { ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.ellipse(SX(s.x), SY(s.y), 9, 5, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1 } else ctx.fillRect(SX(s.x), SY(s.y), s.s, 1) }
   for (const tl of g.tele) { const a = Math.sin(tl.t * 30) > 0; ctx.fillStyle = a ? COL.ink.blood : C.dark; const x = SX(tl.x), y = SY(tl.y); for (let i = -3; i <= 3; i++) { ctx.fillRect(x + i, y + Math.round(i * 0.5), 1, 1); ctx.fillRect(x + i, y - Math.round(i * 0.5), 1, 1) } }
   /* ground items */
   for (const k of g.gems) { if (!onScreen(k.x, k.y, 6)) continue; const x = SX(k.x), y = SY(k.y) - 3 - Math.round(Math.sin(g.rt * 4 + k.x) * 1), big = k.v > 4; ctx.fillStyle = C.dark; ctx.fillRect(x - 2, y - 3, 5, 7); ctx.fillStyle = C.gem; ctx.fillRect(x - 1, y - 2, 3, 5); ctx.fillStyle = C.gem2; ctx.fillRect(x, y - 2, 1, big ? 4 : 2) }
   for (const k of g.coins) { if (!onScreen(k.x, k.y, 6)) continue; const x = SX(k.x), y = SY(k.y) - 2; ctx.fillStyle = C.dark; ctx.fillRect(x - 2, y - 2, 5, 4); ctx.fillStyle = C.coin; ctx.fillRect(x - 1, y - 1, 3, 2) }
   for (const k of g.pickups) { const x = SX(k.x), y = SY(k.y) - 4; ctx.fillStyle = C.dark; ctx.fillRect(x - 5, y - 4, 11, 8); ctx.fillStyle = k.kind === 'chest' ? C.coin : C.blood; ctx.fillRect(x - 4, y - 3, 9, 6); if (k.kind === 'chest') { ctx.fillStyle = C.dark; ctx.fillRect(x - 4, y - 1, 9, 1) } }
   /* everything standing, painter-sorted by ground depth */
-  const L = []
-  for (const pr of propsInView(g)) if (onScreen(pr.x, pr.y, 60)) L.push({ y: pr.y, s: propSprite(pr.kind, pr.seed), x: pr.x, sh: pr.kind === 'pillar' || pr.kind === 'rock' ? 10 : 4 })
-  for (const e of g.en) { if (!onScreen(e.x, e.y, 70)) continue; const s = sprite(e.type, dirOf(e.face), e.stun > 0 ? 4 : Math.floor(e.anim) & 3, e.type === 'soldier' ? (e.ph > Math.PI ? 1 : 0) : 0); L.push({ y: e.y, s, x: e.x, sh: e.d.r, e }) }
+  const L = [], p0 = g.p, sn = g.snuffed || (g.snuffed = new Set()), dark = nightAmt(g.phase()) > 0.3; LIGHTS = []
+  for (const pr of propsInView(g)) {
+    if (!onScreen(pr.x, pr.y, 160)) continue; const lt = LIT[pr.kind], it = { y: pr.y, s: propSprite(pr.kind, pr.seed), x: pr.x, sh: pr.kind === 'pillar' || pr.kind === 'rock' ? 10 : 4 }
+    if (lt && !sn.has(pr.id)) {
+      /* a swing knocks a torch over and sets the ground alight; spirits drifting through snuff the flames */
+      if (p0.swing && pr.kind === 'torch' && Math.hypot(pr.x - p0.x, pr.y - p0.y) < p0.swing.R) { sn.add(pr.id); g.fx.push({ kind: 'fire', x: pr.x, y: pr.y, rad: 30, t: 0, d: 3, tick: 0, dmg: 6 }); continue }
+      if (dark && g.t % 0.5 < 0.02) for (const e of g.en) if (e.d.spirit && Math.abs(e.x - pr.x) < 14 && Math.abs(e.y - pr.y) < 14 && Math.random() < 0.3) { sn.add(pr.id); break }
+      it.lit = lt; it.seed = pr.seed + pr.x * 0.01; LIGHTS.push({ x: pr.x, y: pr.y, z: lt.z, r: lt.r, c: lt.c, i: 0.75 + 0.25 * n2(g.rt * 7, pr.x * 0.1) })
+    } else if (lt) it.smoke = 1
+    if (onScreen(pr.x, pr.y, 60)) L.push(it)
+  }
+  for (const e of g.en) { if (!onScreen(e.x, e.y, 70)) continue; const s = sprite(e.type, dirOf(e.face), e.stun > 0 ? 4 : Math.floor(e.anim) & 3, e.type === 'soldier' ? (e.ph > Math.PI ? 1 : 0) : 0); L.push({ y: e.y, s, x: e.x, sh: e.d.r, e }); if (e.lantern) LIGHTS.push({ x: e.x + Math.cos(e.face + 1.2) * 8, y: e.y + Math.sin(e.face + 1.2) * 8, z: 20, r: 60, c: [255, 200, 120], i: 0.85 + 0.15 * Math.sin(g.rt * 9 + e.ph) }) }
   for (const c of g.corpses) if (onScreen(c.x, c.y, 80)) L.push({ y: c.y - 1, c })
   for (const a of g.allies) L.push({ y: a.y, s: sprite(a.id, dirOf(a.face), a.moving ? Math.floor(a.anim) & 3 : 4), x: a.x, sh: 8, a })
   for (const r of g.riders) L.push({ y: r.y, s: sprite('skullknight', dirOf(r.face), Math.floor(r.anim) & 3), x: r.x, sh: 10 })
   L.push({ y: g.p.y, s: gutsFrame(g), x: g.p.x, sh: 11, guts: 1 })
-  const pw = g.weapons.find(w => w.id === 'puck'); if (pw) { const a = pw.ang; L.push({ y: g.p.y + Math.sin(a) * 18, s: sprite('puck', dirOf(a + Math.PI / 2), 4), x: g.p.x + Math.cos(a) * 26, z: 30 + Math.sin(g.rt * 3) * 3, sh: 3 }) }
+  const pw = g.weapons.find(w => w.id === 'puck'); if (pw) { const a = pw.ang, x = g.p.x + Math.cos(a) * 26, y = g.p.y + Math.sin(a) * 18; L.push({ y, s: sprite('puck', dirOf(a + Math.PI / 2), 4), x, z: 30 + Math.sin(g.rt * 3) * 3, sh: 3 }); LIGHTS.push({ x, y, z: 30, r: 55, c: [200, 255, 170], i: 0.8 }) }
+  /* guts always carries a little light, and the brand pulses red on his neck */
+  LIGHTS.push({ x: g.p.x, y: g.p.y, z: 24, r: 80, c: [255, 225, 180], i: 1 })
+  if (g.branded) LIGHTS.push({ x: g.p.x, y: g.p.y, z: 34, r: 30 + g.brand * 0.4, c: [255, 50, 30], i: (0.45 + 0.35 * Math.sin(g.rt * 7)) * (0.3 + g.brand / 140) })
+  if (g.armorT > 0) LIGHTS.push({ x: g.p.x, y: g.p.y, z: 10, r: 70, c: [255, 70, 30], i: 0.8 + 0.2 * Math.sin(g.rt * 13) })
+  for (const f of g.fx) if (f.kind === 'boom' || f.kind === 'fire' || f.kind === 'muzzle') LIGHTS.push({ x: f.x, y: f.y, z: 6, r: f.kind === 'boom' ? f.rad * 3 : f.kind === 'fire' ? 75 : 45, c: [255, 170, 80], i: f.kind === 'fire' ? 0.7 + 0.3 * Math.random() : 1 - f.t / f.d })
   for (const it of L) if (it.s && it.sh) shadow(st, it.x, it.y, it.sh)
   for (const it of L) if (it.e && it.e.elite) { ctx.strokeStyle = COL.ink.blood; ctx.beginPath(); ctx.ellipse(SX(it.x), SY(it.y), it.sh + 4, (it.sh + 4) * KY, 0, 0, TAU); ctx.stroke() }
   L.sort((a, b) => a.y - b.y)
   for (const it of L) {
     if (it.c) { drawCorpse(it.c, st); continue }
-    if (it.guts) { const p = g.p; blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); continue }
+    if (it.guts) { const p = g.p; if (g.armorT > 0) frenzyAura(g, st, it.s); blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); continue }
+    if (it.lit || it.smoke) { blit(it.s, st, it.x, it.y, 0, 1); const x = SX(it.x), y = SY(it.y) - (it.lit || LIT.torch).z; if (it.lit) flame(x, y + 2, it.lit.s, st, it.seed, g.rt); else { ctx.fillStyle = st === 'ink' ? '#0e0d0c' : '#5c5a5a'; for (let k = 0; k < 3; k++) ctx.fillRect(x + Math.round(Math.sin(g.rt * 2 + k) * 2), y - 3 - ((g.rt * 8 + k * 5) % 14), 1, 1) } continue }
+    if (it.e && it.e.lantern) { blit(it.s, st, it.x, it.y, 0, 1, it.e.flash > 0); const x = SX(it.x + Math.cos(it.e.face + 1.2) * 8), y = SY(it.y + Math.sin(it.e.face + 1.2) * 8) - 16; ctx.fillStyle = '#1e140e'; ctx.fillRect(x - 2, y - 3, 4, 5); ctx.fillStyle = st === 'ink' ? '#efe8da' : '#ffd890'; ctx.fillRect(x - 1, y - 2, 2, 3); continue }
     if (it.a) { blit(it.s, st, it.x, it.y, 0, it.a.fade ? 1 - it.a.fade : 1); if (it.a.brand) { ctx.fillStyle = COL.ink.blood; ctx.fillRect(SX(it.x) - 1, SY(it.y) - it.s.py + 8, 3, 3) } continue }
     blit(it.s, st, it.x, it.y, it.z || 0, it.e && it.e.flee ? 0.6 : 1, it.e && it.e.flash > 0)
   }
@@ -123,33 +152,71 @@ function drawCorpse(c, st) {
   ctx.save(); ctx.translate(ux, uy); ctx.rotate(c.a); ctx.translate(-s.px, -cut.y); ctx.beginPath(); ctx.rect(0, 0, s.w, cut.y); ctx.clip(); ctx.drawImage(cv2, 0, 0); stripe(); ctx.restore()
   ctx.globalAlpha = 1
 }
-/* night: the light shrinks to a circle round guts and the rest of the world is cross-hatched over */
+/* dark night: a low-res light map (deep moonlight plus every flame, lantern and glow as a flickering
+   point light) multiplied over the painted scene, so colour survives only near the fires */
+const LM = mkCanvas(8, 8), lctx = LM.getContext('2d')
+function drawNight(g, n) {
+  const w = (W + 1) >> 1, h = (H + 1) >> 1; if (LM.width !== w || LM.height !== h) { LM.width = w; LM.height = h }
+  const amb = [255 + (22 - 255) * n, 255 + (28 - 255) * n, 255 + (50 - 255) * n]
+  lctx.globalCompositeOperation = 'source-over'; lctx.fillStyle = `rgb(${amb.map(Math.round)})`; lctx.fillRect(0, 0, w, h); lctx.globalCompositeOperation = 'lighter'
+  /* the nearest few dozen lights are plenty; a lantern crowd shouldn't turn into one orange blob */
+  const px = g.p.x, py = g.p.y; if (LIGHTS.length > 36) LIGHTS.sort((a, b) => Math.hypot(a.x - px, a.y - py) - Math.hypot(b.x - px, b.y - py)).length = 36
+  for (const l of LIGHTS) {
+    const x = SX(l.x) / 2, y = (SY(l.y) - l.z) / 2, r = (l.r / 2) * (0.92 + 0.08 * l.i); if (x < -r || y < -r || x > w + r || y > h + r) continue
+    const k = l.i * n, gr = lctx.createRadialGradient(x, y, 0, x, y, r), c = l.c
+    gr.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${Math.min(1, k)})`); gr.addColorStop(0.45, `rgba(${c[0]},${c[1] * 0.8 | 0},${c[2] * 0.6 | 0},${(k * 0.45).toFixed(3)})`); gr.addColorStop(1, 'rgba(0,0,0,0)')
+    lctx.fillStyle = gr; lctx.fillRect(x - r, y - r, r * 2, r * 2)
+  }
+  ctx.globalCompositeOperation = 'multiply'; ctx.imageSmoothingEnabled = true; ctx.drawImage(LM, 0, 0, W, H); ctx.imageSmoothingEnabled = false; ctx.globalCompositeOperation = 'source-over'
+  /* out in the dark, demons are only their eyes */
+  if (n > 0.4) { ctx.globalCompositeOperation = 'lighter'; for (const e of g.en) { const c = EYES[e.type]; if (!c || !onScreen(e.x, e.y, 10)) continue; const s = sprite(e.type, dirOf(e.face), 4, 0), x = SX(e.x) + Math.round(Math.cos(e.face) * 2 * e.d.sc), y = SY(e.y) - s.py + s.top + Math.round(3 * e.d.sc), a = (n - 0.4) * 1.6
+      ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${Math.min(1, a)})`; ctx.fillRect(x - 2, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillStyle = `rgba(${c[0]},${c[1] >> 1},${c[2] >> 2},${Math.min(0.5, a * 0.5)})`; ctx.fillRect(x - 3, y - 1, 6, 3) }
+    ctx.globalCompositeOperation = 'source-over' }
+}
+/* frenzy: the armor's red-black flames lick up around guts, embers trail him, an afterimage lags behind */
+const AFT = [], EMB = []
+function frenzyAura(g, st, s) {
+  const x = SX(g.p.x), y = SY(g.p.y), red = st === 'ink' ? '#b3141a' : '#d0281a'
+  AFT.forEach((a, k) => { ctx.globalAlpha = 0.12 + k * 0.06; ctx.drawImage(a.s[st], SX(a.x) - a.s.px, SY(a.y) - a.s.py) }); ctx.globalAlpha = 1
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * TAU + g.rt * 1.7, bx = x + Math.cos(a) * 10, by = y - 4 + Math.sin(a) * 5, hgt = 22 + 18 * n2(g.rt * 6 + i, i * 3.3), lean = Math.sin(g.rt * 5 + i) * 4
+    ctx.fillStyle = i % 3 === 0 ? '#0e0d0c' : red; ctx.globalAlpha = i % 3 === 0 ? 0.8 : 0.7
+    ctx.beginPath(); ctx.moveTo(bx - 3, by); ctx.quadraticCurveTo(bx + lean, by - hgt * 0.6, bx + lean * 1.5, by - hgt); ctx.quadraticCurveTo(bx + lean * 0.5, by - hgt * 0.4, bx + 3, by); ctx.fill()
+  }
+  ctx.globalAlpha = 1
+  for (const e of EMB) { ctx.fillStyle = e.t < 0.3 ? (st === 'ink' ? '#b3141a' : '#ff8a3a') : red; ctx.fillRect(SX(e.x), SY(e.y) - Math.round(e.z), 1, 1) }
+}
+function frenzyTick(g, dt) {
+  const p = g.p
+  if (g.armorT > 0) {
+    if ((AFT.t = (AFT.t || 0) - dt) <= 0) { AFT.t = 0.06; AFT.push({ x: p.x, y: p.y, s: gutsFrame(g) }); if (AFT.length > 3) AFT.shift() }
+    for (let k = 0; k < 3; k++) EMB.push({ x: p.x + (Math.random() - 0.5) * 18, y: p.y + (Math.random() - 0.5) * 8, z: 6 + Math.random() * 30, vz: 20 + Math.random() * 30, t: 0 })
+  } else AFT.length = 0
+  for (const e of EMB) { e.t += dt; e.z += e.vz * dt } while (EMB.length && EMB[0].t > 0.9) EMB.shift(); if (EMB.length > 120) EMB.splice(0, EMB.length - 120)
+}
+/* ink at night: the light shrinks to a circle round guts and the rest is lined over, then solid ink */
 function drawDark(g, st, amt) {
   const r0 = (g.pit ? 130 : g.nightN === 1 ? 84 : 100) * g.light * (0.6 + 0.4 / Math.max(0.4, amt)), x = SX(g.p.x), y = SY(g.p.y) - 14
   /* a taller pool of light on portrait screens, so a phone isn't mostly black */
   const sy = KY * 1.4 * clamp(H / W / 0.8, 1, 1.9)
   const ring = (r, fill, op) => { dctx.globalCompositeOperation = op || 'source-over'; dctx.fillStyle = fill; dctx.save(); dctx.translate(x, y); dctx.scale(1, sy); dctx.beginPath(); dctx.arc(0, 0, r, 0, TAU); dctx.restore(); dctx.fill() }
   dctx.globalCompositeOperation = 'source-over'; dctx.clearRect(0, 0, W, H)
-  if (st === 'ink') {
-    /* manga night: clear light, a band of sparse lines, a band of cross-hatching, then solid ink */
-    dctx.fillStyle = '#0e0d0c'; dctx.fillRect(0, 0, W, H); ring(r0 * 2, '#000', 'destination-out'); ring(r0 * 2, HATCH); ring(r0 * 1.55, '#000', 'destination-out'); ring(r0 * 1.55, LINES); ring(r0, '#000', 'destination-out')
-    ctx.drawImage(DK, 0, 0)
-  } else {
-    dctx.fillStyle = 'rgba(22,14,30,0.75)'; dctx.fillRect(0, 0, W, H); dctx.globalCompositeOperation = 'destination-out'; dctx.save(); dctx.translate(x, y); dctx.scale(1, KY * 1.4)
-    const gr = dctx.createRadialGradient(0, 0, r0, 0, 0, r0 * 2); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); dctx.fillStyle = gr; dctx.fillRect(-r0 * 2, -r0 * 2, r0 * 4, r0 * 4); dctx.restore()
-    ctx.globalAlpha = amt; ctx.drawImage(DK, 0, 0); ctx.globalAlpha = 1
-  }
+  dctx.fillStyle = '#0e0d0c'; dctx.fillRect(0, 0, W, H); ring(r0 * 2, '#000', 'destination-out'); ring(r0 * 2, DENSE); ring(r0 * 1.55, '#000', 'destination-out'); ring(r0 * 1.55, SPARSE); ring(r0, '#000', 'destination-out')
+  ctx.drawImage(DK, 0, 0)
 }
 let curStyle = null, wipe = null
 function render(dt) {
   const g = game; KY = CAM.ky; const ph = g.phase(), n = nightAmt(ph), st = g.style()
   ox = g.shake > 0 ? Math.round((Math.random() - 0.5) * g.shake) : 0; oy = g.shake > 0 ? Math.round((Math.random() - 0.5) * g.shake) : 0
   if (curStyle && st !== curStyle) wipe = { from: curStyle, t: 0 }; curStyle = st
-  drawWorld(g, st)
+  frenzyTick(g, dt)
+  /* each look draws its own world: painted (dark under the light map at night) or ink (lined falloff at night) */
+  const world = s => { drawWorld(g, s); if (s === 'ink') { if (n > 0.5) drawDark(g, s, n) } else if (n > 0) drawNight(g, n) }
+  world(st)
   /* the page turns: the new style spreads out from guts in a widening circle */
-  if (wipe) { wipe.t += dt; const r = ease(wipe.t / 0.9) * Math.hypot(W, H), x = SX(g.p.x), y = SY(g.p.y) - 20; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(x, y, r, 0, TAU, true); ctx.clip('evenodd'); drawWorld(g, wipe.from); ctx.restore(); ctx.strokeStyle = '#0e0d0c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; if (wipe.t > 0.9) wipe = null }
-  if (n > 0 && g.eclipsed) drawDark(g, st, st === 'ink' ? n : n * 0.7)
-  else if (n > 0) { ctx.fillStyle = 'rgba(60,20,24,' + (n * 0.45).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H) }
+  if (wipe) { wipe.t += dt; const r = ease(wipe.t / 0.9) * Math.hypot(W, H), x = SX(g.p.x), y = SY(g.p.y) - 20; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(x, y, r, 0, TAU, true); ctx.clip('evenodd'); world(wipe.from); ctx.restore(); ctx.strokeStyle = '#0e0d0c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; if (wipe.t > 0.9) wipe = null }
+  /* the frenzy pulses red at the edges of the screen */
+  if (g.armorT > 0) { const k = 0.28 + 0.14 * Math.sin(g.rt * 6), gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) * 0.55); gr.addColorStop(0, 'rgba(179,20,26,0)'); gr.addColorStop(1, `rgba(179,20,26,${k.toFixed(3)})`); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H) }
   if (g.flashT > 0) { ctx.globalAlpha = Math.min(1, g.flashT) * 0.6; ctx.fillStyle = st === 'ink' && g.flashC !== '#0e0d0c' ? (g.flashC === '#b3141a' || g.flashC === '#e81010' ? '#b3141a' : '#efe8da') : g.flashC; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
   if (st === 'ink') { ctx.fillStyle = '#0e0d0c'; ctx.fillRect(0, 0, W, 2); ctx.fillRect(0, H - 2, W, 2); ctx.fillRect(0, 0, 2, H); ctx.fillRect(W - 2, 0, 2, H) }
   const gray = g.sense >= 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== gray) cv.style.filter = gray
@@ -168,8 +235,8 @@ function hud() {
   hudSet($('lvl'), 'text', 'LV ' + p.lvl); hudSet($('kills'), 'text', p.kills + ' slain'); hudSet($('gold'), 'text', p.gold + ' gold')
   let m = ''
   if (g.branded) m += meter('BRAND', g.brand / 100, 'red')
-  if (g.rageOn) m += g.armorT > 0 ? meter('ARMOR', g.armorT / g.armorDur, 'red') + meter('OVER', g.rage / 100) : meter('RAGE', g.rage / 100)
-  if (g.bleed > 0) m += '<div class="tag red">BLEEDING</div>'
+  if (g.rageOn) m += g.armorT > 0 ? meter('FRENZY', g.armorT / g.armorDur, 'red') + meter('OVER', g.rage / 100) : meter('RAGE', g.rage / 100)
+  if (g.inkMode) m += '<div class="tag red">THE BRAND BURNS · BLEEDING</div>'
   if (g.sense) m += '<div class="tag">SENSE LOSS ' + 'I'.repeat(g.sense) + '</div>'
   for (const a of g.allies) m += '<div class="tag' + (a.brand ? ' red' : '') + '">' + ALLY[a.id].name + ' ' + a.lvl + '</div>'
   if (!g.eclipsed && g.t > 100) m += '<div class="tag red">ECLIPSE ' + fmtT(DAY1 + DUSK - g.t) + '</div>'
@@ -181,7 +248,8 @@ function hud() {
 /* ---------- menus ---------- */
 let state = 'title', paused = false, pver = -1
 function showOv(id) { for (const o of document.querySelectorAll('.ov')) o.hidden = o.id !== id }
-function cardHTML(c, i) { return `<button class="card${c.evo ? ' evo' : c.relic ? ' relic' : ''}" data-i="${i}"><span class="k">${i + 1}</span><b>${c.name}</b><em>${c.evo ? 'EVOLUTION' : c.relic ? 'RELIC' : c.isNew ? 'NEW' : 'LV ' + c.lvl}</em><p>${c.desc}</p></button>` }
+const cardBody = (id, i, rar, tag, name, desc, dis) => `<button class="card r-${rar}" data-i="${i}" ${dis ? 'disabled' : ''}><i class="ico"><img src="${iconURL(id)}" alt=""></i><span class="txt"><em>${rar}${tag ? ' · ' + tag : ''}</em><b>${name}</b><p>${desc}</p></span><span class="k">${i + 1}</span></button>`
+function cardHTML(c, i) { return cardBody(c.id, i, c.rar, c.evo ? 'evolution' : c.relic ? 'relic' : c.isNew ? 'new' : 'level ' + c.lvl, c.name, c.desc) }
 function syncMenus() {
   const g = game; if (state !== 'play') return
   if (paused) { showOv('ovPause'); return }
@@ -190,7 +258,7 @@ function syncMenus() {
   if (pd.type === 'level' || pd.type === 'chest') { $('pickT').textContent = pd.title; $('cards').innerHTML = pd.choices.map(cardHTML).join(''); showOv('ovPick') }
   else if (pd.type === 'shop') {
     $('shopT').textContent = pd.title; $('shopG').textContent = pd.gold + ' gold'; $('shopN').textContent = pd.note || 'Three items of one tag make a set: elf, brand or steel.'
-    $('items').innerHTML = pd.items.map((it, i) => `<button class="card${it.sold ? ' sold' : ''}" data-i="${i}" ${it.sold || g.p.gold < it.price ? 'disabled' : ''}><span class="k">${i + 1}</span><b>${it.name}</b><em>${it.sold ? 'SOLD' : it.price + ' gold · ' + it.vendor}</em><p>${it.desc}${it.tags.length ? ' <small>' + it.tags.join(' · ') + '</small>' : ''}</p></button>`).join('')
+    $('items').innerHTML = pd.items.map((it, i) => cardBody(it.key, i, it.rar, it.sold ? 'sold' : it.price + ' gold · ' + it.vendor, it.name, it.desc + (it.tags.length ? ' <small>' + it.tags.join(' · ') + '</small>' : ''), it.sold || g.p.gold < it.price)).join('')
     $('reroll').textContent = 'Reroll (' + g.reroll + ' gold)'; $('reroll').disabled = g.p.gold < g.reroll; showOv('ovShop')
   } else if (pd.type === 'dead') {
     $('deadS').innerHTML = `Survived <b>${fmtT(g.t)}</b> · level <b>${g.p.lvl}</b> · <b>${g.p.kills}</b> slain · reached ${g.nightN ? (g.nightN === 1 ? 'the Eclipse' : 'night ' + g.nightN) : 'day ' + g.dayN}`; showOv('ovDead')

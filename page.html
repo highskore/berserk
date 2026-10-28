@@ -18,17 +18,36 @@
   #boss i { display: block; height: 7px; margin-top: 2px; border: 1px solid #000; background: #000a } #boss b { display: block; height: 100%; background: var(--blood) }
   #ban { position: absolute; left: 0; right: 0; top: 30%; text-align: center } #ban b { display: block; font: 700 clamp(28px, 7vw, 54px)/1 var(--serif); letter-spacing: .08em } #ban span { font-size: 12px; letter-spacing: .14em; text-transform: uppercase }
   .ov { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: #0e0d0cb8; overflow: auto }
-  .box { width: min(860px, 100%); text-align: center } .box h1, .box h2 { font: 700 clamp(30px, 8vw, 64px)/1 var(--serif); margin: 0 0 6px; letter-spacing: .06em } .box h2 { font-size: clamp(24px, 5vw, 36px) }
+  .box { width: min(1000px, 100%); text-align: center } .box h1, .box h2 { font: 700 clamp(30px, 8vw, 64px)/1 var(--serif); margin: 0 0 6px; letter-spacing: .06em } .box h2 { font-size: clamp(24px, 5vw, 36px) }
   .box p.sub { margin: 0 0 18px; opacity: .85 } .credit { font-size: 11px; opacity: .7; margin-top: 20px; max-width: 62ch; margin-inline: auto }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 12px 0 }
-  .card { position: relative; text-align: left; font: inherit; color: var(--ink); background: var(--paper); border: 2px solid var(--ink); box-shadow: 4px 4px 0 #000; padding: 12px 12px 10px; cursor: pointer; min-height: 120px }
-  .card:hover, .card:focus-visible { outline: 3px solid var(--blood); outline-offset: 0 } .card b { display: block; font: 700 21px/1.1 var(--serif); padding-right: 22px } .card em { display: block; font-style: normal; font-size: 10px; letter-spacing: .12em; color: #6a5a50; margin: 3px 0 6px } .card p { margin: 0; font-size: 12.5px }
-  .card .k { position: absolute; right: 8px; top: 6px; font-size: 11px; opacity: .5 } .card.evo { background: #f6dca8 } .card.relic { background: #e8dcc0 } .card.evo em, .card.relic em { color: var(--blood) } .card[disabled] { opacity: .45; cursor: default } .card small { display: block; margin-top: 4px; letter-spacing: .1em; text-transform: uppercase; font-size: 9.5px; color: #6a5a50 }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 14px 0 }
+  /* cards: dark parchment in an iron frame, the rarity in the rim, the glow and the label */
+  .card { --rc: #7a7266; --rg: #0000; position: relative; display: flex; gap: 12px; align-items: flex-start; text-align: left; font: inherit; color: var(--paper); cursor: pointer; padding: 12px 14px 12px 12px; min-height: 112px;
+    background: radial-gradient(130% 100% at 20% 0%, #3b2d1f 0%, #231a12 50%, #130e0a 100%), #1a130d; border: 2px solid var(--rc); border-radius: 3px;
+    box-shadow: 0 0 0 2px #0a0806, 0 0 0 3px #3a3128, 0 0 18px 2px var(--rg), inset 0 0 26px #000d, inset 0 1px 0 #ffffff14; transition: transform .12s, box-shadow .12s }
+  .card::before, .card::after { content: ''; position: absolute; width: 5px; height: 5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #b8aa94, #4a4036 70%); top: 5px; left: 5px; box-shadow: 0 0 0 1px #000 }
+  .card::after { left: auto; right: 5px; top: auto; bottom: 5px }
+  .card:hover, .card:focus-visible { outline: none; transform: translateY(-2px); box-shadow: 0 0 0 2px #0a0806, 0 0 0 3px var(--rc), 0 0 26px 6px var(--rg), inset 0 0 26px #000d }
+  .card .ico { flex: none; width: 68px; height: 68px; display: grid; place-items: center; background: radial-gradient(circle, #2e241a 0%, #0c0907 75%); border: 1px solid #5a4a38; box-shadow: inset 0 0 12px #000, 0 0 0 1px #000 }
+  .card .ico img { width: 64px; height: 64px; image-rendering: pixelated; filter: drop-shadow(0 1px 0 #000) }
+  .card .txt { flex: 1; min-width: 0 } .card b { display: block; font: 700 21px/1.1 var(--serif); padding-right: 18px; color: #f2e6cc; text-shadow: 0 1px 0 #000 }
+  .card em { display: block; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--rc); margin: 0 0 4px }
+  .card p { margin: 6px 0 0; font-size: 12.5px; color: #cbbfa8 } .card small { display: block; margin-top: 4px; letter-spacing: .1em; text-transform: uppercase; font-size: 9.5px; color: #8a7a64 }
+  .card .k { position: absolute; right: 9px; top: 7px; font-size: 11px; color: #8a7a64 } .card[disabled] { opacity: .4; cursor: default; transform: none }
+  .r-rare { --rc: #6f9cc8; --rg: #3a6ea855 } .r-epic { --rc: #d0342a; --rg: #b3141a77 } .r-legendary { --rc: #f0b048; --rg: #e0a040aa; animation: legend 1.4s ease-in-out infinite alternate }
+  .r-legendary .ico { border-color: #f0b048 } .r-epic .ico { border-color: #8a2018 }
+  @keyframes legend { to { box-shadow: 0 0 0 2px #0a0806, 0 0 0 3px #6a4a18, 0 0 30px 8px #f0b04866, inset 0 0 26px #000d } }
+  #ovPick h2, #ovShop h2 { text-shadow: 0 2px 0 #000; border-bottom: 2px solid var(--blood); display: inline-block; padding: 0 12px 4px }
   .btn { font: 700 18px var(--serif); letter-spacing: .1em; color: var(--paper); background: var(--blood); border: 2px solid var(--paper); padding: 10px 24px; cursor: pointer; margin: 4px } .btn.alt { background: transparent }
   .btn[disabled] { opacity: .4 } .keys { font-size: 11px; opacity: .7; margin-top: 8px }
   #stick { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; border: 2px solid #efe8da88; border-radius: 50%; pointer-events: none } #knob { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; background: #efe8da66 }
-  @media (max-width: 520px) { .cards { grid-template-columns: 1fr } .card { min-height: 0 } .card b { font-size: 18px }
-    .tc { left: auto; right: max(10px, env(safe-area-inset-right)); transform: none; top: calc(max(12px, env(safe-area-inset-top)) + 46px); text-align: right } .tc b { font-size: 15px } .tc span { display: block; max-width: 45vw } .tl { width: 50vw } }
+  /* phone: the top keeps only the timer; hp, meters, xp and stats sit in a strip along the bottom edge, above the safe area */
+  @media (max-width: 520px) { .cards { grid-template-columns: 1fr; gap: 9px } .card { min-height: 0; padding: 10px } .card .ico { width: 56px; height: 56px } .card .ico img { width: 52px; height: 52px } .card b { font-size: 18px }
+    .xp { top: auto; bottom: env(safe-area-inset-bottom); height: 5px }
+    .tl { top: auto; bottom: calc(env(safe-area-inset-bottom) + 12px); width: 52vw; display: flex; flex-direction: column-reverse } #meters { margin: 0 0 4px } .hpw { height: 12px } .hpw span { line-height: 11px }
+    .tr { top: auto; bottom: calc(env(safe-area-inset-bottom) + 12px); font-size: 10.5px; line-height: 1.25 }
+    .tc { top: max(8px, env(safe-area-inset-top)) } .tc b { font-size: 16px } .tc span { font-size: 9px }
+    #boss { bottom: auto; top: calc(max(8px, env(safe-area-inset-top)) + 40px); width: 70vw } #ban { top: 24% } }
 </style>
 <canvas id="cv" aria-label="Berserk survivor game"></canvas>
 <div id="hud" hidden>
@@ -44,7 +63,7 @@
   <h1>BERSERK</h1><p class="sub">The Black Swordsman · an endless survivor</p>
   <button class="btn" id="startB">Take up the sword</button>
   <p class="keys">Move with WASD or the arrow keys, or drag anywhere on a phone. The Dragonslayer swings on its own. P pauses.</p>
-  <p class="keys">The golden age ends at the first dusk. Every night after is worse. Nothing is saved: each visit starts fresh.</p>
+  <p class="keys">The golden age ends at the first dusk. Nights are dark and lit by fire. When the Brand fills, the world turns to ink. Nothing is saved: each visit starts fresh.</p>
   <p class="credit">An unofficial fan work. Berserk and all of its characters are the creation of Kentaro Miura (1966–2021) and belong to their rights holders. Everything here is drawn by code; no art from the manga or anime is used.</p>
 </div></div>
 <div class="ov" id="ovPick" hidden><div class="box"><h2 id="pickT"></h2><div class="cards" id="cards"></div><p class="keys">Press 1–4 or tap a card.</p></div></div>

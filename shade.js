@@ -3,10 +3,12 @@ const INK = [14, 13, 12], PAPER = [239, 232, 218]
 const INKMODE = { CLOAK: ['black', 1.15], HAIR: ['black', 1], DARK: ['black', 0.5], ARMOR: ['hatch', 1.05], IRON: ['hatch', 0.95], STEEL: ['hatch', 1.25], SKIN: ['hatch', 1.3], LEATHER: ['hatch', 0.85], CLOTH: ['hatch', 0.95], TABARD: ['hatch', 0.95], MAIL: ['stip', 0.95], FLESH: ['hatch', 1.05], GORE: ['red', 0], BONE: ['hatch', 1.4], BLOOD: ['red', 0], EYE: ['white', 0], SMEAR: ['white', 0], BRAND: ['red', 0], WOOD: ['hatch', 0.85], STONE: ['hatch', 1.1], GHOST: ['white', 0] }
 const INKDIR = { CLOAK: 'd2', ARMOR: 'd1', IRON: 'd2', STEEL: 'h', SKIN: 'd1', LEATHER: 'd2', CLOTH: 'v', TABARD: 'v', FLESH: 'd2', BONE: 'h', WOOD: 'v', MAIL: 'd1', STONE: 'd2' }
 const IK = { black: 0, hatch: 1, stip: 2, red: 3, white: 4 }, IDIR = { h: 0, v: 1, d1: 2, d2: 3 }
+/* bold chiaroscuro: lit planes stay paper, the turn gets one direction of lines, the rest is solid ink.
+   no cross-hatching, so a figure reads as a black mass instead of a grey checker */
 function hatchInk(x, y, l, dir) {
-  if (l > 0.8) return false
-  const a = dir === 0 ? y : dir === 1 ? x : dir === 3 ? x - y + 4096 : x + y, c = dir === 0 ? x : dir === 1 ? y : dir === 3 ? x + y : x - y + 4096
-  if (l > 0.62) return a % 4 === 0; if (l > 0.46) return a % 3 === 0; if (l > 0.32) return a % 2 === 0 || c % 4 === 0; if (l > 0.18) return a % 2 === 0 || c % 2 === 0; return h2(x, y) < 0.97
+  if (l > 0.72) return false
+  const a = dir === 0 ? y : dir === 1 ? x : dir === 3 ? x - y + 4096 : x + y
+  if (l > 0.52) return a % 3 === 0; if (l > 0.38) return a % 2 === 0; return true
 }
 const R_GOLD = { CLOAK: ['#121218', '#22222c', '#3a3640', '#5e5248'], ARMOR: ['#1a1a22', '#34343e', '#585456', '#8e8070'], IRON: ['#16161c', '#36363e', '#5c5a5c', '#8a8478'], STEEL: ['#30343e', '#62666c', '#a4a29a', '#ece0c4'],
   SKIN: ['#5a3a3a', '#94604a', '#c88e6a', '#ecc092'], HAIR: ['#0e0e14', '#1c1c24', '#34302e', '#4a4038'], LEATHER: ['#2a1e1c', '#4a3426', '#6e5036', '#94724c'], CLOTH: ['#22242a', '#383a3e', '#545250', '#76705e'],
@@ -55,7 +57,7 @@ function shadeBuf(b, cs, img, o) {
       if (kind === 3) { if (m === MAT.GORE && (xs + ys) & 1 && v < 0.5) ink = 1; else { r = 179; gg = 20; bb = 26; ink = -1 } }
       else if (kind === 4) ink = 0
       else if (kind === 0) { const vv = v * itone[m]; ink = (vv > 0.5 && (xs * 2 + ys + ((ys >> 3) & 1)) % 6 === 0) || (vv > 0.68 && (xs + ys) % 3 === 0) ? 0 : 1 }
-      else if (kind === 2) { const l = v * itone[m]; ink = l < 0.2 || ((xs + (ys & 1) * 2) % 3 === 0 && ys % 2 === 0) || (l < 0.45 && (xs + ys) % 2 === 0) ? 1 : 0 }
+      else if (kind === 2) { const l = v * itone[m]; ink = l < 0.4 || (l < 0.7 && (xs + ys * 2) % 4 === 0) ? 1 : 0 }
       else ink = hatchInk(xs, ys, v * itone[m], idir[m]) ? 1 : 0
       if (FL[i] === 1 && ink !== -1) ink = 1
       if (ink === 1) { r = 14; gg = 13; bb = 12 } else if (ink === 0) { r = 239; gg = 232; bb = 218 }
@@ -122,7 +124,7 @@ function groundStone(N, ky) {
 function groundInk(N, ky, eclipse) {
   const T = new Tile(N), P = 8, sc = N / P
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) T.set(x, y, [255 * (0.86 + 0.14 * (fbm(x / sc, y / sc, 3, P) - 0.5)), 0, 0], 1, 0)
-  scatter(N * N / 900, 11, (a, b, c) => {
+  scatter(N * N / 1800, 11, (a, b, c) => {
     const x = a * N, y = b * N, r = 1.5 + c * 3
     if (c < 0.4) { T.ell(x, y, r, r * ky, [255, 0, 0], 1, 3); T.ell(x + r * 0.2, y + r * 0.35, r, r * 0.45 * ky, [0, 0, 0], 1, 5); T.ell(x - r * 0.15, y - r * 0.1, r * 0.85, r * 0.7 * ky, [255, 0, 0], 1, 3) }
     else if (c < 0.8) { for (let k = 0; k < 4; k++) { const dx = (k - 1.5) * 1.3; T.line(x + dx, y, x + dx * 1.6, y - 2 - (k % 2) * 1.5, 0.45, [0, 0, 0], 1, 2) } }
@@ -132,12 +134,12 @@ function groundInk(N, ky, eclipse) {
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const i = y * N + x, k = T.k[i], l = T.c[i * 3] / 255; let ink = false
     if (k === 2) ink = true; else if (k === 5) ink = (x + y) % 3 === 0 || h2(x, y) < 0.08; else if (k === 3) ink = false
-    else ink = (l < 0.84 && (x - y * 2 + 9999) % 7 === 0 && h2(x >> 2, y >> 1) < 0.4) || (l < 0.8 && (x + y) % 5 === 0 && h2(x >> 3, y >> 3) < 0.3)
+    else ink = l < 0.83 && (x - y * 2 + 9999) % 7 === 0 && h2(x >> 3, y >> 1) < 0.16
     const c = ink ? INK : PAPER
     out[i * 4] = c[0]; out[i * 4 + 1] = c[1]; out[i * 4 + 2] = c[2]; out[i * 4 + 3] = 255
   }
   /* the eclipse: thin cracks of blood branching through the ground */
-  if (eclipse) scatter(14, 23, (a, b, c, s) => {
+  if (eclipse) scatter(6, 23, (a, b, c, s) => {
     const walk = (x, y, ang, n, d) => { for (let k = 0; k < n; k++) { ang += (h1(s * 97 + k * 13 + d * 7) - 0.5) * 0.9; x += Math.cos(ang); y += Math.sin(ang) * ky; const i = (wrp(Math.round(y), N) * N + wrp(Math.round(x), N)) * 4; out[i] = 179; out[i + 1] = 20; out[i + 2] = 26; if (d < 2 && h1(s * 31 + k + d * 5) < 0.06) walk(x, y, ang + (h1(k + s) < 0.5 ? 0.8 : -0.8), n * 0.5, d + 1) } }
     walk(a * N, b * N, c * TAU, 40 + c * 40, 0)
   })
@@ -153,7 +155,7 @@ function poolStamp(style, r, ky, seed) {
     let v = 0; for (const b of blobs) { const dx = (x + 0.5 - b[0]) / b[2], dy = (y + 0.5 - b[1]) / (b[2] * ky); v = Math.max(v, 1 - (dx * dx + dy * dy)) }
     v += (n2(x * 0.4 + seed, y * 0.4 / ky) - 0.5) * 0.4; if (v <= 0.05) continue
     const j = (y * W + x) * 4; let c
-    if (style === 'ink') c = v > 0.35 || (x + y) & 1 ? dec[1] : dec[0]
+    if (style === 'ink') { if (v < 0.2) continue; c = dec[1] }
     else { c = v > 0.6 ? dec[0] : v > 0.3 ? dec[1] : dec[2]; if (v > 0.45 && h2(x + seed, y) > 0.94) c = dec[3] }
     img[j] = c[0]; img[j + 1] = c[1]; img[j + 2] = c[2]; img[j + 3] = 255
   }

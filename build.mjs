@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const read = f => readFileSync(join(here, f), 'utf8')
 
-const js = ['render.js', 'shade.js', 'figs.js', 'game.js', 'sprites.js', 'ui.js'].map(read).join('\n')
+const js = ['render.js', 'shade.js', 'figs.js', 'game.js', 'sprites.js', 'icons.js', 'ui.js'].map(read).join('\n')
 if (js.includes('</script')) throw new Error('script terminator inside the game source')
 const page = read('page.html').replace('__GAME__', () => js)
 const split = page.indexOf('</style>') + '</style>'.length
@@ -18,11 +18,11 @@ const head = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Berserk · highskore</title>
-<meta name="description" content="An unofficial Berserk fan game: an endless survivor roguelike, golden age by day, ink by night.">
+<meta name="description" content="An unofficial Berserk fan game: an endless survivor roguelike in golden age paint, where a burning Brand turns the world to ink.">
 <meta name="theme-color" content="#0e0d0c">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <meta property="og:title" content="Berserk · highskore">
-<meta property="og:description" content="An unofficial Berserk fan game: an endless survivor roguelike, golden age by day, ink by night.">
+<meta property="og:description" content="An unofficial Berserk fan game: an endless survivor roguelike in golden age paint, where a burning Brand turns the world to ink.">
 <meta property="og:url" content="https://highskore.com/berserk">
 <meta property="og:type" content="website">
 `

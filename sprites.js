@@ -3,14 +3,22 @@
 const U = 0.55
 const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c }
 const GEO = {}
-function bake(draw, o, ang, sc, box) {
+/* at night every silhouette gets a paper halo so a black figure separates from ink and hatching */
+function halo(d, W, H, n) {
+  for (let k = 0; k < n; k++) {
+    const a = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) a[i] = d[i * 4 + 3]
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y * W + x; if (a[i]) continue
+      if ((x > 0 && a[i - 1]) || (x < W - 1 && a[i + 1]) || (y > 0 && a[i - W]) || (y < H - 1 && a[i + W]) || (k === 0 && ((x > 0 && y > 0 && a[i - W - 1]) || (x < W - 1 && y < H - 1 && a[i + W + 1])))) { d[i * 4] = 239; d[i * 4 + 1] = 232; d[i * 4 + 2] = 218; d[i * 4 + 3] = 255 } }
+  }
+}
+function bake(draw, o, ang, sc, box, hl) {
   const u = U * sc, W = Math.ceil(box[0] * u), H = Math.ceil(box[1] * u), px = W >> 1, py = Math.ceil(H * box[2]), k = W + 'x' + H
   const b = GEO[k] || (GEO[k] = mkBuf(W, H)); clearBuf(b); D.b = b; D.g = 1 << 5; setCam({ u, ox: px, oy: py }); setFig(0, 0, ang); draw(o)
   /* the cut row sits halfway up the opaque body; its span lets the gore stripe hug the silhouette */
   let y0 = H, y1 = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (b.mat[y * W + x] !== EMPTY) { if (y < y0) y0 = y; y1 = y; break }
   const cy = Math.round(y1 - (y1 - y0) * 0.5); let cx0 = W, cx1 = 0; for (let x = 0; x < W; x++) if (b.mat[cy * W + x] !== EMPTY) { cx0 = Math.min(cx0, x); cx1 = x }
-  const out = { px, py, w: W, h: H, cut: { y: cy, x0: cx0, x1: cx1 } }
-  for (const s of ['golden', 'ink']) { const c = mkCanvas(W, H), ctx = c.getContext('2d'), img = ctx.createImageData(W, H); shadeBuf(b, CS[s], img.data); ctx.putImageData(img, 0, 0); out[s] = c }
+  const out = { px, py, w: W, h: H, top: y0, cut: { y: cy, x0: cx0, x1: cx1 } }
+  for (const s of ['golden', 'ink']) { const c = mkCanvas(W, H), ctx = c.getContext('2d'), img = ctx.createImageData(W, H); shadeBuf(b, CS[s], img.data); if (s === 'ink') halo(img.data, W, H, hl || 1); ctx.putImageData(img, 0, 0); out[s] = c }
   return out
 }
 const FOLKBOX = [200, 190, 0.66]
@@ -22,6 +30,7 @@ const SPEC = {
   count: { draw: drawApostle, sc: 1.1, box: [220, 230, 0.7] }, pitlord: { draw: o => drawApostle(Object.assign({ horns: 1 }, o)), sc: 1.1, box: [220, 230, 0.7] },
   boscogn: { draw: FOLK.boscogn, sc: 1.45, box: FOLKBOX }, godhand: { draw: drawGodhand, sc: 1.15, box: [200, 280, 0.78] },
   casca: { draw: FOLK.casca, sc: 0.95, box: FOLKBOX }, judeau: { draw: FOLK.judeau, sc: 0.92, box: FOLKBOX }, pippin: { draw: FOLK.pippin, sc: 1.05, box: FOLKBOX }, corkus: { draw: FOLK.corkus, sc: 0.92, box: FOLKBOX },
+  serpico: { draw: FOLK.serpico, sc: 0.95, box: FOLKBOX }, isidro: { draw: FOLK.isidro, sc: 0.78, box: FOLKBOX }, schierke: { draw: FOLK.schierke, sc: 0.68, box: FOLKBOX }, sellsword: { draw: FOLK.sellsword, sc: 1.05, box: FOLKBOX },
   skullknight: { draw: FOLK.skullknight, sc: 1.1, box: FOLKBOX }, puck: { draw: drawPuck, sc: 1, box: [60, 60, 0.75] },
 }
 const SPR = new Map()
@@ -37,7 +46,7 @@ function gutsSprite(dir, mode, ph, armor) {
   const key = 'g' + dir + mode + ph + (armor ? 'A' : ''); let s = SPR.get(key); if (s) return s
   const o = { t: ph * 0.3, armor, bloody: 1 }
   if (mode === 'w') { o.walk = ph * (Math.PI / 4); o.mv = 1 } else if (mode === 's') o.swing = gutsSw(ph)
-  s = bake(drawGuts, o, dir * (Math.PI / 4), 1, [300, 260, 0.64]); SPR.set(key, s); return s
+  s = bake(drawGuts, o, dir * (Math.PI / 4), 1, [300, 260, 0.64], 2); SPR.set(key, s); return s
 }
 const PROPS = new Map()
 function propSprite(kind, seed) { const k = kind + seed; let s = PROPS.get(k); if (!s) { s = bake(o => drawProp(kind, seed), {}, 0.6, 1, kind === 'flesh' || kind === 'wheel' ? [90, 170, 0.8] : [110, 200, 0.85]); PROPS.set(k, s) } return s }

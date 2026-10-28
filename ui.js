@@ -480,7 +480,7 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now
   if (state === 'play') {
     const t0 = performance.now(); readInput()
-    game.opts.autoAbil = AUTO.on
+    game.opts.auto = AUTO.on ? { ab: 1, ult: 1, flask: 1 } : SETTINGS
     if (!paused && !PANEL) { acc += dt * speed; let n = 0; while (acc >= 1 / 60 && n < 10 * speed) { game.step(1 / 60); acc -= 1 / 60; n++ } if (acc > 0.25) acc = 0 }
     if (AUTO.on && game.pending && !paused) { if (game.pending.type === 'shop') { game.choose(0); game.choose('go') } else if (game.pending.type !== 'dead') game.choose(Math.floor(Math.random() * game.pending.choices.length)) }
     render(paused || PANEL ? 0 : dt * speed); hud(); syncMenus(); drawPanel(); PERF.ms += performance.now() - t0; PERF.frames++
@@ -493,7 +493,7 @@ function frame(now) {
   if (WARM.length) warmUp(state === 'play' ? 3 : 8)
   requestAnimationFrame(frame)
 }
-resize(); game = new Game({ god: true, seed: 1, autoAbil: 1 }); game.view = { w: W, h: H }; game.ban = null; showOv('ovTitle'); $('hud').hidden = true; requestAnimationFrame(frame)
+resize(); game = new Game({ god: true, seed: 1, auto: { ab: 1, ult: 1 } }); game.view = { w: W, h: H }; game.ban = null; showOv('ovTitle'); $('hud').hidden = true; requestAnimationFrame(frame)
 /* test hooks for the headless smoke run; harmless in play */
 window.__BZ = { get g() { return game }, start, auto: on => (AUTO.on = on), speed: v => (speed = v), perf: () => { const r = { frames: PERF.frames, ms: PERF.ms }; PERF.frames = 0; PERF.ms = 0; return r }, warmLeft: () => WARM.length,
   /* step + render n frames back to back, reading a pixel each frame so the gpu work is counted too */

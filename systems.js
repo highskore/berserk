@@ -22,9 +22,9 @@ GP.abilTick = function (dt) {
   for (const id in this.ab) { const a = this.ab[id], max = this.abCharges(id); if (a.ch >= max) { a.ch = max; a.t = 0; continue } a.t += dt / (ABIL[id].cd * this.abCdMul(id)); if (a.t >= 1) { a.t = 0; a.ch++ } }
   if (this.cryT > 0) this.cryT -= dt; if (this.dustT > 0) { this.dustT -= dt; this.heal(this.p.maxHp * 0.06 * (1 + 0.25 * (this.tal.salve || 0)) * dt) }
 }
-GP.cast = function (id) {
+GP.cast = function (id, aim) {
   const g = this, a = g.ab[id], p = g.p; if (!a || a.ch < 1 || g.pending || g.over) return false
-  const r = a.rank, k = abK(r), e = g.nearest(p.x, p.y, 260)
+  const r = a.rank, k = abK(r), e = aim || g.nearest(p.x, p.y, 260)
   if (id === 'armor') { if (!g.rageOn || g.armorT > 0 || g.rage < 50) return false; g.rage = 100 }
   else if (id === 'spin') { const R = 76 * p.area * (1 + 0.15 * (g.tal.cleave || 0)); p.spin = { t: 0, a: p.face, w: -18, dur: 0.6, every: 0.15, tick: 0, R, dmg: 40 * k / 4, kb: 200 }; g.shake = Math.max(g.shake, 4)
     if (g.tal.cap_sword) for (let i = 0; i < 6; i++) { const an = p.face + (i / 6) * TAU; g.pr.push({ x: p.x, y: p.y, z: 6, vx: Math.cos(an) * 260, vy: Math.sin(an) * 260, life: 0.6, dmg: 56 * k, pierce: 99, r: 12, kind: 'wave', hit: new Set() }) } }
@@ -36,8 +36,27 @@ GP.cast = function (id) {
     g.pr.push({ x: p.x, y: p.y, sx: p.x, sy: p.y, tx, ty, t: 0, d: 0.8, z: 0, kind: 'bomb', dmg: 120 * k, rad: 70 * p.area, life: 2, hit: new Set(), fire: 1 }) }
   a.ch--; return true
 }
-/* the autopilot (title demo, bots): fire whatever is ready when foes are close */
-GP.autoCast = function () { const p = this.p, n = this.nearest(p.x, p.y, 110); if (!n) return; for (const id of ABORDER) if (id !== 'dash' && this.ab[id] && this.ab[id].ch >= 1) { if (this.cast(id)) return } }
+/* auto-cast (on by default; the ultimate and flasks only if asked): each ability fires when it would actually help.
+   spin and war cry when foes crowd in, cannon at the nearest elite or the densest knot, knives and the keg into crowds,
+   dash away when hp is low with a foe on you or when a boss's next strike is about to land where you stand */
+GP.autoCast = function (o) {
+  const g = this, p = g.p; if ((g.acT = (g.acT || 0) - 1 / 60) > 0) return; g.acT = 0.2
+  if (o.flask && p.hp < p.maxHp * 0.3 && g.flasks.heal > 0) g.useFlask('heal')
+  if (!o.ab && !o.ult) return
+  let near = 0, close = 0, elite = null, ed = 1e9; for (const e of g.en) { if (e.dead) continue; const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < 90) near++; if (d < 45) close++; if ((e.elite || e.d.boss || e.d.apo) && d < ed && d < 260) { ed = d; elite = e } }
+  const ready = id => g.ab[id] && g.ab[id].ch >= 1
+  if (o.ult && ready('armor') && g.rageOn && g.rage >= 50 && g.armorT <= 0 && near >= 4) { g.cast('armor'); return }
+  if (!o.ab) return
+  const b = g.boss, P = b && b.ai && b.ai.plan, nxt = P && P.st.find(s => !s.done && s.sh && s.dmg), danger = nxt && nxt.t - b.ai.t < 0.35 && inside(nxt.sh, p.x, p.y)
+  if (ready('dash') && (danger || (p.hp < p.maxHp * 0.35 && close >= 2))) { const src = danger ? b : g.nearest(p.x, p.y, 60) || b; if (src) { const a = Math.atan2(p.y - src.y, p.x - src.x); g.input.x = Math.cos(a); g.input.y = Math.sin(a) } g.cast('dash'); return }
+  if (ready('spin') && (near >= 3 || (elite && ed < 70))) { g.cast('spin'); return }
+  if (ready('cry') && (near >= 7 || (b && Math.hypot(b.x - p.x, b.y - p.y) < 110))) { g.cast('cry'); return }
+  if (ready('cannon')) { const t = elite || g.densest(240); if (t) { g.cast('cannon', t); return } }
+  if (ready('knives') && near >= 5) { g.cast('knives'); return }
+  if (ready('keg')) { const t = g.densest(220, 6); if (t) { g.cast('keg'); return } }
+}
+/* the foe at the heart of the thickest knot within range (sampled, so it stays cheap in a horde) */
+GP.densest = function (range, min) { const g = this, p = g.p; let best = null, bn = (min || 3) - 1; for (let k = 0; k < 10 && g.en.length; k++) { const c = g.en[Math.floor(g.R() * g.en.length)]; if (c.dead || Math.hypot(c.x - p.x, c.y - p.y) > range) continue; let n = 0; for (const o of g.en) if (Math.abs(o.x - c.x) < 45 && Math.abs(o.y - c.y) < 45) n++; if (n > bn) { bn = n; best = c } } return best }
 for (const id in ABIL) UPG['ab:' + id] = { ability: id, name: ABIL[id].name, rar: id === 'armor' ? 'epic' : 'rare', desc: (g, l) => (l === 1 ? 'NEW ABILITY. ' : 'Rank ' + l + ': ') + ABIL[id].desc(l), req: g => (id === 'armor' ? g.rageOn : true), apply: g => g.learnAbil(id), max: 1e9 }
 
 /* ---------- gear: five slots, rarity tiers, trade-offs; item level follows the depth with no ceiling ---------- */

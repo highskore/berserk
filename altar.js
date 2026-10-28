@@ -1,6 +1,11 @@
 /* the blood altar ui: abilities in bronze diamond sockets along the bottom, flasks beside them, the party as round
    portraits with hp rings, buffs, a round compass minimap, the boss's cast bar, and the gear and talent screens.
    on a phone the abilities become round tap buttons at the bottom right and the flasks sit at the left. */
+/* settings: auto-cast abilities (on), the ultimate (off, it costs hp), flasks below 30% hp (off). a preference, not
+   progress, so it is remembered in this browser */
+const SETTINGS = (() => { const d = { ab: 1, ult: 0, flask: 0 }; try { return Object.assign(d, JSON.parse(localStorage.getItem('berserk-settings') || '{}')) } catch (e) { return d } })()
+const SETNAMES = [['ab', 'Auto-cast abilities', 'Each ability fires on its own when it would help. Manual presses always work too.'], ['ult', 'Auto ultimate', 'Let the Berserker Armor clamp shut on its own. It drinks your HP.'], ['flask', 'Auto-drink', 'Drink a healing draught below 30% HP.']]
+const setHTML = () => '<h2>Settings</h2>' + SETNAMES.map(([k, n, d]) => `<button class="setrow ${SETTINGS[k] ? 'on' : ''}" data-act="set" data-k="${k}"><b>${n}</b><span>${d}</span><i>${SETTINGS[k] ? 'ON' : 'OFF'}</i></button>`).join('') + '<button class="btn close" data-act="close">Close <kbd>O</kbd></button>'
 let PANEL = null, abarKey = '', partyKey = '', altarT = 0, gearSel = null, talSel = null, talTab = 'sword'
 const abURL = id => iconURL('ab:' + id)
 function altarBuild(g) {
@@ -64,22 +69,23 @@ function talHTML(g) {
 }
 function openPanel(p) { if (state !== 'play' || game.over || game.pending) return; PANEL = PANEL === p ? null : p; gearSel = null; talSel = null; pver = -1; drawPanel() }
 let panelVer = -1
-function drawPanel() { const g = game; $('ovGear').hidden = PANEL !== 'gear'; $('ovTal').hidden = PANEL !== 'tal'; if (!PANEL) return; const v = PANEL + g.pver + (gearSel ? 'g' + (gearSel.uid || gearSel.slot) : '') + (talSel || '') + talTab; if (panelVer === v) return; panelVer = v; if (PANEL === 'gear') $('gearP').innerHTML = gearHTML(g); else $('talP').innerHTML = talHTML(g) }
-for (const id of ['gearP', 'talP']) $(id).addEventListener('click', e => {
+function drawPanel() { const g = game; $('ovGear').hidden = PANEL !== 'gear'; $('ovTal').hidden = PANEL !== 'tal'; $('ovSet').hidden = PANEL !== 'set'; hudSet($('abar'), 'cls', SETTINGS.ab ? 'auto' : ''); if (!PANEL) return; const v = PANEL + g.pver + (gearSel ? 'g' + (gearSel.uid || gearSel.slot) : '') + (talSel || '') + talTab; if (panelVer === v) return; panelVer = v; if (PANEL === 'gear') $('gearP').innerHTML = gearHTML(g); else if (PANEL === 'set') $('setP').innerHTML = setHTML(); else $('talP').innerHTML = talHTML(g) }
+for (const id of ['gearP', 'talP', 'setP']) $(id).addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return; const g = game, a = b.dataset.act
   if (a === 'close') { PANEL = null; drawPanel(); return }
   if (a === 'pack') gearSel = { uid: +b.dataset.uid }; else if (a === 'worn') gearSel = { worn: 1, slot: b.dataset.slot }
   else if (a === 'equip') { g.equip(+b.dataset.uid); gearSel = null } else if (a === 'sell') { g.sellItem(+b.dataset.uid); gearSel = null } else if (a === 'unequip') { g.unequip(b.dataset.slot); gearSel = null }
+  else if (a === 'set') { SETTINGS[b.dataset.k] = SETTINGS[b.dataset.k] ? 0 : 1; try { localStorage.setItem('berserk-settings', JSON.stringify(SETTINGS)) } catch (e2) {} }
   else if (a === 'node') talSel = b.dataset.id; else if (a === 'take') g.takeTalent(b.dataset.id); else if (a === 'tab') talTab = b.dataset.t
   panelVer = -1; drawPanel()
 })
 $('abar').addEventListener('pointerdown', e => { const b = e.target.closest('.ab'); if (b && state === 'play' && !paused && !PANEL) { e.preventDefault(); game.cast(b.dataset.id) } })
 $('quick').addEventListener('pointerdown', e => { const b = e.target.closest('.qs'); if (b && state === 'play' && !paused && !PANEL) { e.preventDefault(); game.useFlask(b.dataset.id) } })
-$('gearB').onclick = () => openPanel('gear'); $('talB').onclick = () => openPanel('tal')
+$('gearB').onclick = () => openPanel('gear'); $('talB').onclick = () => openPanel('tal'); $('setB').onclick = () => openPanel('set')
 const ABKEYS = { Digit1: 'spin', Digit2: 'cannon', Digit3: 'knives', Space: 'dash', KeyQ: 'cry', KeyE: 'keg', KeyR: 'armor' }, FLKEYS = { KeyZ: 'heal', KeyX: 'dust', KeyC: 'smoke', KeyV: 'bomb' }
 function altarKey(e) {
   if (state !== 'play' || game.over || paused) return false
-  if (e.code === 'KeyI') { openPanel('gear'); return true } if (e.code === 'KeyN' || e.code === 'KeyT') { openPanel('tal'); return true }
+  if (e.code === 'KeyI') { openPanel('gear'); return true } if (e.code === 'KeyN' || e.code === 'KeyT') { openPanel('tal'); return true } if (e.code === 'KeyO') { openPanel('set'); return true }
   if (PANEL) { if (e.code === 'Escape') { PANEL = null; drawPanel(); return true } return true }
   if (game.pending) return false
   if (ABKEYS[e.code]) { game.cast(ABKEYS[e.code]); return true } if (FLKEYS[e.code]) { game.useFlask(FLKEYS[e.code]); return true }

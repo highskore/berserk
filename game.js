@@ -525,7 +525,7 @@ GP.step = function (dt) {
   if (g.bounds) { p.x = clamp(p.x, g.bounds.x0 + 10, g.bounds.x1 - 10); p.y = clamp(p.y, g.bounds.y0 + 10, g.bounds.y1 - 10) }
   if (p.inv > 0) p.inv -= dt; if (p.hurtT > 0) p.hurtT -= dt; if (p.regen) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt)
   g.cam.x += (p.x - g.cam.x) * Math.min(1, dt * 8); g.cam.y += (p.y - g.cam.y) * Math.min(1, dt * 8)
-  g.abilTick(dt); if (g.opts.autoAbil) g.autoCast()
+  g.abilTick(dt); if (g.opts.auto) g.autoCast(g.opts.auto)
   g.updateWorld(dt); g.spawnTick(dt)
   for (const tl of g.tele) { tl.t -= dt; if (tl.t <= 0) { const b = g.bounds; g.bounds = null; g.spawn(tl.type, tl.x, tl.y, tl.o); g.bounds = b } } g.tele = g.tele.filter(t => t.t > 0)
   for (const w of g.weapons) { w.cd -= dt * (g.armorT > 0 ? 1.3 : 1); if (w.cd <= 0) { const nd = WFIRE[w.id](g, w); w.cd = (nd == null ? WEAP[w.id].cd(wl(w)) : nd) * p.cdr } if (w.id === 'bolts') boltTick(g, w, dt); if (w.id === 'puck') w.ang += dt * 2.4 }

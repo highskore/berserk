@@ -91,33 +91,61 @@
     #hud #sysb { left: auto; right: max(8px, var(--sr)); top: calc(max(10px, var(--st)) + 104px); bottom: auto; flex-direction: column; align-items: flex-end } #hud #sysb kbd { display: none }
   }
 
-  /* gear and talent screens: dark altar panels with thin bronze rules */
-  .ov.altar { background: #0a0605d9 } .ov.altar .box.panel { position: relative; width: min(1000px, 100%); text-align: left; padding: 18px 22px; background: rgba(10,6,5,.96); border: 1px solid #a8843c; box-shadow: 0 0 0 1px #000, 0 0 60px #000; color: #efe0c4; font-family: 'IM Fell English SC', Georgia, serif }
-  .panel h2 { font-size: 26px !important; letter-spacing: .08em } .panel h2 small, .panel h3 small { font-size: 13px; opacity: .7; margin-left: 8px } .panel h3 { margin: 4px 0 8px; font-weight: 400; font-size: 16px; letter-spacing: .08em }
-  .panel .btn.close { position: absolute; right: 14px; top: 14px; font-size: 14px; padding: 6px 12px }
-  .panel .gwrap { display: grid; grid-template-columns: 300px 220px 1fr; gap: 18px }
-  .panel .doll { position: relative; height: 400px } .panel .doll .fig { position: absolute; left: 70px; top: 70px; width: 160px; height: 260px; object-fit: contain; image-rendering: pixelated }
-  .panel .gs { position: absolute; width: 58px; text-align: center } .panel .gs small { display: block; font: 600 10px Inter, sans-serif; text-transform: uppercase; letter-spacing: .1em; opacity: .8; margin-top: 2px }
-  .panel .gs-helm { left: 121px; top: 0 } .panel .gs-weapon { left: 0; top: 140px } .panel .gs-gauntlet { right: 0; top: 140px } .panel .gs-armor { left: 0; top: 290px } .panel .gs-charm { right: 0; top: 290px }
-  .panel .cell { position: relative; display: block; width: 52px; height: 52px; padding: 0; border: 1px solid var(--rc, #4a3a26); background: #0a0706; cursor: pointer } .panel .cell img { width: 100%; height: 100%; image-rendering: pixelated } .panel .cell.emp { cursor: default; opacity: .5 }
-  .panel .r-common { --rc: #8a7e6a } .panel .r-rare { --rc: #4f7fb0 } .panel .r-epic { --rc: #8e4fb0 } .panel .r-legendary { --rc: #c8862a }
-  .panel .grid { display: grid; grid-template-columns: repeat(6, 52px); gap: 6px } .panel .stats2 p { display: flex; justify-content: space-between; margin: 5px 0; font: 13px Inter, sans-serif }
-  .panel .tip { margin-top: 12px; padding: 10px 12px; background: #0a0706; border: 1px solid var(--rc, #a8843c); font: 13px/1.45 Inter, sans-serif } .panel .tip small { font-size: 10px; letter-spacing: .12em; color: var(--rc, #d0a850) } .panel .tip b { display: block; font: 18px 'IM Fell English SC', serif; margin: 2px 0 6px }
-  .panel .tip p { margin: 0 0 6px } .panel .tip .dn, .panel .cmp .dn { color: #d0503a } .panel .cmp .up { color: #7fb06a } .panel .cmp span { display: block }
-  .panel .acts { display: flex; gap: 8px } .panel .acts button, .panel .tabs button { font: 600 13px Inter, sans-serif; color: #efe0c4; background: #2a1c14; border: 1px solid #a8843c; padding: 7px 12px; cursor: pointer } .panel .acts button:disabled { opacity: .4; cursor: default }
-  .panel .hint { font: 13px Inter, sans-serif; opacity: .7; margin-top: 12px }
-  .panel .tabs { display: none } .panel .trees { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
-  .panel .tree h3 { display: flex; align-items: center; gap: 8px } .panel .tree h3 img { width: 28px; height: 28px; image-rendering: pixelated }
-  .panel .tw { position: relative; width: 300px; height: 420px; margin: 0 auto } .panel .links { position: absolute; inset: 0 } .panel .links line { stroke: #a8843c; stroke-width: 3; opacity: .7 } .panel .links line.dim { opacity: .2; stroke-dasharray: 4 4 }
-  .panel .tn { position: absolute; width: 52px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: center; cursor: pointer } .panel .tn img { width: 52px; height: 52px; border-radius: 50%; border: 2px solid #4a3a26; background: #0a0706; image-rendering: pixelated }
-  .panel .tn.got img { border-color: #d0a850 } .panel .tn.off img { filter: grayscale(1) brightness(.45) } .panel .tn.can img { box-shadow: 0 0 0 2px #000, 0 0 10px #d0a850 } .panel .tn.cap img { border-color: #8e1c15 } .panel .tn.sel img { outline: 2px solid #efe0c4 }
-  .panel .tn em { position: absolute; right: -6px; top: 34px; font: 700 11px Inter, sans-serif; font-style: normal; padding: 0 3px; background: #000c } .panel .tn span { display: block; width: 110px; margin-left: -29px; font-size: 11px; line-height: 1.1 } .panel .tn .plus { display: none }
+  /* gear and talent screens, iron and veins: riveted black iron plate, round iron node frames, thick iron bars that run
+     red with blood where you've taken both ends, iron-plate gates on the trunk. margin auto keeps a tall panel scrollable */
+  .ov.altar { background: #050302d9; align-items: flex-start } .ov.altar .box.panel { position: relative; margin: auto; width: min(1000px, 100%); text-align: left; padding: 18px 24px 20px; color: #efe0c4; font-family: 'IM Fell English SC', Georgia, serif; border: 3px solid #4a4038; box-shadow: inset 0 0 0 1px #000, inset 0 2px 0 #6a5e52, 0 10px 40px #000;
+    background: radial-gradient(circle at 9px 9px, #9a8e80 0 1.5px, #2a241e 3.5px, #0000 4.5px), radial-gradient(circle at calc(100% - 9px) 9px, #9a8e80 0 1.5px, #2a241e 3.5px, #0000 4.5px), radial-gradient(circle at 9px calc(100% - 9px), #9a8e80 0 1.5px, #2a241e 3.5px, #0000 4.5px), radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), #9a8e80 0 1.5px, #2a241e 3.5px, #0000 4.5px), linear-gradient(#1c1814, #0d0a08) }
+  .panel h2 { font-size: 26px !important; letter-spacing: .08em; margin: 0 0 4px } .panel h2 small, .panel h3 small { font: 600 13px Inter, sans-serif; opacity: .7; margin-left: 10px; letter-spacing: 0 } .panel h3 { margin: 4px 0 8px; font-weight: 400; font-size: 16px; letter-spacing: .08em }
+  .panel .btn.close { position: absolute; right: 16px; top: 16px; font-size: 14px; padding: 6px 12px }
+  .panel img { image-rendering: pixelated }
+  .panel .acts { display: flex; gap: 8px; flex-wrap: wrap } .panel .acts button, .panel .tabs button, .panel .tlist button { font: 600 13px Inter, sans-serif; color: #efe0c4; background: linear-gradient(#3a322a, #1c1814); border: 2px solid #6a5e52; box-shadow: inset 0 1px 0 #8a7e70, 0 0 0 1px #000; padding: 7px 12px; cursor: pointer }
+  .panel .acts button:not(:disabled):hover, .panel .tlist button:not(:disabled):hover { border-color: #c4261a } .panel .acts button:disabled, .panel .tlist button:disabled { opacity: .35; cursor: default }
+  .panel .hint { font: 13px/1.45 Inter, sans-serif; opacity: .7; margin-top: 12px }
+  .panel .tip { margin-top: 12px; padding: 12px 14px; background: #0a0806; border: 2px solid var(--rc, #6a5e52); box-shadow: 0 0 0 1px #000; font: 13px/1.45 Inter, sans-serif } .panel .tip small { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--rc, #a89880) }
+  .panel .tip > b { display: flex; align-items: center; gap: 8px; font: 20px 'IM Fell English SC', serif; margin: 4px 0 6px } .panel .tip > b img { width: 32px; height: 32px; flex: none } .panel .tip p { margin: 0 0 6px } .panel .tip .fx { font-style: italic } .panel .tip .rk { font-weight: 600; opacity: .8 }
+  .panel .dn { color: #e06048 } .panel .up { color: #8cc070 } .panel .cmp { border-top: 1px solid #ffffff1c; padding-top: 6px } .panel .cmp small { display: block; margin-bottom: 2px } .panel .cmp span { display: block }
+  .panel .set span { opacity: .55 } .panel .set span.on { opacity: 1; color: #8cc070 } .panel .curse { font-style: normal; color: #ff5a3a; font-weight: 700 }
+
+  /* gear: guts in black with a blood rim, slots on his body */
+  .panel .gwrap { display: grid; grid-template-columns: 300px 200px minmax(0, 1fr); gap: 22px } .panel .wl { display: none }
+  .panel .doll { position: relative; height: 430px } .panel .doll .fig { position: absolute; left: 72px; top: 10px; width: 155px; height: 410px; image-rendering: pixelated; filter: brightness(.12) drop-shadow(0 0 1px #c4261a) drop-shadow(0 0 7px #6a0a06) }
+  .panel .gs { position: absolute; width: 60px; text-align: center } .panel .gs small { display: block; font: 600 10px Inter, sans-serif; text-transform: uppercase; letter-spacing: .1em; opacity: .75; margin-top: 3px }
+  .panel .ties { position: absolute; inset: 0; width: 100%; height: 100% } .panel .ties path { stroke: #0a0806; stroke-width: 4 } .panel .ties path.lit { stroke: #6a1a12 } .panel .ties circle { fill: #2a241e; stroke: #6a5e52; stroke-width: 1.5 } .panel .ties circle.lit { fill: #c4261a; stroke: #ff3a1a }
+  .panel .cell { position: relative; display: block; width: 56px; height: 56px; padding: 0; background: #0a0806; border: 3px solid; border-color: #6a5e52 #2a241e #1a1612 #5a5046; box-shadow: inset 0 0 0 1px #000, 0 0 0 1px #000; cursor: pointer; transition: transform .12s }
+  .panel .cell[class*='r-'] { border-color: var(--rc) } .panel .cell img { position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px) } .panel button.cell:hover { transform: translateY(-2px) } .panel .cell.sel { box-shadow: 0 0 0 2px #efe0c4, 0 0 12px var(--rc) } .panel .cell.emp { cursor: default; opacity: .45 }
+  .panel .cell.cursed { --rc: #ff3a1a } .panel .cell .cz { position: absolute; right: -4px; top: -4px; width: 12px; height: 12px; background: #ff3a1a; clip-path: polygon(50% 0, 100% 100%, 0 100%) } .panel .cell.setp::after { content: ''; position: absolute; left: 3px; bottom: 3px; width: 6px; height: 6px; background: #8cc070; transform: rotate(45deg) }
+  .panel .r-common { --rc: #8a7e6a } .panel .r-rare { --rc: #4f86c8 } .panel .r-epic { --rc: #a65ad0 } .panel .r-legendary { --rc: #e0962a }
+  .panel .stats2 p { display: flex; justify-content: space-between; gap: 8px; margin: 5px 0; font: 13px Inter, sans-serif } .panel .stats2 h3 { margin-top: 12px } .panel .setln span { font: 14px 'IM Fell English SC', serif } .panel .setln i { display: inline-block; width: 9px; height: 9px; margin-left: 5px; transform: rotate(45deg); border: 1px solid #6a5e52 } .panel .setln i.on { background: #c4261a; border-color: #ff3a1a }
+  .panel .grid { display: grid; grid-template-columns: repeat(6, 56px); gap: 6px; justify-content: start; padding: 8px; width: max-content; background: repeating-linear-gradient(0deg, #1a1612 0 62px, #0a0806 62px 62px); border: 3px solid #4a4038; box-shadow: inset 0 0 0 1px #000 }
+
+  /* talents: three trees side by side with the tip in a fourth column when there is room for it */
+  #talP { width: min(1240px, 100%) } .panel .tabs, .panel .tlist { display: none }
+  .panel .trees { display: grid; grid-template-columns: repeat(3, 300px); gap: 0 24px; justify-content: center; overflow-x: auto } .panel .trees > .tip { grid-column: 1 / -1 }
+  @media (min-width: 1200px) { .panel .trees { grid-template-columns: repeat(3, 300px) minmax(0, 1fr); justify-content: stretch } .panel .trees > .tip { grid-column: auto; align-self: start; margin-top: 40px } }
+  .panel .tree h3 { display: flex; align-items: center; gap: 8px } .panel .tree h3 img { width: 28px; height: 28px } .panel .tree h3 small { margin-left: auto }
+  .panel .tw { position: relative; width: 300px } .panel .links { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible }
+  .panel .links path { fill: none; stroke-linecap: round } .panel .links .bar { stroke: #0a0806; stroke-width: 10 } .panel .links .core { stroke: #4a4038; stroke-width: 4 } .panel .links .core.lit { stroke: #c4261a; filter: drop-shadow(0 0 4px #ff3a1a) }
+  .panel .gate { position: absolute; left: -6px; width: 26px; height: 22px; display: grid; place-items: center; font: 700 11px Inter, sans-serif; font-style: normal; color: #a89880; background: linear-gradient(#3a322a, #1c1814); border: 2px solid #6a5e52; box-shadow: 0 0 0 1px #000 } .panel .gate.open { border-color: #c4261a; color: #efe0c4 }
+  .panel .fork { position: absolute; left: 298px; height: 60px; writing-mode: vertical-rl; text-align: center; font: 9px 'IM Fell English SC', serif; font-style: normal; letter-spacing: .14em; text-transform: uppercase; color: #c4261a }
+  .panel .tn { position: absolute; width: 100px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: center; cursor: pointer }
+  .panel .tn .fr { display: block; position: relative; width: 46px; height: 46px; margin: 0 auto; border-radius: 50%; background: radial-gradient(#2a241e, #0a0806); box-shadow: 0 0 0 3px #4a4038, 0 0 0 5px #0a0806; transition: transform .15s } .panel .tn:hover .fr { transform: scale(1.08) }
+  .panel .tn .fr img { position: absolute; left: 4px; top: 4px; width: 38px; height: 38px; border-radius: 50% } .panel .tn.off .fr img { filter: grayscale(1) brightness(.35) } .panel .tn.open .fr img { filter: grayscale(.7) brightness(.6) }
+  .panel .tn.got .fr { box-shadow: 0 0 0 3px #c4261a, 0 0 0 5px #0a0806, 0 0 14px #ff3a1a88 } .panel .tn.can .fr { box-shadow: 0 0 0 3px #d0a850, 0 0 0 5px #0a0806, 0 0 12px #d0a85088 } .panel .tn.cap .fr { transform: scale(1.12) } .panel .tn.sel .fr { outline: 2px solid #efe0c4; outline-offset: 6px }
+  .panel .tn em { position: absolute; left: 60px; top: 30px; font: 700 10px Inter, sans-serif; font-style: normal; padding: 0 3px; background: #000d; border: 1px solid #4a4038 }
+  .panel .tn span { display: inline-block; max-width: 98px; margin-top: 5px; padding: 0 3px; font-size: 12px; line-height: 1.04; background: #0d0a08e0; text-shadow: 0 1px 0 #000 } .panel .tn.off span { opacity: .55 }
+
   @media (max-width: 720px) {
-    .ov.altar { padding: 0; align-items: stretch } .ov.altar .box.panel { min-height: 100%; padding: 14px } .panel .gwrap { grid-template-columns: 1fr } .panel .doll { height: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px } .panel .doll .fig { display: none } .panel .gs { position: static; width: auto }
-    .panel .grid { grid-template-columns: repeat(6, 1fr) } .panel .cell { width: auto; height: auto; aspect-ratio: 1 }
-    .panel .tabs { display: flex; gap: 6px; margin-bottom: 8px } .panel .tabs button { flex: 1 } .panel .tabs .on { background: #8e1c15 } .panel .trees { display: block } .panel .tree { display: none } .panel .tree.on { display: block } .panel .tree h3 { display: none }
-    .panel .tw { width: auto; height: auto } .panel .links { display: none } .panel .tn { position: static; display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 0; border-bottom: 1px solid #ffffff1c; text-align: left } .panel .tn img { width: 44px; height: 44px; flex: none }
-    .panel .tn span { width: auto; margin: 0; flex: 1; font-size: 15px } .panel .tn em { position: static; background: none } .panel .tn .plus { display: block; font-style: normal; width: 36px; height: 36px; line-height: 34px; text-align: center; border: 1px solid #a8843c } .panel .btn.close { position: static; width: 100%; margin-top: 12px }
+    .ov.altar { padding: 0; align-items: stretch } .ov.altar .box.panel { margin: 0; min-height: 100%; padding: 16px 14px; border-width: 0 } .panel .btn.close { position: static; width: 100%; margin-top: 14px }
+    .panel .gwrap { grid-template-columns: 1fr; gap: 10px } .panel .doll { display: none } .panel .wl { display: block }
+    .panel .li { display: flex; gap: 10px; align-items: center; width: 100%; padding: 6px 8px; margin-bottom: 5px; text-align: left; color: inherit; font: inherit; background: #0a0806; border: 1px solid var(--rc, #4a4038) } .panel .li.sel { box-shadow: 0 0 0 1px #efe0c4 }
+    .panel .li > span:not(.cell) { flex: 1; min-width: 0 } .panel .li b { display: block; font: 16px 'IM Fell English SC', serif } .panel .li small { font: 600 10px Inter, sans-serif; text-transform: uppercase; letter-spacing: .1em; color: var(--rc, #a89880) } .panel .li span > i { display: block; font: 12px/1.35 Inter, sans-serif; font-style: normal; opacity: .8 }
+    .panel .li > .cell { flex: none; width: 48px; height: 48px }
+    .panel .grid { width: auto; grid-template-columns: repeat(6, 1fr) } .panel .grid .cell { width: auto; height: auto; aspect-ratio: 1 }
+    #talP .trees { display: none } .panel .tabs { display: flex; gap: 6px; margin-bottom: 6px } .panel .tabs button { flex: 1; padding: 8px 2px; font: 14px 'IM Fell English SC', serif } .panel .tabs .on { background: #6a0a06; border-color: #c4261a; box-shadow: none } .panel .tlist { display: block }
+    .panel .rh { display: flex; justify-content: space-between; margin: 12px 0 5px; font-size: 13px; letter-spacing: .1em; color: #c9b78e } .panel .rh i { font: 600 11px Inter, sans-serif; font-style: normal; color: #a89880 } .panel .rh.shut { opacity: .6 } .panel .rh:not(.shut) i { color: #e05040 }
+    .panel .tlist .li .fr { position: relative; flex: none; width: 44px; height: 44px; border-radius: 50%; background: #0a0806; box-shadow: 0 0 0 2px #4a4038 } .panel .tlist .li .fr img { position: absolute; left: 4px; top: 4px; width: 36px; height: 36px; border-radius: 50% }
+    .panel .tlist .li.got { border-color: #6a1a12 } .panel .tlist .li.got .fr { box-shadow: 0 0 0 2px #c4261a, 0 0 10px #ff3a1a66 } .panel .tlist .li.can .fr { box-shadow: 0 0 0 2px #d0a850 } .panel .tlist .li.off .fr img { filter: grayscale(1) brightness(.4) } .panel .tlist .li.off b { opacity: .6 }
+    .panel .tlist .li em { flex: none; font: 700 12px Inter, sans-serif; font-style: normal; opacity: .85 } .panel .tlist .li button { flex: none; width: 40px; height: 40px; padding: 0; font-size: 20px }
   }
 
   /* the auto tag rides on the ability bar while auto-cast is on */
@@ -129,3 +157,8 @@
   /* while the eclipse sun crowns the screen: the timer sits in its black disc, the title just under the corona, the boss below */
   #hud.sun .tc { top: calc(var(--sunY) - 15px) } #hud.sun .tc b { color: #ffe8b0 } #hud.sun .tc span { margin-top: calc(var(--sunR) * 0.8 - 6px) }
   #hud.sun #boss { top: calc(var(--sunY) + var(--sunR) * 1.8 + 24px) }
+
+  /* abilities not yet unlocked: a dark socket with a lock, so it's clear they come from cards */
+  #hud .ab.locked .sk img { filter: grayscale(1) brightness(.25) } #hud .ab.locked .sk { border-color: #3a2e20 }
+  #hud .ab.locked::after { content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 9px; margin: -2px 0 0 -6px; background: #a89880; border-radius: 2px; box-shadow: 0 0 0 1px #000 }
+  #hud .ab.locked::before { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 7px; margin: -9px 0 0 -5px; border: 2px solid #a89880; border-bottom: 0; border-radius: 5px 5px 0 0 }

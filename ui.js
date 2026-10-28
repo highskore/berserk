@@ -175,7 +175,7 @@ function drawWorld(g, st) {
     else if (f.kind === 'dust') { for (let i = 0; i < 10; i++) { const a = i * 0.63 + u * 4, r = 6 + u * 22; ctx.fillStyle = st === 'ink' ? C.light : '#fff8d0'; ctx.fillRect(SX(g.p.x) + Math.cos(a) * r, SY(g.p.y) - 24 + Math.sin(a) * r * KY - u * 10, 1, 1) } }
   }
   for (const q of g.parts) { ctx.fillStyle = q.sp ? C.spirit : C.blood; ctx.fillRect(SX(q.x), SY(q.y) - Math.round(q.z * 0.8), 1, q.vz < -40 ? 2 : 1) }
-  for (const w of g.wisps) { ctx.fillStyle = st === 'ink' ? C.light : C.spirit; ctx.globalAlpha = 1 - w.t / 0.8; ctx.fillRect(SX(w.x), SY(w.y) - Math.round(w.z), 2, 2) } ctx.globalAlpha = 1
+  for (const w of g.wisps) { ctx.fillStyle = w.ash ? (st === 'ink' ? C.dark : '#2a1c16') : st === 'ink' ? C.light : C.spirit; ctx.globalAlpha = 1 - w.t / 0.8; ctx.fillRect(SX(w.x), SY(w.y) - Math.round(w.z), 2, 2) } ctx.globalAlpha = 1
   for (const t of g.texts) { const c = t.col === 'crit' ? C.crit : t.col === 'heal' ? C.heal : t.col === 'hurt' ? C.hurt : C.num; ptext(t.s, SX(t.x), SY(t.y) - t.z * 0.8 - t.t * 14, c, st === 'ink' && t.col === 'hurt' ? C.light : C.dark) }
 }
 /* corpse halves: the legs topple, the torso flies and lands; a gore stripe marks the cut */

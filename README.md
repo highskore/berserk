@@ -12,6 +12,7 @@ The game is one self-contained HTML page with no dependencies:
 
 ```sh
 node build.mjs   # → dist/berserk.html
+node talents-check.mjs   # asserts every talent gate can be reached from its own tree
 ```
 
 Open `dist/berserk.html` in a browser to play it locally.

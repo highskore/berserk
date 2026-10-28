@@ -247,8 +247,11 @@ GP.rateSpawn = function (dt, rate, pick, cap) {
 /* ---------- damage, death and gore ---------- */
 GP.damage = function (e, dmg, kx, ky, kb, o) {
   const g = this; if (e.dead) return; o = o || {}
-  const crit = g.R() < g.p.crit; dmg *= g.p.might * g.dmgMul() * (crit ? 2 : 1) * (e.mut === 'iron' ? 0.6 : 1) * (e.type === 'ganishka' ? (e.weakT > 0 ? 2.5 : 0.15) : 1); if (!(dmg < 1e300)) dmg = 1e300
+  const crit = g.R() < g.p.crit, T = g.tal, G = g.gear; dmg *= g.p.might * g.dmgMul() * (crit ? 2 + 0.3 * (T.sunder || 0) : 1) * (T.execute && e.hp < e.maxHp * 0.25 ? 1.6 : 1) * (G.nightDmg ? 1 + G.nightDmg * nightAmt(g.phase()) : 1) * (e.mut === 'iron' ? 0.6 : 1) * (e.type === 'ganishka' ? (e.weakT > 0 ? 2.5 : 0.15) : 1); if (!(dmg < 1e300)) dmg = 1e300
   g.dmgAcc = (g.dmgAcc || 0) + Math.min(dmg, Math.max(0, e.hp)); e.hp -= dmg; e.flash = 0.09
+  /* lifesteal from the blood-drunk affix and blood tide, tripled for the tide below 40% hp */
+  const lee = (G.leech || 0) + (T.bloodtide ? 0.01 * (g.p.hp < g.p.maxHp * 0.4 ? 3 : 1) : 0); if (lee) g.p.hp = Math.min(g.p.maxHp, g.p.hp + Math.min(dmg, Math.max(0, e.hp + dmg)) * lee)
+  if (kb) kb *= (1 + (G.knock || 0)) * (G.fx_anvil ? 2 : 1)
   if (kb) { const l = Math.hypot(kx, ky) || 1, m = Math.sqrt(e.d.mass); e.kx += (kx / l) * kb / m; e.ky += (ky / l) * kb / m }
   if ((dmg >= 10 && !o.quiet && g.texts.length < 36) || crit) g.text(e.x + (g.R() - 0.5) * 6, e.y, e.d.h + 2, fmtN(dmg), crit ? 'crit' : 'dmg')
   g.blood(e.x, e.y, e.d.h * 0.55, Math.min(8, 2 + dmg / 8), kx, ky, e.d.spirit)
@@ -261,6 +264,8 @@ GP.damage = function (e, dmg, kx, ky, kb, o) {
 }
 GP.kill = function (e, kx, ky) {
   const g = this; e.dead = true; g.p.kills++
+  if (g.tal.momentum) g.mom = (g.mom || 0) + 0.01 * g.tal.momentum
+  if (g.tal.blacksword && ++g.bsN % 10 === 0 && !g.p.spin) g.p.spin = { t: 0, a: g.p.face, w: -18, dur: 0.6, every: 0.15, tick: 0, R: 80 * g.p.area, dmg: 30 * (1 + g.depth() * 0.3), kb: 180 }
   /* trash xp thins out as the kill rate climbs, so a mowed horde can't outpace the curve; elites and apostles pay in chunks */
   const xp = e.d.xp * (e.elite ? 15 : e.d.apo ? 1 : 1 / (1 + (g.kps || 0) / 6)) * g.lootMul() * Math.max(1, Math.pow(g.threat() / 12, 0.3))
   if (e.mut === 'burst' || e.d.burst) for (let k = 0; k < 6; k++) { const an = (k / 6) * TAU + g.R(); g.eb.push({ x: e.x, y: e.y, vx: Math.cos(an) * 90, vy: Math.sin(an) * 90, life: 1.6, r: 4, dmg: 9, kind: 'bile' }) }
@@ -287,7 +292,7 @@ GP.kill = function (e, kx, ky) {
   }
   /* kills feed the rage, but a mowed-down horde no faster than a steady fight: the gain falls off with the kill rate */
   g.kpsAcc = (g.kpsAcc || 0) + 1; const kr = 1 / (1 + (g.kps || 0) / 3)
-  if (g.rageOn) { if (g.armorT > 0) { g.rage += 1.6 * g.rageMul * kr; if (g.hunger) g.heal(g.hunger); if (g.tal.cap_bers) g.armorT += 0.1 } else if (!(g.tired > 0)) g.rage = Math.min(100, g.rage + 0.35 * g.rageMul * kr) }
+  if (g.rageOn) { if (g.armorT > 0) { g.rage += 1.6 * g.rageMul * kr; if (g.hunger) g.heal(g.hunger); if (g.tal.endless) g.armorT += 0.05 * g.tal.endless } else if (!(g.tired > 0)) g.rage = Math.min(100, g.rage + 0.35 * g.rageMul * kr) }
   if (g.hungerHeal && g.R() < 0.25) g.heal(1)
 }
 /* at the gem cap the farthest gem is folded into the new one, so xp follows the fight instead of piling up far behind */
@@ -315,18 +320,22 @@ GP.goreStage = function () {
 GP.hurt = function (dmg, src) {
   const g = this, p = g.p; if (p.inv > 0 || g.over || g.opts.god) return
   /* hits ramp forever; plate is a soft percentage (12 plate halves a hit) rather than a flat cut that zeroes it */
-  dmg = Math.min(1e300, Math.max(1, dmg * p.dmgTaken * g.hitMul() * 12 / (12 + p.armor) * (g.gaston ? 0.85 : 1)))
+  const T = g.tal, G = g.gear
+  dmg = Math.min(1e300, Math.max(1, dmg * p.dmgTaken * g.hitMul() * 12 / (12 + p.armor) * (g.gaston ? 0.85 : 1) * (T.laststand && p.hp < p.maxHp * 0.3 ? 1 / (1 + 0.25 * T.laststand) : 1) * (T.wolfskin && g.armorT > 0 ? 0.7 : 1)))
+  if (src && src.d && !src.dead) { if (G.fx_reflect) g.damage(src, dmg * 0.3, src.x - p.x, src.y - p.y, 60, { quiet: true }); if (G.thornsG) g.damage(src, G.thornsG, 0, 0, 0, { quiet: true }); if (G.fx_talisman && src.d.spirit) g.damage(src, 30 * (1 + g.depth() * 0.4), 0, 0, 40) }
   p.hp -= dmg; p.inv = 0.6; p.hurtT = 0.6; g.shake = Math.max(g.shake, 3); g.text(p.x, p.y, 54, '-' + Math.round(dmg), 'hurt'); g.blood(p.x, p.y, 26, 6, 0, 0)
   if (g.rageOn && g.armorT <= 0) g.rage = Math.min(100, g.rage + dmg * 2.2 * g.rageMul)
   /* spirits feed the brand, but not while it burns, so the drain always wins */
   if (src && src.d && src.d.spirit && g.branded) { if (!g.inkMode) g.brand = Math.min(100, g.brand + 5 * g.brandRate); if (g.thorns) g.damage(src, g.thorns, 0, 0, 40) }
+  if (G.fx_pendant && !(g.pendT > 0) && p.hp > 0 && p.hp < p.maxHp * 0.25) { g.pendT = 60; g.heal(p.maxHp * 0.3) }
+  if (p.hp <= 0 && T.struggler && g.strugN !== g.nightN) { g.strugN = g.nightN; p.hp = 1; p.inv = 2; g.banner('NOT YET', 'the struggler endures', 1.4) }
   if (p.hp <= 0) { p.hp = 0; g.over = true; g.setPending({ type: 'dead' }) }
 }
 
 /* ---------- level-ups ---------- */
 /* a level-up heals guts to full on the spot, before the card he picks is applied; the frenzy's drain keeps running */
 GP.gainXp = function (v) {
-  const p = this.p; p.xp = Math.min(1e300, p.xp + v); let up = false, n = 0
+  const p = this.p; p.xp = Math.min(1e300, p.xp + v * (1 + (this.gear.xp || 0))); let up = false, n = 0
   /* the curve steepens from level 15 with a cubic term; it never stops, it just slows. a vast gem pays out over
      several pickups (64 levels at a time) rather than looping forever */
   while (p.xp >= p.next && n++ < 64) { p.xp -= p.next; p.lvl++; p.next = Math.min(1e300, Math.round(5 + p.lvl * 4 + p.lvl * p.lvl * 0.25 + Math.max(0, p.lvl - 15) ** 3 * 0.045)); this.queueLv++; up = true; if (p.lvl % 2 === 0) this.tp++ }
@@ -348,9 +357,10 @@ GP.rollChoices = function (n, pool) {
   })
   const cur = id => (UPG[id].weapon ? g.wlvl(UPG[id].weapon) : g.ulvl(id)), evo = avail.filter(id => UPG[id].evo), rest = avail.filter(id => !UPG[id].evo), out = []
   if (evo.length) out.push(evo[0])
+  const locked = rest.filter(id => UPG[id].ability && !g.ab[UPG[id].ability]); if (locked.length && g.p.lvl % 3 === 0 && out.length < n) out.push(rest.splice(rest.indexOf(g.pick(locked)), 1)[0])
   const tilt = 1 + (g.depth() - 1) * 0.06
   while (out.length < n && rest.length) {
-    const w = rest.map(id => { const r = rarOf(g, id, cur(id)); return RARW[r] * (r === 'common' ? 1 : tilt) * (UPG[id].w ? UPG[id].w(g) : 1) }); let x = g.R() * w.reduce((s, v) => s + v, 0), i = 0
+    const w = rest.map(id => { const r = rarOf(g, id, cur(id)); return RARW[r] * (r === 'common' ? 1 : tilt) * (UPG[id].w ? UPG[id].w(g) : 1) * (UPG[id].ability && !g.ab[UPG[id].ability] ? 3 : 1) }); let x = g.R() * w.reduce((s, v) => s + v, 0), i = 0
     while (i < w.length - 1 && (x -= w[i]) > 0) i++; out.push(rest.splice(i, 1)[0])
   }
   while (out.length < n) out.push('meat')
@@ -405,7 +415,7 @@ GP.updateAllies = function (dt) {
     if (a.maxHp == null) { a.maxHp = 60; a.hp = 60 } a.maxHp = 60 + 20 * a.lvl; if (a.inv > 0) a.inv -= dt
     if (a.down > 0) { a.down -= dt; if (a.down <= 0) a.hp = a.maxHp * 0.5; continue }
     if (!(a.inv > 0)) { const e = g.nearest(a.x, a.y, 14); if (e && !e.d.boss) { a.hp -= e.d.dmg * 0.5 * Math.min(4, g.hitMul()); a.inv = 0.6; if (a.hp <= 0) { a.hp = 0; a.down = 8; g.text(a.x, a.y, 40, 'DOWN', 'hurt') } } }
-    a.cd -= dt; const hx = p.x + a.slot[0], hy = p.y + a.slot[1], L = a.lvl, A = ALLY[a.id], mul = g.allyMul * pk * (A.squad ? 0.6 : 1)
+    a.cd -= dt; const hx = p.x + a.slot[0], hy = p.y + a.slot[1], L = a.lvl, A = ALLY[a.id], mul = g.allyMul * pk * (A.squad ? 0.6 : 1) * (g.tal.pack ? 1.2 * (1 + 0.5 * p.crit) : 1)
     const move = (tx, ty, s) => { const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy); a.moving = d > 3; if (d > 2) { const v = Math.min(d, s * dt); a.x += (dx / d) * v; a.y += (dy / d) * v; a.face = Math.atan2(dy, dx); a.anim += dt * 6 } return d }
     const ai = A.ai
     if (ai === 'duel') { const e = g.nearest(a.x, a.y, 110); if (e && Math.hypot(e.x - hx, e.y - hy) < 140) { const d = move(e.x, e.y, 160 + L * 12); if (d < 18 && a.cd <= 0) { a.cd = Math.max(0.22, 0.75 - L * 0.06) * (A.rapier ? 0.55 : 1); g.damage(e, (10 + L * 5) * mul * (A.rapier ? 1.6 : 1), e.x - a.x, e.y - a.y, 60); g.fx.push({ kind: 'slash', x: e.x, y: e.y, t: 0, d: 0.2 }) } } else move(hx, hy, 135) }
@@ -450,7 +460,7 @@ GP.updateWorld = function (dt) {
         for (const e of g.en) e.dead = true; g.banner('THE HELLHOUND PIT', 'night ' + g.nightN + ' - survive the walls', 2.6)
       } else g.banner('NIGHT ' + g.nightN, 'the dead come for the Brand', 2.4)
     }
-    if (ph.k === 'dawn') { g.banner('DAWN', g.sense ? 'your senses return' : 'the spirits recede', 1.8); g.sense = 0; g.senseT = 0; if (g.pit) { g.pit = false; g.bounds = null; g.tele = []; g.heal(g.p.maxHp) } }
+    if (ph.k === 'dawn') { g.banner('DAWN', g.sense ? 'your senses return' : 'the spirits recede', 1.8); g.dawnTick(); g.sense = 0; g.senseT = 0; if (g.pit) { g.pit = false; g.bounds = null; g.tele = []; g.heal(g.p.maxHp) } }
     if (ph.k === 'day' && g.lastPh === 'dawn') {
       g.dayN = ph.day; const B = g.biome(); g.banner('DAY ' + g.dayN, B.name.toLowerCase() + (g.dayN > 3 ? ' - the dead are stronger' : ''), 2.6)
       if (!g.flags.puck) { g.flags.puck = 1; g.addWeapon('puck'); g.text(g.p.x, g.p.y, 60, 'PUCK JOINS', 'heal') }
@@ -478,7 +488,7 @@ GP.updateWorld = function (dt) {
     if (!g.inkMode) {
       if (ph.k === 'night') g.brand = Math.min(100, g.brand + 2 * g.brandRate * dt)
       if (g.brand < 100 && ph.k === 'day') g.brand = Math.max(0, g.brand - 2.5 * dt)
-      if (g.brand >= 100) { g.inkMode = true; g.brand = 100; if (g.tal.cap_strug) { const d = 100 * (1 + g.depth() * 0.4); for (const e of g.en) if (Math.abs(e.x - g.p.x) < 280 && Math.abs(e.y - g.p.y) < 200) g.damage(e, d, e.x - g.p.x, e.y - g.p.y, 120) } g.banner('THE BRAND BURNS', 'the world turns to ink', 2.2); g.flash('#b3141a', 0.7); g.spawnRing('ghost', 12, 130) }
+      if (g.brand >= 100) { g.inkMode = true; g.brand = 100; if (g.tal.inkburst) { const d = 100 * (1 + g.depth() * 0.4); for (const e of g.en) if (Math.abs(e.x - g.p.x) < 280 && Math.abs(e.y - g.p.y) < 200) g.damage(e, d, e.x - g.p.x, e.y - g.p.y, 120) } g.banner('THE BRAND BURNS', 'the world turns to ink', 2.2); g.flash('#b3141a', 0.7); g.spawnRing('ghost', 12, 130) }
     } else {
       g.brand -= 10 * dt
       if (!g.opts.god) { g.p.hp -= 3 * dt; if (g.p.hp <= 0) { g.p.hp = 0; g.over = true; g.setPending({ type: 'dead' }) } } if (g.R() < dt * 20) g.blood(g.p.x + 2, g.p.y, 30, 1, 0, 0)
@@ -494,9 +504,9 @@ GP.updateWorld = function (dt) {
     /* lost senses come back: one stage per 15s out of the armor, all of them by dawn */
     if (g.sense && g.armorT <= 0) { g.senseT = (g.senseT || 0) + dt; if (g.senseT >= 15) { g.senseT = 0; g.sense--; g.banner('A SENSE RETURNS', g.sense ? 'sense loss ' + 'I'.repeat(g.sense) : 'the world comes back', 1.6) } }
     g.choices = g.sense >= 2 ? 4 : 3
-    if (g.armorT <= 0 && g.rage >= 100) { g.armorT = g.armorDur; g.rage = 0; g.senseHit = false; g.senseT = 0; p.spin = { t: 0, a: p.face, w: -16, dur: 0.7, every: 0.15, tick: 0, R: 70 * p.area, dmg: 20 + p.lvl * 2, kb: 160 }; g.banner('BERSERKER FRENZY', g.inkMode ? 'ink and blood' : 'it hungers', 1.8); g.flash('#0e0d0c', 0.5); g.shake = 6 }
+    if (g.armorT <= 0 && g.rage >= 100) { if (g.tal.howl) for (const e of g.en) if (!e.d.boss && Math.hypot(e.x - p.x, e.y - p.y) < 110) e.stun = Math.max(e.stun, 1.2); g.armorT = g.armorDur; g.rage = 0; g.senseHit = false; g.senseT = 0; p.spin = { t: 0, a: p.face, w: -16, dur: 0.7, every: 0.15, tick: 0, R: 70 * p.area, dmg: 20 + p.lvl * 2, kb: 160 }; g.banner('BERSERKER FRENZY', g.inkMode ? 'ink and blood' : 'it hungers', 1.8); g.flash('#0e0d0c', 0.5); g.shake = 6 }
     if (g.armorT > 0) {
-      g.armorT -= dt; if (!g.opts.god) p.hp = Math.max(1, p.hp - g.drain * dt)
+      g.armorT -= dt; if (!g.opts.god && !g.tal.berserker) p.hp = Math.max(1, p.hp - g.drain * dt)
       /* overfilling rage inside the armor costs a sense, at most one per frenzy */
       if (g.rage >= 100) { g.rage = 0; if (!g.senseHit) { g.senseHit = true; g.sense = Math.min(3, g.sense + 1); const s = SENSES[g.sense - 1]; g.banner('SENSE LOSS: ' + s[0], s[1], 3.4); g.flash('#efe8da', 0.8) } }
       if (g.armorT <= 0) { g.tired = 5; g.banner('THE ARMOR RELEASES', '', 1.2) }
@@ -535,7 +545,7 @@ GP.step = function (dt) {
   if ((g.rateT = (g.rateT || 0) + dt) >= 1) { g.kps = (g.kps || 0) * 0.7 + (g.kpsAcc || 0) * 0.3 / g.rateT; g.dps = (g.dps || 0) * 0.85 + (g.dmgAcc || 0) * 0.15 / g.rateT; g.kpsAcc = g.dmgAcc = g.rateT = 0 }
   g.goreTick(dt)
   let ix = g.input.x, iy = g.input.y; const il = Math.hypot(ix, iy); if (il > 1) { ix /= il; iy /= il }
-  let slow = 1; for (const f of g.fx) if ((f.kind === 'acid' || f.kind === 'dust') && Math.hypot(p.x - f.x, p.y - f.y) < f.rad) slow = Math.min(slow, f.kind === 'acid' ? 0.5 : 0.6)
+  let slow = 1; for (const f of g.fx) if ((f.kind === 'acid' || f.kind === 'dust') && !f.smoke && Math.hypot(p.x - f.x, p.y - f.y) < f.rad) slow = Math.min(slow, f.kind === 'acid' ? 0.5 : 0.6)
   const spd = p.spd * g.spdMul() * slow; p.moving = il > 0.15
   /* input is in screen space; the ground is squashed, so vertical screen motion covers more ground */
   if (p.held > 0) { p.held -= dt; p.moving = false }
@@ -544,15 +554,15 @@ GP.step = function (dt) {
   if (g.bounds) { p.x = clamp(p.x, g.bounds.x0 + 10, g.bounds.x1 - 10); p.y = clamp(p.y, g.bounds.y0 + 10, g.bounds.y1 - 10) }
   if (p.inv > 0) p.inv -= dt; if (p.hurtT > 0) p.hurtT -= dt; if (p.regen) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt)
   g.cam.x += (p.x - g.cam.x) * Math.min(1, dt * 8); g.cam.y += (p.y - g.cam.y) * Math.min(1, dt * 8)
-  g.abilTick(dt); if (g.opts.auto) g.autoCast(g.opts.auto)
+  g.talTick(dt); g.abilTick(dt); if (g.opts.auto) g.autoCast(g.opts.auto)
   g.updateWorld(dt); g.spawnTick(dt)
   for (const tl of g.tele) { tl.t -= dt; if (tl.t <= 0) { const b = g.bounds; g.bounds = null; g.spawn(tl.type, tl.x, tl.y, tl.o); g.bounds = b } } g.tele = g.tele.filter(t => t.t > 0)
-  for (const w of g.weapons) { w.cd -= dt * (g.armorT > 0 ? 1.3 : 1); if (w.cd <= 0) { const nd = WFIRE[w.id](g, w); w.cd = (nd == null ? WEAP[w.id].cd(wl(w)) : nd) * p.cdr } if (w.id === 'bolts') boltTick(g, w, dt); if (w.id === 'puck') w.ang += dt * 2.4 }
+  for (const w of g.weapons) { w.cd -= dt * (g.armorT > 0 ? (g.tal.berserker ? 2.6 : 1.3) : 1) * (1 + (g.mom || 0)); if (w.cd <= 0) { const nd = WFIRE[w.id](g, w); w.cd = (nd == null ? WEAP[w.id].cd(wl(w)) : nd) * p.cdr } if (w.id === 'bolts') boltTick(g, w, dt); if (w.id === 'puck') w.ang += dt * 2.4 }
   g.updateSwing(dt); g.updateSpin(dt); g.updateEnemies(dt); g.updateProj(dt); g.updateAllies(dt)
   const mg = p.magnet
   for (const k of g.gems) { k.t += dt; const dx = p.x - k.x, dy = p.y - k.y, d = Math.hypot(dx, dy) || 1; if (d < mg || k.mag) { k.mag = true; const s = Math.min(380, 70 + k.t * 50); k.x += (dx / d) * s * dt * Math.min(1, d); k.y += (dy / d) * s * dt * Math.min(1, d) } if (d < 9) { k.got = true; g.gainXp(k.v) } }
   g.gems = g.gems.filter(k => !k.got)
-  for (const k of g.coins) { const dx = p.x - k.x, dy = p.y - k.y, d = Math.hypot(dx, dy) || 1; if (d < mg * 0.8 || k.mag) { k.mag = true; k.x += (dx / d) * 220 * dt; k.y += (dy / d) * 220 * dt } if (d < 9) { k.got = true; p.gold += k.v * (g.pit ? 2 : 1) } }
+  for (const k of g.coins) { const dx = p.x - k.x, dy = p.y - k.y, d = Math.hypot(dx, dy) || 1; if (d < mg * 0.8 || k.mag) { k.mag = true; k.x += (dx / d) * 220 * dt; k.y += (dy / d) * 220 * dt } if (d < 9) { k.got = true; p.gold += Math.round(k.v * (1 + (g.gear.gold || 0))) * (g.pit ? 2 : 1) } }
   g.coins = g.coins.filter(k => !k.got)
   for (const k of g.pickups) { k.t += dt; if (Math.hypot(p.x - k.x, p.y - k.y) < 14) { k.got = true; if (k.kind === 'meat') g.heal(30); else if (k.kind === 'item') g.gainItem(k.item); else if (k.kind === 'flask') { g.flasks[k.fl]++; g.text(p.x, p.y, 60, '+' + FLASK[k.fl].name.toUpperCase(), 'heal') } else { for (const gm of g.gems) gm.mag = true; g.relicChest() } } }
   g.pickups = g.pickups.filter(k => !k.got)
@@ -582,11 +592,12 @@ GP.updateEnemies = function (dt) {
   for (let i = 0; i < en.length; i++) {
     const e = en[i]; if (e.dead) continue; const d = e.d
     e.anim += dt * (d.fly ? 7 : e.spd * 0.11); if (e.flash > 0) e.flash -= dt; if (e.weakT > 0) e.weakT -= dt; if (e.flinch > 0) e.flinch -= dt; if (e.burst) e.burst *= Math.pow(0.3, dt)
-    const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1
+    const lure = g.decoy && !d.boss && Math.abs(g.decoy.x - e.x) < 140 && Math.abs(g.decoy.y - e.y) < 140, tx = lure ? g.decoy.x : p.x, ty = lure ? g.decoy.y : p.y
+    const dx = tx - e.x, dy = ty - e.y, dist = Math.hypot(dx, dy) || 1, pdist = lure ? Math.hypot(p.x - e.x, p.y - e.y) : dist
     if (e.stun > 0) e.stun -= dt
     else if (d.ai) BOSSAI[d.ai](g, e, dt, dx, dy, dist)
     else if (d.role && !e.flee) ROLE[d.role](g, e, dt, dx, dy, dist)
-    else if (e.flee) { e.x -= (dx / dist) * e.spd * dt; e.y -= (dy / dist) * e.spd * dt; if (dist > 400) e.dead = true }
+    else if (e.flee || e.fear > 0) { if (e.fear > 0) e.fear -= dt; e.x -= (dx / dist) * e.spd * dt; e.y -= (dy / dist) * e.spd * dt; if (dist > 400) e.dead = true }
     else { let mx = dx / dist, my = dy / dist; if (d.fly) { const w = Math.sin(g.t * 3 + e.ph) * 0.7; mx += -my * w; my += (dx / dist) * w } e.x += mx * e.spd * dt; e.y += my * e.spd * dt }
     if (dist > 2) e.face = e.flee ? Math.atan2(-dy, -dx) : Math.atan2(dy, dx)
     e.x += e.kx * dt; e.y += e.ky * dt; const fr = Math.pow(0.0015, dt); e.kx *= fr; e.ky *= fr
@@ -597,7 +608,7 @@ GP.updateEnemies = function (dt) {
         for (let j = g.gridH[yy * GW + xx]; j >= 0; j = g.gridN[j]) { if (j === i) continue; const o = en[j]; if (o.dead) continue; const ddx = e.x - o.x, ddy = e.y - o.y, rr = d.r + o.d.r - 2, d2 = ddx * ddx + ddy * ddy; if (d2 < rr * rr && d2 > 0.01) { const dd = Math.sqrt(d2), push = (rr - dd) * 0.5 * Math.min(1, o.d.mass / d.mass); e.x += (ddx / dd) * push; e.y += (ddy / dd) * push } }
       }
     }
-    if (dist < d.r * (e.elite ? 1.25 : 1) + 6 && !e.flee && !(e.z > 20)) g.hurt(d.dmg * (e.elite ? 1.6 : 1) * (e.rs === 2 ? 1.6 : 1) * (g.pit ? 1 + g.nightN * 0.08 : 1), e)
+    if (pdist < d.r * (e.elite ? 1.25 : 1) + 6 && !e.flee && !(e.fear > 0) && !(e.z > 20)) g.hurt(d.dmg * (e.elite ? 1.6 : 1) * (e.rs === 2 ? 1.6 : 1) * (g.pit ? 1 + g.nightN * 0.08 : 1), e)
     if (!g.bounds && !d.boss && dist > 520) { const a = Math.atan2(dy, dx); e.x = p.x - Math.cos(a) * 290; e.y = p.y - Math.sin(a) * 300 }
     if (g.bounds) { e.x = clamp(e.x, g.bounds.x0 + 4, g.bounds.x1 - 4); e.y = clamp(e.y, g.bounds.y0 + 4, g.bounds.y1 - 4) }
   }
@@ -669,8 +680,8 @@ GP.updateSpin = function (dt) {
   if (s.dur && s.t >= s.dur) p.spin = null
 }
 const WFIRE = {
-  sweep(g, w) { const L = wl(w), W = WEAP.sweep, R = W.R(L) * g.p.area, dir = aimDir(g, R * 1.6), o = W.twin(L) ? { then: { R, dmg: W.dmg(L) * ov(w) * 0.7, kb: 90, dur: 0.22 } } : null
-    startSwing(g, dir, W.arc(L), R, W.dmg(L) * ov(w), 110, 0.27, o); if (o) { const s = g.p.swing; s.then.a0 = s.a1; s.then.a1 = s.a0 } },
+  sweep(g, w) { const L = wl(w), W = WEAP.sweep, edge = g.tal.godoedge ? 1.15 : 1, R = W.R(L) * g.p.area * edge, dir = aimDir(g, R * 1.6), o = W.twin(L) || (g.tal.twin && ++g.swN % 4 === 0) ? { then: { R, dmg: W.dmg(L) * ov(w) * 0.7, kb: 90, dur: 0.22 } } : null
+    startSwing(g, dir, W.arc(L) * (g.tal.godoedge ? 1.4 : 1), R, W.dmg(L) * ov(w), 110, 0.27, o); if (o) { const s = g.p.swing; s.then.a0 = s.a1; s.then.a1 = s.a0 } },
   beast(g, w) { if (g.p.spin) return 0.3; g.p.spin = { t: 0, a: g.p.face, w: -17, dur: 0.75, every: 0.18, tick: 0, R: WEAP.beast.R() * g.p.area, dmg: WEAP.beast.dmg() * ov(w), kb: 130, beast: true }; g.shake = Math.max(g.shake, 3) },
   cleave(g, w) { if (g.p.swing) return 0.15; const L = wl(w), W = WEAP.cleave, R = W.R(L) * g.p.area; startSwing(g, aimDir(g, R * 1.5), W.arc(L), R, W.dmg(L) * ov(w), 170, 0.2, { big: 3 }) },
   lunge(g, w) { if (g.p.swing) return 0.15; const L = wl(w), W = WEAP.lunge, p = g.p; let R = W.R(L) * p.area, dmg = W.dmg(L) * ov(w), o = { big: 2 }
@@ -683,7 +694,7 @@ const WFIRE = {
   cannon(g, w) { const L = wl(w), W = WEAP.cannon, p = g.p, e = g.nearest(p.x, p.y, 250); if (!e) return 0.5; const a = Math.atan2(e.y - p.y, e.x - p.x)
     g.pr.push({ x: p.x, y: p.y, z: 26, vx: Math.cos(a) * 250, vy: Math.sin(a) * 250, life: 1.2, dmg: W.dmg(L) * ov(w), pierce: 1, r: 7, kind: 'ball', rad: W.rad(L) * p.area, hit: new Set() }); g.fx.push({ kind: 'muzzle', x: p.x + Math.cos(a) * 12, y: p.y + Math.sin(a) * 12, t: 0, d: 0.12 }); g.shake = Math.max(g.shake, 2.5) },
   bombs(g, w) { const L = wl(w), W = WEAP.bombs, p = g.p; for (let i = 0; i < W.n(L); i++) { const e = g.en.length ? g.pick(g.en) : { x: p.x + 70, y: p.y }; g.pr.push({ x: p.x, y: p.y, sx: p.x, sy: p.y, tx: e.x + (g.R() - 0.5) * 24, ty: e.y + (g.R() - 0.5) * 18, t: 0, d: 0.7, z: 0, kind: 'bomb', dmg: W.dmg(L) * ov(w), rad: W.rad(L) * p.area, life: 2, hit: new Set() }) } },
-  puck(g, w) { const L = wl(w); g.heal(WEAP.puck.heal(L) * ov(w)); g.fx.push({ kind: 'dust', x: g.p.x, y: g.p.y, t: 0, d: 0.9 }); if (L >= 3) for (const e of g.en) if (Math.hypot(e.x - g.p.x, e.y - g.p.y) < 85 && !e.d.boss) { e.stun = 1.2; g.damage(e, 4, 0, 0, 0) } },
+  puck(g, w) { const L = wl(w), nut = g.gear.fx_chestnut ? 2 : 1; g.heal(WEAP.puck.heal(L) * ov(w) * nut); g.fx.push({ kind: 'dust', x: g.p.x, y: g.p.y, t: 0, d: 0.9 }); if (L >= 3) for (const e of g.en) if (Math.hypot(e.x - g.p.x, e.y - g.p.y) < 85 * nut && !e.d.boss) { e.stun = 1.2; g.damage(e, 4, 0, 0, 0) } },
 }
 function boltTick(g, w, dt) { if (!w.burst) return; w.bt -= dt; if (w.bt > 0) return; w.bt = 0.08; w.burst--; const p = g.p, e = g.nearest(p.x, p.y, 280); if (!e) { w.burst = 0; return } const a = Math.atan2(e.y - p.y, e.x - p.x) + (g.R() - 0.5) * 0.1; g.pr.push({ x: p.x, y: p.y, z: 24, vx: Math.cos(a) * 380, vy: Math.sin(a) * 380, life: 0.8, dmg: WEAP.bolts.dmg(wl(w)) * ov(w), pierce: 1, r: 5, kind: 'bolt', hit: new Set() }) }
 GP.explode = function (x, y, rad, dmg, fire) {
@@ -696,14 +707,14 @@ GP.updateProj = function (dt) {
   for (const q of g.pr) {
     if (q.delay > 0) { q.delay -= dt; q.x = p.x; q.y = p.y; continue }
     if (q.kind === 'bomb') { q.t += dt; const u = Math.min(1, q.t / q.d); q.x = q.sx + (q.tx - q.sx) * u; q.y = q.sy + (q.ty - q.sy) * u; q.z = Math.sin(u * Math.PI) * 40
-      if (u >= 1) { q.life = 0; g.explode(q.x, q.y, q.rad, q.dmg, p.salamander || q.fire); if (p.salamander && !q.child) for (let k = 0; k < 2; k++) { const a = g.R() * TAU; g.pr.push({ x: q.x, y: q.y, sx: q.x, sy: q.y, tx: q.x + Math.cos(a) * 50, ty: q.y + Math.sin(a) * 50, t: 0, d: 0.5, z: 0, kind: 'bomb', dmg: q.dmg * 0.5, rad: q.rad * 0.7, life: 2, hit: new Set(), child: 1 }) } } continue }
+      if (u >= 1) { q.life = 0; g.explode(q.x, q.y, q.rad * (g.gear.fx_satchel && !q.child ? 1.5 : 1), q.dmg, p.salamander || q.fire); if (p.salamander && !q.child) for (let k = 0; k < 2; k++) { const a = g.R() * TAU; g.pr.push({ x: q.x, y: q.y, sx: q.x, sy: q.y, tx: q.x + Math.cos(a) * 50, ty: q.y + Math.sin(a) * 50, t: 0, d: 0.5, z: 0, kind: 'bomb', dmg: q.dmg * 0.5, rad: q.rad * 0.7, life: 2, hit: new Set(), child: 1 }) } } continue }
     q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt
-    for (const e of g.en) { if (e.dead || q.hit.has(e) || q.life <= 0) continue; if (Math.hypot(e.x - q.x, e.y - q.y) < e.d.r + q.r) { q.hit.add(e); if (q.kind === 'ball') { g.explode(q.x, q.y, q.rad, q.dmg); q.life = 0 } else { g.damage(e, q.dmg, q.vx, q.vy, q.kind === 'bolt' ? 40 : 25); if (--q.pierce <= 0) q.life = 0 } } }
+    for (const e of g.en) { if (e.dead || q.hit.has(e) || q.life <= 0) continue; if (Math.hypot(e.x - q.x, e.y - q.y) < e.d.r + q.r) { q.hit.add(e); if (q.kind === 'ball') { g.explode(q.x, q.y, q.rad, q.dmg); q.life = 0; if (q.bounce > 0) { let nx = null, nd = 1e9; for (const o of g.en) { if (o.dead || q.hit.has(o)) continue; const dd = Math.hypot(o.x - q.x, o.y - q.y); if (dd < 170 && dd < nd) { nd = dd; nx = o } } if (nx) { const an = Math.atan2(nx.y - q.y, nx.x - q.x); g.pr.push(Object.assign({}, q, { vx: Math.cos(an) * 300, vy: Math.sin(an) * 300, life: 0.8, bounce: q.bounce - 1, hit: new Set(q.hit) })) } } } else { g.damage(e, q.dmg, q.vx, q.vy, q.kind === 'bolt' ? 40 : 25); if (--q.pierce <= 0) q.life = 0 } } }
   }
   g.pr = g.pr.filter(q => q.life > 0)
   for (const f of g.fx) { if (f.kind === 'timer' && !f.done && f.t + dt >= f.d) { f.done = true; f.fn() } if (f.kind === 'fire') { f.tick -= dt; if (f.tick <= 0) { f.tick = 0.3; for (const e of g.en) if (Math.hypot(e.x - f.x, e.y - f.y) < f.rad * 0.7) g.damage(e, f.dmg, 0, 0, 0, { quiet: true }) } }
     /* boss hazards on the ground: burning ground, acid brood, scale-dust. they burn you; acid and dust slow you */
-    if (f.kind === 'bfire' || f.kind === 'acid' || f.kind === 'dust') { f.tick -= dt; if (f.tick <= 0) { f.tick = 0.5; if (Math.hypot(p.x - f.x, p.y - f.y) < (f.core || f.rad * 0.8)) g.hurt(f.dmg, null) } } }
+    if ((f.kind === 'bfire' || f.kind === 'acid' || f.kind === 'dust') && !f.smoke) { f.tick -= dt; if (f.tick <= 0) { f.tick = 0.5; if (Math.hypot(p.x - f.x, p.y - f.y) < (f.core || f.rad * 0.8)) g.hurt(f.dmg, null) } } }
   for (const b of g.eb) { b.life -= dt
     if (b.ring) { b.R += b.v * dt; if (Math.abs(Math.hypot(p.x - b.x, p.y - b.y) - b.R) < b.w) g.hurt(b.dmg, b) }
     else { b.x += b.vx * dt; b.y += b.vy * dt; if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 5) { g.hurt(b.dmg, b); b.life = 0 } } }

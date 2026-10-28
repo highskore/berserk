@@ -1,6 +1,6 @@
 /* shade: turns a geometry buffer into rgba. two recipes from the style lab: golden age painterly (day) and miura ink (night) */
 const INK = [14, 13, 12], PAPER = [239, 232, 218]
-const INKMODE = { CLOAK: ['black', 1.15], HAIR: ['black', 1], DARK: ['black', 0.5], ARMOR: ['hatch', 1.05], IRON: ['hatch', 0.95], STEEL: ['hatch', 1.25], SKIN: ['hatch', 1.3], LEATHER: ['hatch', 0.85], CLOTH: ['hatch', 0.95], TABARD: ['hatch', 0.95], MAIL: ['stip', 0.95], FLESH: ['hatch', 1.05], GORE: ['red', 0], BONE: ['hatch', 1.4], BLOOD: ['red', 0], EYE: ['white', 0], SMEAR: ['white', 0], BRAND: ['red', 0], WOOD: ['hatch', 0.85], STONE: ['hatch', 1.1], GHOST: ['white', 0] }
+const INKMODE = { CLOAK: ['black', 1.15], HAIR: ['black', 1], DARK: ['black', 0.5], ARMOR: ['hatch', 1.05], IRON: ['hatch', 0.95], STEEL: ['hatch', 1.25], SKIN: ['hatch', 1.3], LEATHER: ['hatch', 0.85], CLOTH: ['hatch', 0.95], TABARD: ['hatch', 0.95], MAIL: ['stip', 0.95], FLESH: ['hatch', 1.05], GORE: ['red', 0], BONE: ['hatch', 1.4], BLOOD: ['red', 0], EYE: ['white', 0], SMEAR: ['white', 0], BRAND: ['red', 0], WOOD: ['hatch', 0.85], STONE: ['hatch', 1.1], GHOST: ['white', 0], DRIED: ['red', 0] }
 const INKDIR = { CLOAK: 'd2', ARMOR: 'd1', IRON: 'd2', STEEL: 'h', SKIN: 'd1', LEATHER: 'd2', CLOTH: 'v', TABARD: 'v', FLESH: 'd2', BONE: 'h', WOOD: 'v', MAIL: 'd1', STONE: 'd2' }
 const IK = { black: 0, hatch: 1, stip: 2, red: 3, white: 4 }, IDIR = { h: 0, v: 1, d1: 2, d2: 3 }
 /* bold chiaroscuro: lit planes stay paper, the turn gets one direction of lines, the rest is solid ink.
@@ -14,7 +14,8 @@ const R_GOLD = { CLOAK: ['#121218', '#22222c', '#3a3640', '#5e5248'], ARMOR: ['#
   SKIN: ['#5a3a3a', '#94604a', '#c88e6a', '#ecc092'], HAIR: ['#0e0e14', '#1c1c24', '#34302e', '#4a4038'], LEATHER: ['#2a1e1c', '#4a3426', '#6e5036', '#94724c'], CLOTH: ['#22242a', '#383a3e', '#545250', '#76705e'],
   TABARD: ['#2a1c22', '#4a2826', '#6a3a2e', '#8e5a40'], MAIL: ['#2a2c34', '#4c4e54', '#76767a', '#aaa49a'], FLESH: ['#2a2228', '#463a3a', '#6a5a50', '#8e7a66'], GORE: ['#3a0e14', '#741c1c', '#a8382a', '#d0684a'],
   BONE: ['#5a5048', '#8a7e68', '#bcae8c', '#e8dcb8'], BLOOD: ['#4a0c10', '#7e1616', '#b02a22', '#d85a3a'], EYE: ['#e0a040', '#ffe090', '#fff8d0', '#ffffff'], SMEAR: ['#ffffff'], BRAND: ['#901818', '#e04030', '#ff9060', '#ffd0a0'],
-  WOOD: ['#2e2218', '#4e3a26', '#76583a', '#9a7a52'], DARK: ['#0e0a0c', '#1a1214', '#2a1e1c', '#3a2a24'], STONE: ['#3a3a40', '#5c5a5a', '#86807a', '#b4aa98'], GHOST: ['#6a6e80', '#9ca2b4', '#d0d4e0', '#f4f2ec'] }
+  WOOD: ['#2e2218', '#4e3a26', '#76583a', '#9a7a52'], DARK: ['#0e0a0c', '#1a1214', '#2a1e1c', '#3a2a24'], STONE: ['#3a3a40', '#5c5a5a', '#86807a', '#b4aa98'], GHOST: ['#6a6e80', '#9ca2b4', '#d0d4e0', '#f4f2ec'],
+  DRIED: ['#1e0a0a', '#341010', '#4a1814', '#5c241a'] }
 const STY = {
   golden: { id: 'golden', mode: 0, ramps: R_GOLD, light: { L: [-0.62, -0.5, 0.6], amb: 0.36, key: 0.78, wrap: 0.15 }, rim: { off: [[-1, -1], [-2, 0]], color: '#ffd8a0', str: 0.5, nx: -0.8, ny: -0.3 }, outline: { ext: '#1e140e', inner: 'sel' }, smear: '#fff4dc', smearA: 0.8, warm: 1 },
   ink: { id: 'ink', mode: 1, ramps: { DEFAULT: ['#0e0d0c', '#efe8da'] }, n: 2, light: { L: [-0.55, -0.6, 0.58], amb: 0.3, key: 0.85 }, outline: { ext: '#0e0d0c', inner: '#0e0d0c' }, smear: '#efe8da' },
@@ -54,7 +55,7 @@ function shadeBuf(b, cs, img, o) {
     let r, gg, bb; const xs = x + (o.hx || 0), ys = y + (o.hy || 0)
     if (M === 1) {
       const kind = ikind[m]; let ink
-      if (kind === 3) { if (m === MAT.GORE && (xs + ys) & 1 && v < 0.5) ink = 1; else { r = 179; gg = 20; bb = 26; ink = -1 } }
+      if (kind === 3) { if (m === MAT.GORE && (xs + ys) & 1 && v < 0.5) ink = 1; else if (m === MAT.BLOOD && al > 1.1) ink = 0; else if (m === MAT.DRIED) { r = 104; gg = 12; bb = 16; ink = -1 } else { r = 179; gg = 20; bb = 26; ink = -1 } }
       else if (kind === 4) ink = 0
       else if (kind === 0) { const vv = v * itone[m]; ink = (vv > 0.5 && (xs * 2 + ys + ((ys >> 3) & 1)) % 6 === 0) || (vv > 0.68 && (xs + ys) % 3 === 0) ? 0 : 1 }
       else if (kind === 2) { const l = v * itone[m]; ink = l < 0.4 || (l < 0.7 && (xs + ys * 2) % 4 === 0) ? 1 : 0 }

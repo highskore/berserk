@@ -63,13 +63,32 @@ function sprite(type, dir, f, v) {
   const key = type + dir + '|' + f + '|' + (v || 0); let s = SPR.get(key); if (s) return s
   const sp = SPEC[type]; s = bake(sp.draw, { t: f * 0.4 + dir, walk: f * (Math.PI / 2), mv: f < 4 ? 1 : 0, atk: f > 4 ? (f - 4) * 0.5 : 0, v }, dir * (Math.PI / 4), sp.sc, sp.box); SPR.set(key, s); return s
 }
-/* guts: idle, 8-phase walk, 9-phase swing (blade angle relative to his facing), all per direction */
+/* guts: idle, 8-phase walk, 9-phase swing (blade angle relative to his facing), all per direction, and per blade
+   blood stage (bl, 0-5) and eye (scar, from the eclipse on) */
 const GSW = 9, gutsSw = k => -1.6 + k * 0.4
-function gutsSprite(dir, mode, ph, armor) {
-  const key = 'g' + dir + mode + ph + (armor ? 'A' : ''); let s = SPR.get(key); if (s) return s
-  const o = { t: ph * 0.3, armor, bloody: 1 }
+const gutsKey = (dir, mode, ph, armor, bl, scar) => '@' + dir + mode + ph + (armor ? 'A' : '') + (bl || 0) + (scar ? 'S' : '')
+function gutsSprite(dir, mode, ph, armor, bl, scar) {
+  const key = gutsKey(dir, mode, ph, armor, bl, scar); let s = SPR.get(key); if (s) return s
+  const o = { t: ph * 0.3, armor, bl, scar }
   if (mode === 'w') { o.walk = ph * (Math.PI / 4); o.mv = 1 } else if (mode === 's') o.swing = gutsSw(ph)
-  s = bake(drawGuts, o, dir * (Math.PI / 4), 1, [300, 260, 0.64], 2); SPR.set(key, s); return s
+  BLADE.tip = null; s = bake(drawGuts, o, dir * (Math.PI / 4), 1, [300, 260, 0.64], 2); bladeMeta(s); SPR.set(key, s); return s
+}
+/* where the blade shows in a baked frame: the tip as a world offset and height (for drips) and the visible points
+   down its middle relative to the anchor (for the glint). read straight after the bake, while its buffer is current */
+function bladeMeta(s) {
+  if (!BLADE.tip) return
+  const b = D.b, u = CAM.u, T = BLADE.tip, vis = p => { const q = prj(p), x = q[0] | 0, y = q[1] | 0, m = x < 0 || y < 0 || x >= b.w || y >= b.h ? EMPTY : b.mat[y * b.w + x]; return m === MAT.STEEL || m === MAT.BLOOD || m === MAT.DRIED ? [x - CAM.ox, y - CAM.oy] : null }
+  if (vis(T)) s.tip = [(T[0] * FIG.ca + T[1] * FIG.sa) * u, (T[0] * FIG.sa - T[1] * FIG.ca) * u, T[2] * u]
+  s.run = BLADE.run.map(vis).filter(Boolean)
+}
+/* a blood stage or eye not baked yet for this frame is queued and the closest baked one shown meanwhile, so a kill
+   streak never stalls the frame on a bake */
+const GQ = new Set()
+function gutsSpriteSoft(dir, mode, ph, armor, bl, scar) {
+  const key = gutsKey(dir, mode, ph, armor, bl, scar), s = SPR.get(key); if (s) return s
+  if (!GQ.has(key)) { GQ.add(key); WARM.unshift(() => { GQ.delete(key); gutsSprite(dir, mode, ph, armor, bl, scar) }) }
+  for (const sc of [scar, !scar]) for (let d = sc === scar ? 1 : 0; d < 6; d++) for (const b of d ? [bl - d, bl + d] : [bl]) { const t = b >= 0 && b < 6 && SPR.get(gutsKey(dir, mode, ph, armor, b, sc)); if (t) return t }
+  return gutsSprite(dir, mode, ph, armor, bl, scar)
 }
 const PROPS = new Map()
 function propSprite(kind, seed) { const k = kind + seed; let s = PROPS.get(k); if (!s) { s = bake(o => drawProp(kind, seed), {}, 0.6, 1, kind === 'flesh' || kind === 'wheel' ? [90, 170, 0.8] : [110, 200, 0.85]); PROPS.set(k, s) } return s }

@@ -23,8 +23,8 @@ function rampOf(anchors, n) { const A = anchors.map(hexRGB), out = []; for (let 
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16)
 const bay = (x, y) => BAYER4[(y & 3) * 4 + (x & 3)]
 
-const MAT = { CLOAK: 0, ARMOR: 1, IRON: 2, STEEL: 3, SKIN: 4, HAIR: 5, LEATHER: 6, CLOTH: 7, TABARD: 8, MAIL: 9, FLESH: 10, GORE: 11, BONE: 12, BLOOD: 13, EYE: 14, SMEAR: 15, BRAND: 16, WOOD: 17, DARK: 18, STONE: 19, GHOST: 20 }
-const NMAT = 21, EMPTY = 255, MATN = Object.keys(MAT)
+const MAT = { CLOAK: 0, ARMOR: 1, IRON: 2, STEEL: 3, SKIN: 4, HAIR: 5, LEATHER: 6, CLOTH: 7, TABARD: 8, MAIL: 9, FLESH: 10, GORE: 11, BONE: 12, BLOOD: 13, EYE: 14, SMEAR: 15, BRAND: 16, WOOD: 17, DARK: 18, STONE: 19, GHOST: 20, DRIED: 21 }
+const NMAT = 22, EMPTY = 255, MATN = Object.keys(MAT)
 const GLOWM = new Uint8Array(NMAT); GLOWM[MAT.EYE] = GLOWM[MAT.SMEAR] = GLOWM[MAT.BRAND] = 1
 
 function mkBuf(w, h) { const n = w * h; return { w, h, mat: new Uint8Array(n).fill(EMPTY), alb: new Float32Array(n), nx: new Float32Array(n), ny: new Float32Array(n), nz: new Float32Array(n), z: new Float32Array(n).fill(-1e9), grp: new Uint16Array(n), fl: new Uint8Array(n) } }

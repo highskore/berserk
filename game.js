@@ -169,6 +169,7 @@ GP.reset = function () {
   g.weapons = []; g.ups = {}; g.en = []; g.pr = []; g.eb = []; g.gems = []; g.coins = []; g.parts = []; g.pools = []; g.stains = []; g.texts = []; g.fx = []; g.allies = []; g.pickups = []; g.corpses = []; g.tele = []; g.wisps = []; g.riders = []
   g.flags = {}; g.cam = { x: 0, y: 0 }; g.shake = 0; g.hitstop = 0; g.spawnAcc = 0; g.input = { x: 0, y: 0 }; g.ban = null; g.boss = null; g.flashT = 0; g.flashC = null; g.bounds = null; g.choices = 3
   g.eclipsed = false; g.branded = false; g.brand = 0; g.brandRate = 1; g.light = 1; g.bleed = 0; g.burn = 0; g.thorns = 0; g.skT = 0; g.skRoll = false
+  g.gore = { heat: 0, wet: 0, coat: 0 }
   g.rageOn = false; g.rage = 0; g.rageMul = 1; g.armorT = 0; g.armorDur = 8; g.drain = 3.2; g.hunger = 0; g.sense = 0; g.tired = 0
   g.allyMul = 1; g.lost = {}; g.tags = {}; g.sets = {}; g.reroll = 2; g.shops = 0; g.pit = false; g.lastPh = 'day'; g.nightN = 0; g.dayN = 1
   g.addWeapon('sweep'); g.allies.push(mkAlly(g, 'casca')); g.ups['ally:casca'] = 1
@@ -260,6 +261,7 @@ GP.kill = function (e, kx, ky) {
   }
   if (e.d.spirit) { for (let i = 0; i < 10; i++) g.wisps.push({ x: e.x, y: e.y, z: e.d.h * 0.6, vx: (g.R() - 0.5) * 50, vy: (g.R() - 0.5) * 50, vz: 10 + g.R() * 30, t: 0 }) }
   else {
+    const gr = g.gore; gr.heat += e.d.boss ? 15 : e.elite ? 6 : e.d.apo ? 3 : 1; gr.wet = 1
     g.blood(e.x, e.y, e.d.h * 0.5, e.d.boss ? 50 : 12, 0, 0)
     g.pools.push({ x: e.x + (g.R() - 0.5) * 4, y: e.y + 2, s: Math.floor(g.R() * 6), r: e.d.boss ? 2 : e.type === 'troll' ? 1 : 0, t: 0 }); if (g.pools.length > 420) g.pools.shift()
     /* cut in half along the swing: the top flies off, the legs fall over */
@@ -281,6 +283,18 @@ GP.dropGem = function (x, y, v) {
 GP.blood = function (x, y, z, n, kx, ky, spirit) {
   const g = this; if (g.parts.length > 520) return; const l = Math.hypot(kx, ky) || 1
   for (let i = 0; i < n; i++) { const a = g.R() * TAU, s = 20 + g.R() * 60; g.parts.push({ x, y, z: z * (0.6 + g.R() * 0.6), vx: Math.cos(a) * s + (kx ? (kx / l) * 50 : 0), vy: Math.sin(a) * s + (ky ? (ky / l) * 50 : 0), vz: 30 + g.R() * 90, sp: spirit ? 1 : 0, life: 1.4 }) }
+}
+/* the blood on the dragonslayer: heat is the recent kills, fading over ~15s, and sets how far the coat spreads. wet
+   is how fresh the last kill is; once it dries the coat darkens, then flakes off to clean steel within a minute */
+GP.goreTick = function (dt) {
+  const r = this.gore, tgt = 1 - Math.exp(-r.heat / 12); r.heat *= Math.exp(-dt / 15); r.wet = Math.max(0, r.wet - dt / 6)
+  if (r.wet > 0) { if (tgt > r.coat) r.coat += (tgt - r.coat) * Math.min(1, dt * 4) }
+  else r.coat = Math.max(0, Math.min(r.coat, 0.69) - dt / 90)
+}
+/* the coat quantised into the baked stages: 0 clean, 1-3 fresh specks, streaks, drenched, 4-5 dried specks, streaks */
+GP.goreStage = function () {
+  const r = this.gore, q = r.coat < 0.08 ? 0 : r.coat < 0.35 ? 1 : r.coat < 0.7 ? 2 : 3
+  return !q ? 0 : r.wet > 0 ? q : q + 3
 }
 GP.hurt = function (dmg, src) {
   const g = this, p = g.p; if (p.inv > 0 || g.over || g.opts.god) return
@@ -491,6 +505,7 @@ GP.step = function (dt) {
   g.t += dt; const p = g.p
   /* measured once a second: kills and damage per second, smoothed; the horde scales off the damage */
   if ((g.rateT = (g.rateT || 0) + dt) >= 1) { g.kps = (g.kps || 0) * 0.7 + (g.kpsAcc || 0) * 0.3 / g.rateT; g.dps = (g.dps || 0) * 0.85 + (g.dmgAcc || 0) * 0.15 / g.rateT; g.kpsAcc = g.dmgAcc = g.rateT = 0 }
+  g.goreTick(dt)
   let ix = g.input.x, iy = g.input.y; const il = Math.hypot(ix, iy); if (il > 1) { ix /= il; iy /= il }
   let slow = 1; for (const f of g.fx) if ((f.kind === 'acid' || f.kind === 'dust') && Math.hypot(p.x - f.x, p.y - f.y) < f.rad) slow = Math.min(slow, f.kind === 'acid' ? 0.5 : 0.6)
   const spd = p.spd * g.spdMul() * slow; p.moving = il > 0.15

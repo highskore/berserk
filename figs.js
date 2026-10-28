@@ -21,19 +21,33 @@ function legs(T, o, k) {
 }
 const disc = (C, r, m, a, p, z) => { for (let k = 0; k < 12; k++) { const a0 = (k / 12) * TAU, a1 = ((k + 1) / 12) * TAU; tri(C, V3(C, Math.cos(a0) * r, Math.sin(a0) * r, z || 0), V3(C, Math.cos(a1) * r, Math.sin(a1) * r, z || 0), m, a, p, { n: [0, 0, 1] }) } }
 
-/* the dragonslayer: a slab of iron turned flat to the eye, notched, bloodied */
-function dragonslayer(B, d, w, bloody) {
+/* the dragonslayer: a slab of iron turned flat to the eye, notched. bl is its blood stage: 0 clean, 1-3 fresh specks,
+   streaks, drenched, 4-5 dried specks and streaks. one field sets the coat so each stage only adds to the last */
+const BLADE = { tip: null, run: null }
+function dragonslayer(B, d, w, bl) {
   const L0 = 6, TL = 92, L = 104, HW = 7.4, P = (a, c) => v3.add(v3.add(B, d, a), w, c)
   cap(v3.add(B, d, -9), v3.add(B, d, 3), 1.6, 1.6, MAT.LEATHER, 0.8, 17, { tex: (x, y, tt) => (Math.floor(tt * 6) % 2 ? 0.65 : 1) })
   sph(v3.add(B, d, -10), 2.2, MAT.IRON, 0.9, 17); cap(P(4, -9), P(4, 9), 1.7, 1.7, MAT.IRON, 0.85, 17)
+  bl = bl || 0; const q = bl > 3 ? bl - 3 : bl, wet = bl > 0 && bl < 4, thr = [2, 0.8, 0.6, 0.38][q], BM = wet ? MAT.BLOOD : MAT.DRIED
+  const coat = (a, v) => 0.42 * n2(a / 2.4 + 5, v * 7) + 0.34 * n2(a / 9 + 3, v * 2.2) + 0.26 * Math.abs(v - 0.5) * 2 + 0.22 * (a / L) - (a < 22 ? 0.3 : 0)
   const tex = (x, y, u, v) => {
     const a = L0 + u * (TL - L0); if ((v < 0.09 || v > 0.91) && h1(Math.floor(a / 2.2) * 7 + (v > 0.5 ? 3 : 1)) > 0.8) return -1
-    if (bloody && a > 26 && n2(a / 5 + 3, v * 2.5) > 0.66 - 0.16 * (a / L)) return -2
+    if (coat(a, v) > thr) return -2
     return (0.86 + (n2(a / 3, v * 4) - 0.5) * 0.3 + (h2(x, y) - 0.5) * 0.08) * (v > 0.84 ? 1.18 : v < 0.12 ? 0.8 : 1)
   }
+  /* fresh blood catches the light in a few wet beads; dried blood is matte */
+  const btex = (x, y, u, v) => (tex(x, y, u, v) !== -2 ? -1 : wet ? (h2(x, y) > 0.94 ? 1.7 : 0.85 + (h2(x, y) - 0.5) * 0.2) : 0.75 + (h2(x, y) - 0.5) * 0.25)
   quad(P(L0, -HW), P(TL, -HW), P(TL, HW), P(L0, HW), MAT.STEEL, 1, 17, { tex: (x, y, u, v) => { const k = tex(x, y, u, v); return k === -2 ? -1 : k } })
-  if (bloody) quad(P(L0, -HW), P(TL, -HW), P(TL, HW), P(L0, HW), MAT.BLOOD, 0.7, 17, { tex: (x, y, u, v) => (tex(x, y, u, v) === -2 ? 1 : -1) })
-  tri(P(TL, -HW), P(L, 0), P(TL, HW), MAT.STEEL, 0.9, 17, { tex: (x, y) => 0.9 + (h2(x, y) - 0.5) * 0.1 })
+  if (q) quad(P(L0, -HW), P(TL, -HW), P(TL, HW), P(L0, HW), BM, 0.7, 17, { tex: btex })
+  /* drenched: the point is red to the tip and beads hang off the low edge */
+  if (q === 3) tri(P(TL, -HW), P(L, 0), P(TL, HW), MAT.BLOOD, 0.75, 17, { tex: (x, y) => (h2(x, y) > 0.94 ? 1.6 : 0.9) })
+  else tri(P(TL, -HW), P(L, 0), P(TL, HW), MAT.STEEL, 0.9, 17, { tex: (x, y) => 0.9 + (h2(x, y) - 0.5) * 0.1 })
+  if (q === 3) {
+    const lo = w[2] < 0 ? 1 : -1
+    for (const [a, r] of [[48, 1.1], [70, 1.3], [86, 1.2]]) sph(v3.add(P(a, lo * HW), [0, 0, -1.6]), r, MAT.BLOOD, 0.8, 17)
+    sph(v3.add(P(L - 2, 0), [0, 0, -2]), 1.4, MAT.BLOOD, 0.85, 17)
+  }
+  BLADE.tip = P(L - 2, 0); BLADE.run = [0.5, 0.62, 0.74, 0.86, 0.96].map(k => P(L0 + k * (L - L0), 0))
 }
 
 /* guts' hair: short, thick, black, rough clumps of uneven size and angle; the mass has a broken rim */
@@ -53,7 +67,7 @@ function hair(H) {
 }
 
 /* ---------- GUTS ---------- */
-/* o: {t, walk, mv, swing: blade angle around him (local) or null, armor: berserker armor on, bloody} */
+/* o: {t, walk, mv, swing: blade angle around him (local) or null, armor: berserker armor on, bl: blade blood stage, scar} */
 function drawGuts(o) {
   const t = o.t || 0, mv = o.mv || 0, p = o.walk || 0, sw = o.swing, A = o.armor
   const hz = 47 + (mv ? -1.6 * Math.abs(Math.cos(p)) : 0), lean = 0.08 + mv * 0.12 + (sw != null ? 0.14 : 0) + (A ? 0.1 : 0)
@@ -83,24 +97,34 @@ function drawGuts(o) {
   sph(v3.add(SL, [-1, 1, 1]), 6, MAT.IRON, 0.7, 15, { tex: grime(0.15, 0.2), sq: 0.85 })
   if (A) for (const s of [1, -1]) for (let k = 0; k < 3; k++) cap(v3.add(s > 0 ? SL : SR, [-2 + k * 2, s * 3, 4]), v3.add(s > 0 ? SL : SR, [-4 + k * 2, s * 7, 10 - k]), 1.4, 0.3, MAT.IRON, 0.8, 15)
   cap(T(-4, -11, 31), T(-7, 0, 32), 2.8, 3.4, MAT.CLOAK, 0.62, 16); cap(T(-7, 0, 32), T(-4, 11, 31), 3.4, 2.8, MAT.CLOAK, 0.62, 16)
-  cap(T(1.5, 0, 30), v3.add(Hc, [0, 0, -4]), 4.8, 4.4, A ? MAT.IRON : MAT.SKIN, 0.85, 13)
-  if (A) beastHelm(Hc, t); else gutsHead(Hc, t)
+  cap(T(1.5, 0, 30), v3.add(Hc, [0, 0, -4]), 5.8, 5.2, A ? MAT.IRON : MAT.SKIN, 0.85, 13)
+  if (A) beastHelm(Hc, t); else gutsHead(Hc, t, o.scar)
   let HR, HL, d, w
   if (sw != null) { d = v3.norm([Math.cos(sw), Math.sin(sw), -0.08]); w = v3.norm(v3.cross(d, v3.add([0, 0, 1], eyeLocal(), 0.4))); HR = v3.add([1, 0, hz + 16], d, 17); HL = v3.add(HR, d, -5.5) }
   else { HR = T(11, -9, 17 + Math.sin(p) * mv); d = v3.norm(v3.sub(v3.add(SR, [-2, 0, 9]), HR)); w = v3.norm(v3.cross(d, eyeLocal())); HL = T(3 - Math.sin(p) * 7 * mv, 16, -2) }
   const eR = ik3(SR, HR, 16, 16.5, [-0.3, -1, -0.5]), eL = ik3(SL, HL, 16, 16, [-0.4, 1, -0.4])
   cap(SL, eL, 5.6, 4.6, A ? MAT.IRON : MAT.CLOTH, 0.45, 2); cap(eL, HL, 4.4, 3.8, MAT.IRON, 0.7, 3, { tex: (x, y, tt) => (Math.floor(tt * 5) % 2 ? 0.72 : 1) }); sph(eL, 3.2, MAT.IRON, 0.8, 3); sph(HL, 3.6, MAT.IRON, 0.75, 4)
-  if (!o.noSword) dragonslayer(HR, d, w, o.bloody)
+  if (!o.noSword) dragonslayer(HR, d, w, o.bl)
   cap(SR, eR, 6, 5, A ? MAT.IRON : MAT.CLOTH, 0.55, 18, { tex: clothFold }); cap(eR, HR, 5, 3.8, PL, 0.68, 19, { tex: grime(0.12) }); sph(eR, 3.8, PL, 0.75, 19); sph(HR, 3.8, A ? MAT.IRON : MAT.LEATHER, 0.6, 19)
 }
-function gutsHead(H, t) {
-  sph(H, 6.6, MAT.SKIN, 0.85, 13); cap(v3.add(H, [2.4, 0, -3.4]), v3.add(H, [4.6, 0, -5.6]), 4.4, 3.4, MAT.SKIN, 0.9, 13); sph(v3.add(H, [6.6, 0, -0.8]), 1.4, MAT.SKIN, 0.95, 13)
+/* guts' face, "iron jaw": a square jaw on a thick neck, one heavy brow ridge over narrowed slit eyes, the scar across
+   the nose. from the eclipse on (scar) his right eye, y < 0, is a closed scarred line */
+function gutsHead(H, t, scar) {
+  const S = MAT.SKIN, at = (x, y, z) => v3.add(H, [x, y, z])
+  sph(at(0, 0, 0.6), 6.1, S, 0.85, 13)
+  for (const s of [1, -1]) cap(at(0.5, s * 3.8, -2.4), at(4.4, s * 2.9, -5.4), 2.1, 1.8, S, 0.82, 13)
+  cap(at(4.2, -2.4, -5.6), at(4.2, 2.4, -5.6), 2, 2, S, 0.9, 13); sph(at(5.2, 0, -6), 1.9, S, 0.92, 13)
+  for (const s of [1, -1]) cap(at(5.6, s * 0.6, 2.1), at(5.2, s * 3.6, 2.3), 1.1, 0.9, S, 0.95, 13)
+  cap(at(6.2, 0, 1.4), at(7.2, 0, -1.6), 0.9, 1.3, S, 0.95, 13)
   for (const s of [1, -1]) {
-    cap(v3.add(H, [5, s * 1.2, 1.4]), v3.add(H, [4.6, s * 3.6, 1.6]), 1.2, 1.1, MAT.SKIN, 0.9, 13)
-    sph(v3.add(H, [5.6, s * 2.4, 0.4]), 1, MAT.SKIN, 0.55, 13); sph(v3.add(H, [6.3, s * 2.4, 0.5]), 0.45, MAT.DARK, 0.1, 13, { fl: 1 }); sph(v3.add(H, [0, s * 6.3, 0]), 1.6, MAT.SKIN, 0.8, 13)
+    const E = at(5.9, s * 2.3, 0.6)
+    if (scar && s < 0) { cap(v3.add(E, [0.3, 0, 2.4]), v3.add(E, [0.4, 0.3, -2.6]), 0.4, 0.4, MAT.GORE, 0.5, 13, { fl: 1 }); cap(v3.add(E, [0.4, -0.9, 0]), v3.add(E, [0.4, 0.9, 0]), 0.35, 0.35, MAT.DARK, 0.2, 13, { fl: 1 }) }
+    else cap(v3.add(E, [0.4, -0.9, 0]), v3.add(E, [0.4, 0.9, 0.15 * s]), 0.45, 0.4, MAT.DARK, 0.1, 13, { fl: 1 })
+    sph(at(0, s * 6.3, 0), 1.6, S, 0.8, 13)
   }
-  cap(v3.add(H, [6.2, -1.6, -3.8]), v3.add(H, [6.4, 1.6, -3.6]), 0.5, 0.5, MAT.DARK, 0.2, 13, { fl: 1 })
-  sph(v3.add(H, [0.5, -3.6, -6.5]), 1, MAT.BRAND, 0.6 + 0.4 * Math.sin(t * 7), 13)
+  cap(at(7, -2.6, 1.6), at(7.2, 2.4, 0.4), 0.38, 0.38, MAT.GORE, 0.55, 13, { fl: 1 })
+  cap(at(6.6, -1.8, -3.6), at(6.9, 0, -3.3), 0.4, 0.4, MAT.DARK, 0.2, 13, { fl: 1 }); cap(at(6.9, 0, -3.3), at(6.6, 1.8, -3.6), 0.4, 0.4, MAT.DARK, 0.2, 13, { fl: 1 })
+  sph(at(0.5, -3.6, -6.5), 1, MAT.BRAND, 0.6 + 0.4 * Math.sin(t * 7), 13)
   hair(H)
 }
 /* the berserker armor's wolf helm: a snout, slit eyes that burn */

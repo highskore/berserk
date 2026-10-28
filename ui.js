@@ -56,11 +56,27 @@ function propsInView(g) {
   return out
 }
 function gutsFrame(g) {
-  const p = g.p, A = g.armorT > 0
-  if (p.spin) { const a = p.spin.a; return gutsSprite(dirOf(a), 's', 4, A) }
-  if (p.swing) { const d = dirOf(p.swing.dir), sw = d * (Math.PI / 4) - (p.swing.cur != null ? p.swing.cur : p.swing.a0), k = clamp(Math.round((angDiff(0, sw) + 1.6) / 0.4), 0, GSW - 1); return gutsSprite(d, 's', k, A) }
-  if (p.moving) return gutsSprite(dirOf(p.face), 'w', Math.floor(p.walk / (Math.PI / 4)) & 7, A)
-  return gutsSprite(dirOf(p.face), 'i', 0, A)
+  const p = g.p, A = g.armorT > 0, bl = g.goreStage(), sc = g.eclipsed
+  if (p.spin) { const a = p.spin.a; return gutsSpriteSoft(dirOf(a), 's', 4, A, bl, sc) }
+  if (p.swing) { const d = dirOf(p.swing.dir), sw = d * (Math.PI / 4) - (p.swing.cur != null ? p.swing.cur : p.swing.a0), k = clamp(Math.round((angDiff(0, sw) + 1.6) / 0.4), 0, GSW - 1); return gutsSpriteSoft(d, 's', k, A, bl, sc) }
+  if (p.moving) return gutsSpriteSoft(dirOf(p.face), 'w', Math.floor(p.walk / (Math.PI / 4)) & 7, A, bl, sc)
+  return gutsSpriteSoft(dirOf(p.face), 'i', 0, A, bl, sc)
+}
+/* fresh blood glistens: a glint runs down the visible blade. drenched, it drips from the tip onto the ground */
+const DRIPS = []; let dripT = 0
+function bladeFx(g, s, st) {
+  const bl = g.goreStage(), dt = Math.max(0, Math.min(0.1, g.rt - dripT)); dripT = g.rt
+  if ((bl === 2 || bl === 3) && s.run && s.run.length) {
+    const i = Math.floor(g.rt * 7) % (s.run.length + 5), q = s.run[i]
+    if (q) { const x = SX(g.p.x) + q[0], y = SY(g.p.y) + q[1]; ctx.fillStyle = st === 'ink' ? COL.ink.light : COL.golden.light; ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 1, y - 1, 1, 1) }
+  }
+  if (bl === 3 && s.tip && DRIPS.length < 24 && Math.random() < dt * 4) DRIPS.push({ x: g.p.x + s.tip[0], y: g.p.y + s.tip[1], z: s.tip[2], vz: -8 })
+  ctx.fillStyle = COL[st].blood
+  for (let i = DRIPS.length - 1; i >= 0; i--) {
+    const d = DRIPS[i]; d.vz -= 340 * dt; d.z += d.vz * dt
+    if (d.z <= 0) { DRIPS.splice(i, 1); g.stains.push({ x: d.x, y: d.y, s: 1 }); if (g.stains.length > 1600) g.stains.splice(0, 200); continue }
+    ctx.fillRect(SX(d.x), SY(d.y) - Math.round(d.z * 0.8), 1, d.vz < -40 ? 2 : 1)
+  }
 }
 function drawWorld(g, st) {
   const C = COL[st], tile = tileCanvas(st === 'golden' ? g.biome().tile : g.nightN === 1 && g.phase().k !== 'day' ? 'eclipse' : 'paper')
@@ -112,7 +128,7 @@ function drawWorld(g, st) {
   L.sort((a, b) => a.y - b.y)
   for (const it of L) {
     if (it.c) { drawCorpse(it.c, st); continue }
-    if (it.guts) { const p = g.p; if (g.armorT > 0) frenzyAura(g, st, it.s); blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); if (p.healT > 0) healFlash(it.s, st, p); continue }
+    if (it.guts) { const p = g.p; if (g.armorT > 0) frenzyAura(g, st, it.s); blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); bladeFx(g, it.s, st); if (p.healT > 0) healFlash(it.s, st, p); continue }
     if (it.lit || it.smoke) { blit(it.s, st, it.x, it.y, 0, 1); const x = SX(it.x), y = SY(it.y) - (it.lit || LIT.torch).z; if (it.lit) flame(x, y + 2, it.lit.s, st, it.seed, g.rt); else { ctx.fillStyle = st === 'ink' ? '#0e0d0c' : '#5c5a5a'; for (let k = 0; k < 3; k++) ctx.fillRect(x + Math.round(Math.sin(g.rt * 2 + k) * 2), y - 3 - ((g.rt * 8 + k * 5) % 14), 1, 1) } continue }
     if (it.e && it.e.lantern) { blit(it.s, st, it.x, it.y, 0, 1, it.e.flash > 0); const x = SX(it.x + Math.cos(it.e.face + 1.2) * 8), y = SY(it.y + Math.sin(it.e.face + 1.2) * 8) - 16; ctx.fillStyle = '#1e140e'; ctx.fillRect(x - 2, y - 3, 4, 5); ctx.fillStyle = st === 'ink' ? '#efe8da' : '#ffd890'; ctx.fillRect(x - 1, y - 2, 2, 3); continue }
     if (it.a) { blit(it.s, st, it.x, it.y, it.a.z || 0, it.a.fade ? 1 - it.a.fade : 1); if (it.a.brand) { const x = SX(it.x), y = SY(it.y) - it.s.py + it.s.top - 12; ctx.save(); ctx.translate(x, y); ctx.shadowColor = '#ff2a10'; ctx.shadowBlur = 6; ctx.fillStyle = '#ff4020'; ctx.fill(BRAND2D); ctx.restore() } continue }
@@ -349,7 +365,7 @@ function hud() {
   hudSet($('phase'), 'text', g.pit ? 'THE PIT · NIGHT ' + g.nightN : ph.k === 'day' ? 'DAY ' + g.dayN + ' · ' + g.biome().name : ph.k === 'night' ? (g.nightN === 1 ? 'THE ECLIPSE' : 'NIGHT ' + g.nightN) : ph.k.toUpperCase())
   hudSet($('kills'), 'text', fmtN(p.kills) + ' slain'); hudSet($('gold'), 'text', fmtN(p.gold) + ' gold')
   let m = ''
-  if (!PORTRAIT) $('portrait').setAttribute('href', (PORTRAIT = portrait()))
+  const pk = (g.eclipsed ? 'S' : '') + (ink ? 'ink' : 'golden'); if (pk !== PORTK) { PORTK = pk; $('portrait').setAttribute('href', PORTRAIT[pk] || (PORTRAIT[pk] = portrait(g.eclipsed, ink ? 'ink' : 'golden'))) }
   if (g.inkMode) m += '<span class="tag red">' + BRANDICON + 'THE BRAND BURNS · BLEEDING</span>'
   if (g.sense) m += '<span class="tag sense">SENSE LOSS ' + 'I'.repeat(g.sense) + '</span>'
   /* a big band lists its named members and folds the raiders into one line */
@@ -360,7 +376,7 @@ function hud() {
   const b = g.boss; hudSet($('boss'), 'hide', !b); if (b) { const v = clamp(b.hp / b.maxHp, 0, 1); hudSet($('bossn'), 'text', b.d.boss); hudSet($('bossb'), 'w', pct(v)); hudSet($('bossc'), 'w', pct(chip('boss', v, dt))) } else CHIP.boss = CHIP.bossLast = 1
   const ban = g.ban; hudSet($('ban'), 'hide', !ban); if (ban) { hudSet($('ban'), 'cls', ban.t === 'THE ECLIPSE' ? 'eclipse' : ''); hudSet($('bant'), 'text', ban.t); hudSet($('bans'), 'text', ban.sub); $('ban').style.opacity = Math.min(1, ban.a * 4, (ban.d - ban.a) * 2) }
 }
-let PORTRAIT = ''
+const PORTRAIT = {}; let PORTK = ''
 /* the brand of sacrifice, drawn as carved strokes. one unit is its height; it is 0.625 wide. a stem with a small pointed
    crown; two arms start just off the stem near the top, swing out to elbows and back in to meet it at 0.4; from there a
    closed lower diamond flares out and comes to a point at the foot. arms are thickest at the elbows and taper to fine ends */
@@ -387,10 +403,11 @@ function brandPath(cx, top, H, seed) {
 $('brandmark').setAttribute('d', brandPath(60, 88, 15, 7))
 const BRAND2D = new Path2D(brandPath(0, -5, 10, 5))
 const BRANDICON = `<svg class="bicon" viewBox="0 0 14 22" aria-hidden="true"><path d="${brandPath(7, 1, 20, 3)}"/></svg>`
-/* the portrait: a proper bust of guts, swordless, half-turned toward you, rendered big and cropped to head and shoulders */
-function portrait() {
-  const s = bake(o => drawGuts(o), { t: 0, noSword: 1 }, 1.95, 2.2, [120, 160, 0.92]), u = U * 2.2, hy = s.py - 84 * u * CAM.kz, sz = Math.round(30 * u)
-  const c = mkCanvas(sz, sz); c.getContext('2d').drawImage(s.golden, -(s.px - sz / 2), -(hy - sz * 0.42)); return c.toDataURL()
+/* the portrait: a proper bust of guts, swordless, half-turned toward you, rendered big and cropped to head and shoulders,
+   in the style the world is in and with the eye he loses at the eclipse */
+function portrait(scar, st) {
+  const s = bake(o => drawGuts(o), { t: 0, noSword: 1, scar }, 1.95, 2.2, [120, 160, 0.92]), u = U * 2.2, hy = s.py - 84 * u * CAM.kz, sz = Math.round(30 * u)
+  const c = mkCanvas(sz, sz); c.getContext('2d').drawImage(s[st], -(s.px - sz / 2), -(hy - sz * 0.42)); return c.toDataURL()
 }
 
 /* ---------- menus ---------- */

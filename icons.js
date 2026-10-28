@@ -1,5 +1,5 @@
 /* card icons: little 3d objects built from the same primitives, shaded golden, rasterised once into data urls */
-const blade = (B, d, bloody) => dragonslayer(B, v3.norm(d), v3.norm(v3.cross(v3.norm(d), eyeLocal())), bloody)
+const blade = (B, d, bloody) => dragonslayer(B, v3.norm(d), v3.norm(v3.cross(v3.norm(d), eyeLocal())), bloody ? 2 : 0)
 const knife = (B, d, L) => { const D2 = v3.norm(d); cap(v3.add(B, D2, -5), B, 1.6, 1.6, MAT.LEATHER, 0.7, 2); cap(B, v3.add(B, D2, L), 2.2, 0.5, MAT.STEEL, 1, 3) }
 const bomb = () => { sph([0, 0, 16], 15, MAT.IRON, 0.55, 1, { tex: grime(0.2, 0.2) }); cap([3, 0, 30], [6, 3, 40], 1.4, 1, MAT.WOOD, 0.8, 2); sph([6, 3, 42], 3, MAT.EYE, 1, 3) }
 const meat = () => { sph([0, 0, 18], 14, MAT.LEATHER, 0.8, 1, { sq: 0.8, tex: grime(0.2, 0.3) }); cap([8, 0, 24], [20, 2, 36], 2.6, 2.2, MAT.BONE, 0.9, 2); sph([21, 2, 38], 3.4, MAT.BONE, 0.9, 2) }

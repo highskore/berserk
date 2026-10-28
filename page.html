@@ -1,5 +1,5 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root { --ink: #0e0d0c; --paper: #efe8da; --blood: #b3141a; --gold: #f0c48a; --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif }
   * { box-sizing: border-box }
@@ -52,8 +52,10 @@ __HUDCSS__
   </div>
   <div class="tc"><b id="clock">00:00</b><span id="phase"></span></div>
   <div class="stats"><span id="kills"></span><span id="gold"></span></div>
+  <div id="party"></div><div id="buffs"></div><div id="mini"><canvas id="minic" width="120" height="120"></canvas><span class="n">N</span><span class="e">E</span><span class="s">S</span><span class="w">W</span><b id="minit"></b></div>
+  <div id="abar"></div><div id="quick"></div><div id="sysb"><button id="gearB">Gear <kbd>I</kbd></button><button id="talB">Talents <kbd>N</kbd><em id="tpn"></em></button></div>
   <div id="xpw"><b id="lvl">LV 1</b><div class="xpt"><i id="xpb"></i><div id="xpburst"></div></div><span id="xpn"></span></div>
-  <div id="boss" hidden><span id="bossn"></span><div class="bar"><i class="chip" id="bossc"></i><i class="fill" id="bossb"></i></div></div>
+  <div id="boss" hidden><span id="bossn"></span><div class="bar"><i class="chip" id="bossc"></i><i class="fill" id="bossb"></i></div><div id="cast" hidden><i id="castb"></i><span id="castn"></span></div></div>
   <div id="ban" hidden><b id="bant"></b><span id="bans"></span></div>
 </div>
 <div id="stick" hidden><div id="knob"></div></div>
@@ -66,6 +68,8 @@ __HUDCSS__
 </div></div>
 <div class="ov" id="ovPick" hidden><div class="box"><h2 id="pickT"></h2><div class="cards" id="cards"></div><p class="keys">Press 1–4 or tap a card.</p></div></div>
 <div class="ov" id="ovShop" hidden><div class="box"><h2 id="shopT"></h2><p class="sub"><b id="shopG"></b> · <span id="shopN"></span></p><div class="cards" id="items"></div><button class="btn alt" id="reroll"></button><button class="btn" id="go">Into the day</button></div></div>
+<div class="ov altar" id="ovGear" hidden><div class="box panel" id="gearP"></div></div>
+<div class="ov altar" id="ovTal" hidden><div class="box panel" id="talP"></div></div>
 <div class="ov" id="ovPause" hidden><div class="box"><h2>PAUSED</h2><button class="btn" id="resumeB">Resume</button></div></div>
 <div class="ov" id="ovDead" hidden><div class="box"><h2>THE STRUGGLE ENDS</h2><p class="sub" id="deadS"></p><button class="btn" id="againB">Rise again</button><p class="credit">Fan work in memory of Kentaro Miura.</p></div></div>
 <script>

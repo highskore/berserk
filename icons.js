@@ -50,7 +50,7 @@ const ICON = {
 }
 const ICONURL = {}, IB = mkBuf(128, 128), ICV = typeof document !== 'undefined' ? mkCanvas(48, 48) : null
 /* card id -> icon: weapons by their id, allies get their own figure */
-function iconKey(id) { return id.startsWith('w:') ? id.slice(2) : id.startsWith('W') && ITEMS[id] ? id.slice(1) : id === 'evo_beast' ? 'beast' : id }
+function iconKey(id) { if (id.startsWith('ab:')) return iconKey(ABIL[id.slice(3)].icon); return id.startsWith('w:') ? id.slice(2) : id.startsWith('W') && ITEMS[id] ? id.slice(1) : id === 'evo_beast' ? 'beast' : id }
 function iconURL(id) {
   const k = iconKey(id); if (ICONURL[k]) return ICONURL[k]
   const al = k.startsWith('ally:') ? k.slice(5) : null, ic = al ? { u: 0.36 * (SPEC[al].sc || 1), oy: 0.94, d: () => SPEC[al].draw({ t: 0.5, mv: 0 }) } : ICON[k] || ICON.meat

@@ -1,0 +1,117 @@
+  /* ---------- hud: shared layout. four skins below (data-skin a..d) restyle the same elements ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; --st: env(safe-area-inset-top); --sb: env(safe-area-inset-bottom); --sl: env(safe-area-inset-left); --sr: env(safe-area-inset-right); font-weight: 600 }
+  #hud .bar { position: relative; overflow: hidden } #hud .bar > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0 } #hud .bar em { font-style: normal }
+  #hud .vit { position: absolute; left: max(10px, var(--sl)); top: max(10px, var(--st)); width: min(250px, 48vw); display: flex; flex-direction: column; gap: 5px }
+  #hud .tc { position: absolute; left: 50%; transform: translateX(-50%); top: max(8px, var(--st)); text-align: center } #hud .tc b, #hud .tc span { display: block }
+  #hud .stats { position: absolute; right: max(10px, var(--sr)); top: max(10px, var(--st)); display: flex; flex-direction: column; align-items: flex-end }
+  #hud #xpw { position: absolute; left: max(12px, var(--sl)); right: max(12px, var(--sr)); bottom: max(10px, var(--sb)); display: flex; align-items: center; gap: 8px }
+  #hud .xpt { flex: 1; position: relative } #hud #xpb { position: absolute; left: 0; top: 0; bottom: 0; width: 0 }
+  #hud #boss { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(max(10px, var(--sb)) + 34px); width: min(440px, 76vw); text-align: center }
+  #hud #ban { position: absolute; left: 0; right: 0; top: 28%; text-align: center; text-shadow: 0 2px 0 #000, 0 0 8px #000 } #hud #ban b { display: block; font: 700 clamp(28px, 7vw, 54px)/1 var(--serif); letter-spacing: .08em } #hud #ban span { font-size: 12px; letter-spacing: .14em; text-transform: uppercase }
+  #hud #tags { display: flex; flex-wrap: wrap; gap: 3px 8px; font-size: 10px; letter-spacing: .08em } #hud .tag.red { color: #ff6a5a }
+  #hud #sigil, #hud #portrait, #hud #sigtext { display: none } #hud[data-skin=b] #sigtext { display: block }
+  #xpburst { position: absolute; inset: 0 } #xpburst i { position: absolute; width: 3px; height: 3px; background: #ffd890; box-shadow: 0 0 4px #f0b048; animation: spark .7s ease-out forwards }
+  @keyframes spark { to { transform: translate(var(--dx), var(--dy)); opacity: 0 } }
+  @keyframes shake { 20% { transform: translate(-2px, 1px) } 40% { transform: translate(2px, -1px) } 60% { transform: translate(-1px, 0) } 80% { transform: translate(1px, 1px) } }
+  #hud.hit .vit, #hud.hit #sigil { animation: shake .25s }
+  /* sense loss: the hud never disappears. it dims and greys, and every few seconds it flickers back */
+  #hud.sense2 > :not(#ban):not(#boss) { filter: grayscale(1) contrast(.85); animation: senseflick 5s steps(1) infinite }
+  @keyframes senseflick { 0% { opacity: .42 } 70% { opacity: .42 } 72% { opacity: .95 } 80% { opacity: .95 } 82% { opacity: .42 } }
+  @media (max-width: 520px) {
+    #hud .vit { top: auto; bottom: calc(var(--sb) + 34px); width: 55vw; flex-direction: column-reverse }
+    #hud .stats { top: auto; bottom: calc(var(--sb) + 34px) } #hud #xpw { left: 10px; right: 10px; bottom: calc(var(--sb) + 8px); gap: 6px }
+    #hud #boss { bottom: auto; top: calc(max(8px, var(--st)) + 46px); width: 82vw } #hud #ban { top: 22% }
+  }
+
+  /* ---------- hud A: iron and blood. forged, riveted plates; bars are channels cut into the iron, filled with blood and ember ---------- */
+  #hud[data-skin=a] { font-family: 'Cinzel', 'Trajan Pro', Georgia, serif; color: #e9dcc0; text-shadow: 0 1px 0 #000 }
+  #hud[data-skin=a] .vit, #hud[data-skin=a] .tc, #hud[data-skin=a] .stats, #hud[data-skin=a] #xpw, #hud[data-skin=a] #boss { padding: 7px 9px; border: 1px solid #6b645a; border-radius: 2px;
+    background: radial-gradient(circle at 5px 5px, #b9b0a2 1.4px, #2a2622 2px, transparent 2.6px), radial-gradient(circle at calc(100% - 5px) 5px, #b9b0a2 1.4px, #2a2622 2px, transparent 2.6px), radial-gradient(circle at 5px calc(100% - 5px), #b9b0a2 1.4px, #2a2622 2px, transparent 2.6px), radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #b9b0a2 1.4px, #2a2622 2px, transparent 2.6px), linear-gradient(170deg, #4a453f, #24211e 45%, #151311);
+    box-shadow: 0 0 0 1px #000, 0 3px 8px #000a, inset 0 1px 0 #ffffff26, inset 0 -2px 4px #0008 }
+  #hud[data-skin=a] .vit { padding: 9px 12px 9px 12px }
+  #hud[data-skin=a] .bar { height: 13px; background: #0a0807; border-radius: 1px; box-shadow: inset 0 2px 3px #000, inset 0 -1px 0 #ffffff1c, 0 1px 0 #ffffff12 }
+  #hud[data-skin=a] .bar em { position: absolute; left: 6px; top: 0; font-size: 9px; line-height: 13px; letter-spacing: .18em; color: #f2e6cc; z-index: 2 }
+  #hud[data-skin=a] .bar span { position: absolute; right: 6px; top: 0; font-size: 9.5px; line-height: 13px; z-index: 2 }
+  #hud[data-skin=a] .hp { height: 18px } #hud[data-skin=a] .hp em, #hud[data-skin=a] .hp span { line-height: 18px; font-size: 11px }
+  #hud[data-skin=a] .fill { background: linear-gradient(180deg, #ff6a4a 0, #c01818 30%, #7a0608 75%, #3a0204); background-size: 100% 100% }
+  #hud[data-skin=a] .hp .fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, #ffffff30 45%, transparent 60%); background-size: 300% 100%; animation: sheen 3.2s linear infinite }
+  @keyframes sheen { from { background-position: 150% 0 } to { background-position: -150% 0 } }
+  #hud[data-skin=a] .chip { background: #f3d7a0; opacity: .85; transition: width .1s }
+  #hud[data-skin=a] .brand .fill { background: linear-gradient(180deg, #ff9a50, #d02a10 45%, #5a0606); box-shadow: 0 0 10px #ff4020 }
+  #hud[data-skin=a].hot .brand .fill { animation: emberpulse .9s ease-in-out infinite alternate } @keyframes emberpulse { to { filter: brightness(1.5); box-shadow: 0 0 18px 4px #ff4020 } }
+  #hud[data-skin=a] .rage .fill { background: linear-gradient(180deg, #ffd27a, #e07018 50%, #6a2a06) }
+  #hud[data-skin=a].frenzy .rage .fill { background: repeating-linear-gradient(100deg, #ffe08a 0 4px, #ff5a10 4px 9px, #b01008 9px 13px); background-size: 26px 100%; animation: flame .35s linear infinite; box-shadow: 0 0 14px #ff5010 }
+  @keyframes flame { to { background-position: 26px 0 } }
+  #hud[data-skin=a] .over { background: #fff6d0; height: 2px; top: auto !important; bottom: 0 }
+  #hud[data-skin=a] .tc { padding: 5px 18px 4px } #hud[data-skin=a] .tc b { font: 800 22px/1 'Cinzel', Georgia, serif; letter-spacing: .08em; color: #f6e8c8 } #hud[data-skin=a] .tc span { font-size: 9.5px; letter-spacing: .22em; color: #c8a878; margin-top: 2px }
+  #hud[data-skin=a] .stats { font-size: 12px; letter-spacing: .1em; gap: 1px } #hud[data-skin=a] #gold { color: #f0c060 }
+  #hud[data-skin=a] #xpw { padding: 5px 8px } #hud[data-skin=a] #lvl { font: 800 14px/1 'Cinzel', serif; color: #f0c060; letter-spacing: .06em; padding-right: 2px }
+  #hud[data-skin=a] .xpt { height: 10px; background: #0a0807; box-shadow: inset 0 2px 3px #000, 0 1px 0 #ffffff12 } #hud[data-skin=a] #xpb { background: linear-gradient(180deg, #fff0b0, #e0a040 45%, #8a5010); box-shadow: 0 0 10px #f0b04888 }
+  #hud[data-skin=a] #xpn { font-size: 10px; color: #c8b090; min-width: 70px; text-align: right }
+  #hud[data-skin=a] #boss { padding: 6px 10px 8px } #hud[data-skin=a] #bossn { font: 700 19px/1.1 'UnifrakturCook', 'Cinzel', serif; color: #f2d0b0; letter-spacing: .04em } #hud[data-skin=a] #boss .bar { height: 10px; margin-top: 4px }
+  #hud[data-skin=a] #ban b { font-family: 'UnifrakturCook', 'Cinzel', serif; letter-spacing: .02em }
+  #hud[data-skin=a].lvup .xpt { animation: xpflash .7s ease-out } @keyframes xpflash { from { box-shadow: 0 0 22px 6px #f0b048cc } }
+  /* ink: the plates turn to paper ruled in black; blood stays red, everything else goes black */
+  #hud[data-skin=a].ink { color: #0e0d0c; text-shadow: 0 0 2px #efe8da, 0 0 2px #efe8da }
+  #hud[data-skin=a].ink .vit, #hud[data-skin=a].ink .tc, #hud[data-skin=a].ink .stats, #hud[data-skin=a].ink #xpw, #hud[data-skin=a].ink #boss { background: #efe8da; border: 2px solid #0e0d0c; box-shadow: 3px 3px 0 #0e0d0c }
+  #hud[data-skin=a].ink .bar, #hud[data-skin=a].ink .xpt { background: repeating-linear-gradient(135deg, #efe8da 0 2px, #0e0d0c 2px 3px); box-shadow: 0 0 0 1px #0e0d0c }
+  #hud[data-skin=a].ink .rage .fill, #hud[data-skin=a].ink #xpb { background: #0e0d0c; box-shadow: none } #hud[data-skin=a].ink .bar em, #hud[data-skin=a].ink .bar span { color: #efe8da; text-shadow: 0 0 2px #0e0d0c, 0 0 2px #0e0d0c }
+  #hud[data-skin=a].ink .tc b, #hud[data-skin=a].ink .tc span, #hud[data-skin=a].ink #lvl, #hud[data-skin=a].ink #gold, #hud[data-skin=a].ink #bossn, #hud[data-skin=a].ink #xpn { color: #0e0d0c }
+
+  /* ---------- hud B: the brand sigil. hp, brand and rage are rings round the Brand of Sacrifice, next to Guts' face ---------- */
+  #hud[data-skin=b] { font-family: 'IM Fell English SC', 'Cormorant Garamond', Georgia, serif; color: #efe0c4; text-shadow: 0 1px 0 #000, 0 0 4px #000 }
+  #hud[data-skin=b] .vit .bar, #hud[data-skin=b] #xpw { display: none } #hud[data-skin=b] .vit { top: auto; left: max(14px, var(--sl)); bottom: max(12px, var(--sb)); width: auto; gap: 0 }
+  #hud[data-skin=b] #sigil { display: block; width: 150px; height: 150px; filter: drop-shadow(0 2px 6px #000) }
+  #hud[data-skin=b] #portrait { display: block; position: absolute; left: 112px; bottom: 6px; width: 54px; height: 54px; border-radius: 50%; border: 2px solid #8a2018; background: radial-gradient(#2a1a14, #0a0605) center/cover; box-shadow: 0 0 0 2px #000, 0 0 12px #b3141a88; image-rendering: pixelated; object-fit: cover; object-position: 50% 12% }
+  #hud[data-skin=b] #sigil .trk { fill: none; stroke: #00000099; stroke-linecap: round } #hud[data-skin=b] #sigil .val { fill: none; stroke-linecap: round; transition: stroke-dashoffset .15s }
+  #hud[data-skin=b] #sigil .chip { stroke: #f3d7a0; opacity: .8 } #hud[data-skin=b] #sigil .hpv { stroke: #d8241c; filter: drop-shadow(0 0 3px #ff2a1a) } #hud[data-skin=b] #sigil .brv { stroke: #ff7a30 } #hud[data-skin=b] #sigil .rgv { stroke: #f0c060 } #hud[data-skin=b] #sigil .xpv { stroke: #e8d8a8; opacity: .85 }
+  #hud[data-skin=b] #sigil .mark { fill: none; stroke: #b3141a; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px #ff2010) }
+  #hud[data-skin=b].hot #sigil .mark { animation: brandbeat .8s ease-in-out infinite } @keyframes brandbeat { 50% { stroke: #ff5a30; filter: drop-shadow(0 0 10px #ff3010) } }
+  #hud[data-skin=b].frenzy #sigil .rgv { stroke: #ff5010; animation: fringe .3s steps(2) infinite } @keyframes fringe { 50% { stroke: #ffd060; filter: drop-shadow(0 0 6px #ff6010) } }
+  #hud[data-skin=b] #sigtext { position: absolute; left: 0; width: 150px; bottom: 6px; text-align: center; font-size: 13px; letter-spacing: .06em }
+  #hud[data-skin=b] #tags { position: absolute; left: 172px; bottom: 8px; width: 220px; flex-direction: column; font-size: 11px }
+  #hud[data-skin=b] .tc b { font-size: 24px; letter-spacing: .06em } #hud[data-skin=b] .tc span { font-size: 12px; letter-spacing: .12em; color: #d8b890 }
+  #hud[data-skin=b] .stats { font-size: 14px; gap: 2px } #hud[data-skin=b] #gold { color: #f0c060 }
+  #hud[data-skin=b] #boss { bottom: auto; top: calc(max(8px, var(--st)) + 50px); width: min(380px, 70vw) } #hud[data-skin=b] #bossn { font-size: 18px; letter-spacing: .14em } #hud[data-skin=b] #boss .bar { height: 6px; margin-top: 3px; background: #000a; box-shadow: 0 0 0 1px #8a2018 } #hud[data-skin=b] #boss .fill { background: #c41a14 } #hud[data-skin=b] #boss .chip { background: #f3d7a0 }
+   #hud[data-skin=b].ink #sigil { filter: none } #hud[data-skin=b].ink #sigil .trk { stroke: #0e0d0c66 } #hud[data-skin=b].ink #sigil .rgv, #hud[data-skin=b].ink #sigil .xpv { stroke: #0e0d0c } #hud[data-skin=b].ink #sigil .bg { fill: #efe8da; stroke: #0e0d0c; stroke-width: 2 }
+  @media (max-width: 520px) { #hud[data-skin=b] .vit { left: 50%; transform: translateX(-66%); bottom: calc(var(--sb) + 6px) } #hud[data-skin=b] #sigil { width: 128px; height: 128px } #hud[data-skin=b] #sigtext { width: 128px } #hud[data-skin=b] #portrait { left: 98px; width: 46px; height: 46px }
+    #hud[data-skin=b] #tags { left: 150px; bottom: 60px; width: 120px } #hud[data-skin=b] .stats { top: max(10px, var(--st)); bottom: auto } }
+
+  /* ---------- hud C: manga panel. paper panels with heavy hand-inked borders, screentone fills and SFX lettering ---------- */
+  #hud[data-skin=c] { font-family: 'Bangers', 'Impact', sans-serif; letter-spacing: .06em; color: #0e0d0c }
+  #hud[data-skin=c] .vit, #hud[data-skin=c] .stats, #hud[data-skin=c] #xpw, #hud[data-skin=c] #boss { background: #f4ecdc; border: 3px solid #0e0d0c; border-radius: 3px 6px 4px 7px; box-shadow: 4px 4px 0 #0e0d0c; padding: 6px 9px }
+  #hud[data-skin=c] .vit { transform: rotate(-1.2deg); gap: 6px } #hud[data-skin=c] .stats { transform: rotate(1.5deg); font-size: 18px; line-height: 1 } #hud[data-skin=c] #boss { transform: translateX(-50%) rotate(-.6deg) }
+  #hud[data-skin=c] .bar { height: 14px; border: 2px solid #0e0d0c; background: #fff } #hud[data-skin=c] .hp { height: 20px }
+  #hud[data-skin=c] .fill { background: radial-gradient(circle, #0e0d0c 1.2px, transparent 1.6px) 0 0/5px 5px, radial-gradient(circle, #0e0d0c 1.2px, transparent 1.6px) 2.5px 2.5px/5px 5px, #c0201a }
+  #hud[data-skin=c] .chip { background: radial-gradient(circle, #0e0d0c 1px, transparent 1.4px) 0 0/4px 4px, #fff; opacity: .9 }
+  #hud[data-skin=c] .brand .fill { background: radial-gradient(circle, #f4ecdc 1px, transparent 1.4px) 0 0/4px 4px, #b3141a }
+  #hud[data-skin=c].hot .brand { animation: panelthrob .6s ease-in-out infinite alternate } @keyframes panelthrob { to { box-shadow: 0 0 0 3px #b3141a } }
+  #hud[data-skin=c] .rage .fill { background: repeating-linear-gradient(115deg, #0e0d0c 0 2px, #fff 2px 5px) }
+  #hud[data-skin=c].frenzy .rage .fill { background: repeating-linear-gradient(115deg, #0e0d0c 0 3px, #b3141a 3px 5px, #fff 5px 8px); background-size: 24px 100%; animation: speed .25s linear infinite } @keyframes speed { to { background-position: 24px 0 } }
+  #hud[data-skin=c] .over { background: #0e0d0c; height: 3px; top: auto !important; bottom: 0 }
+  #hud[data-skin=c] .bar em { position: absolute; left: 5px; top: -1px; font-size: 13px; color: #fff; -webkit-text-stroke: 3px #0e0d0c; paint-order: stroke; z-index: 2 }
+  #hud[data-skin=c] .bar span { position: absolute; right: 5px; top: 0; font-size: 15px; color: #fff; -webkit-text-stroke: 3px #0e0d0c; paint-order: stroke; z-index: 2 } #hud[data-skin=c] .hp em { font-size: 15px; top: 1px }
+  #hud[data-skin=c] .tc { background: #fff; border: 3px solid #0e0d0c; border-radius: 50%; padding: 6px 22px 5px; box-shadow: 3px 3px 0 #0e0d0c }
+  #hud[data-skin=c] .tc::after { content: ''; position: absolute; left: 50%; bottom: -12px; border: 7px solid transparent; border-top: 10px solid #0e0d0c; transform: translateX(-30%) skewX(-25deg) }
+  #hud[data-skin=c] .tc b { font-size: 26px; line-height: 1 } #hud[data-skin=c] .tc span { font-family: system-ui, sans-serif; font-weight: 800; font-size: 9px; letter-spacing: .12em }
+  #hud[data-skin=c] #gold { color: #b3141a }
+  #hud[data-skin=c] #lvl { font-size: 18px; color: #fff; background: #b3141a; padding: 6px 10px 4px; clip-path: polygon(50% 0, 62% 22%, 88% 8%, 80% 36%, 100% 50%, 80% 64%, 88% 92%, 62% 78%, 50% 100%, 38% 78%, 12% 92%, 20% 64%, 0 50%, 20% 36%, 12% 8%, 38% 22%); -webkit-text-stroke: 1px #0e0d0c }
+  #hud[data-skin=c] .xpt { height: 12px; border: 2px solid #0e0d0c; background: #fff } #hud[data-skin=c] #xpb { background: radial-gradient(circle, #0e0d0c 1px, transparent 1.5px) 0 0/4px 4px, #e8b040 } #hud[data-skin=c] #xpn { font-size: 14px }
+  #hud[data-skin=c] #bossn { font-size: 22px; letter-spacing: .08em } #hud[data-skin=c] #boss .bar { height: 12px; margin-top: 3px }
+  #hud[data-skin=c] #tags { font-family: system-ui, sans-serif; font-weight: 800; font-size: 9px } #hud[data-skin=c] .tag.red { color: #b3141a }
+  #hud[data-skin=c] #ban b { font-family: 'Bangers', Impact, sans-serif; color: #fff; -webkit-text-stroke: 5px #0e0d0c; paint-order: stroke; letter-spacing: .06em; text-shadow: 5px 5px 0 #b3141a }
+  #hud[data-skin=c].lvup #lvl { animation: pop .5s ease-out } @keyframes pop { from { transform: scale(1.8) rotate(-12deg) } }
+
+  /* ---------- hud D: on the ground. hp, brand and rage are rings at Guts' feet (drawn in the scene); the frame keeps only a whisper ---------- */
+  #hud[data-skin=d] { font-family: 'Cinzel', Georgia, serif; color: #efe2c8; text-shadow: 0 1px 0 #000, 0 0 5px #000 }
+  #hud[data-skin=d] .vit .bar { display: none } #hud[data-skin=d] .vit { top: auto; bottom: calc(max(10px, var(--sb)) + 22px) }
+  #hud[data-skin=d] .tc b { font-size: 18px; letter-spacing: .14em; font-weight: 600 } #hud[data-skin=d] .tc span { font-size: 9px; letter-spacing: .3em; color: #cbb898 }
+  #hud[data-skin=d] .stats { font-size: 12px; letter-spacing: .14em } #hud[data-skin=d] #gold { color: #e8c070 }
+  #hud[data-skin=d] #xpw { left: 25%; right: 25%; gap: 10px } #hud[data-skin=d] #lvl { font-size: 13px; letter-spacing: .14em } #hud[data-skin=d] .xpt { height: 3px; background: #ffffff22 } #hud[data-skin=d] #xpb { background: #f0d090; box-shadow: 0 0 6px #f0c060 } #hud[data-skin=d] #xpn { font-size: 10px; color: #cbb898 }
+  #hud[data-skin=d] #boss { bottom: auto; top: calc(max(8px, var(--st)) + 44px) } #hud[data-skin=d] #bossn { font-size: 13px; letter-spacing: .3em } #hud[data-skin=d] #boss .bar { height: 3px; margin-top: 4px; background: #ffffff22 } #hud[data-skin=d] #boss .fill { background: #d82a1c; box-shadow: 0 0 6px #ff3010 } #hud[data-skin=d] #boss .chip { background: #f3d7a0 }
+  #hud[data-skin=d].ink .xpt, #hud[data-skin=d].ink #boss .bar { background: #efe8da44; box-shadow: 0 0 0 1px #0e0d0c } #hud[data-skin=d].ink #xpb { background: #efe8da; box-shadow: none }
+  @media (max-width: 520px) { #hud[data-skin=d] #xpw { left: 18%; right: 18% } #hud[data-skin=d] .vit { bottom: calc(var(--sb) + 30px) } }
+  /* ink: free-floating text (b, d) is paper with a hard ink outline, so it reads over black falloff and white paper alike */
+  #hud[data-skin=b].ink, #hud[data-skin=d].ink { color: #efe8da; text-shadow: 1px 0 0 #0e0d0c, -1px 0 0 #0e0d0c, 0 1px 0 #0e0d0c, 0 -1px 0 #0e0d0c, 1px 1px 0 #0e0d0c, -1px -1px 0 #0e0d0c, 0 0 5px #0e0d0c }
+  #hud[data-skin=b].ink .tc span, #hud[data-skin=d].ink .tc span, #hud[data-skin=b].ink #gold, #hud[data-skin=d].ink #gold, #hud[data-skin=d].ink #xpn { color: #efe8da }
+  @media (max-width: 520px) { #hud[data-skin=c] .vit, #hud[data-skin=c] .stats { bottom: calc(var(--sb) + 56px) } }

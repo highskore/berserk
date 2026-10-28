@@ -117,7 +117,7 @@ const ITEMS = {
 }
 for (const w of ['sweep', 'knives', 'bolts', 'cannon', 'bombs', 'cleave']) ITEMS['W' + w] = { name: WEAP[w].name, v: 'forge', tags: ['weapon'], weapon: w, price: { sweep: 30, knives: 22, bolts: 26, cannon: 32, bombs: 28, cleave: 28 }[w], apply: g => g.addWeapon(w) }
 const SETS = { elf: { n: 3, name: 'Puck joins the fight', apply: g => g.addWeapon('puck') }, brand: { n: 3, name: 'Brand Hunger: +20% damage, heal on kill', apply: g => { g.p.might += 0.2; g.hungerHeal = 1 } }, steel: { n: 3, name: 'Iron Body: +3 plate', apply: g => (g.p.armor += 3) } }
-const SENSES = [['COLOUR DRAINS', 'loot x2'], ['THE HUD FADES', 'four choices per level'], ['ONLY INK REMAINS', 'loot x3, +30% damage']]
+const SENSES = [['COLOUR DRAINS', 'the world greys · loot x2'], ['SIGHT FADES', 'the hud dims · four choices per level'], ['ONLY INK REMAINS', 'loot x3, +30% damage']]
 
 /* ---------- the clock: a long golden age, then dusk, night, dawn, day forever ---------- */
 const DAY1 = 140, DUSK = 8, NIGHT = 62, DAWN = 8, DAY = 72, CYC = DUSK + NIGHT + DAWN + DAY
@@ -400,7 +400,7 @@ GP.updateWorld = function (dt) {
     if (g.armorT <= 0 && g.rage >= 100) { g.armorT = g.armorDur; g.rage = 0; p.spin = { t: 0, a: p.face, w: -16, dur: 0.7, every: 0.15, tick: 0, R: 70 * p.area, dmg: 20 + p.lvl * 2, kb: 160 }; g.banner('BERSERKER FRENZY', g.inkMode ? 'ink and blood' : 'it hungers', 1.8); g.flash('#0e0d0c', 0.5); g.shake = 6 }
     if (g.armorT > 0) {
       g.armorT -= dt; if (!g.opts.god) p.hp = Math.max(1, p.hp - g.drain * dt)
-      if (g.rage >= 100) { g.rage = 0; g.sense = Math.min(3, g.sense + 1); const s = SENSES[g.sense - 1]; g.banner('SENSE LOSS', s[0] + ' - ' + s[1], 3); g.flash('#efe8da', 0.8); if (g.sense >= 2) g.choices = 4 }
+      if (g.rage >= 100) { g.rage = 0; g.sense = Math.min(3, g.sense + 1); const s = SENSES[g.sense - 1]; g.banner('SENSE LOSS: ' + s[0], s[1], 3.4); g.flash('#efe8da', 0.8); if (g.sense >= 2) g.choices = 4 }
       if (g.armorT <= 0) { g.tired = 2; g.banner('THE ARMOR RELEASES', '', 1.2) }
     }
   }

@@ -1,36 +1,12 @@
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Cinzel:wght@600;800&family=IM+Fell+English+SC&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
 <style>
   :root { --ink: #0e0d0c; --paper: #efe8da; --blood: #b3141a; --gold: #f0c48a; --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif }
   * { box-sizing: border-box }
   html, body { margin: 0; height: 100%; background: var(--ink); color: var(--paper); overflow: hidden; font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-user-select: none; user-select: none; touch-action: none; overscroll-behavior: none }
   #cv { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; image-rendering: pixelated; image-rendering: crisp-edges; display: block; touch-action: none }
   [hidden] { display: none !important }
-  #hud { position: fixed; inset: 0; pointer-events: none; padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); font-weight: 600; text-shadow: 0 1px 0 #000, 0 0 3px #000; transition: opacity .6s }
-  #hud.faded > :not(.hpw) { opacity: 0 }
-  /* the xp bar: an iron-framed track along the bottom edge, the level on a badge at its left, the numbers at its right */
-  #xpw { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px }
-  #lvl { flex: none; position: relative; z-index: 1; font: 700 13px/1 var(--serif); letter-spacing: .08em; color: #f2e6cc; padding: 3px 9px 2px; background: linear-gradient(#3b2d1f, #1a130d); border: 1px solid #8a7458; box-shadow: 0 0 0 1px #000, inset 0 1px 0 #ffffff1a }
-  .xpt { flex: 1; position: relative; height: 10px; background: #120d09; border: 1px solid #000; box-shadow: 0 0 0 1px #5a4a38, inset 0 1px 3px #000 }
-  .xpt::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), #0008 calc(10% - 1px) 10%) }
-  #xpb { display: block; height: 100%; width: 0; background: linear-gradient(#ffe8b0, #e0a46a 45%, #a8682a); box-shadow: 0 0 8px #f0b04866 }
-  #xpn { flex: none; min-width: 64px; text-align: right; font-size: 10.5px; letter-spacing: .06em; color: #e8dcc4 }
-  #xpw.lvup .xpt { animation: xpflash .7s ease-out } #xpw.lvup #lvl { animation: lvpop .7s ease-out }
-  @keyframes xpflash { 0% { box-shadow: 0 0 0 1px #f0b048, 0 0 22px 6px #f0b048cc } 100% { box-shadow: 0 0 0 1px #5a4a38, 0 0 0 0 #0000 } }
-  @keyframes lvpop { 0% { transform: scale(1.35); color: #fff; border-color: #f0b048 } 100% { transform: scale(1) } }
-  #xpburst { position: absolute; inset: 0; pointer-events: none } #xpburst i { position: absolute; width: 3px; height: 3px; background: #ffd890; box-shadow: 0 0 4px #f0b048; animation: spark .7s ease-out forwards }
-  @keyframes spark { to { transform: translate(var(--dx), var(--dy)); opacity: 0 } }
-  /* ink: solid black fill on a hatched paper track, the badge in paper and ink */
-  #hud.ink #lvl { background: #efe8da; color: #0e0d0c; border-color: #0e0d0c; box-shadow: 0 0 0 1px #efe8da } #hud.ink .xpt { background: repeating-linear-gradient(135deg, #efe8da 0 2px, #0e0d0c 2px 3px); border-color: #0e0d0c; box-shadow: 0 0 0 1px #efe8da }
-  #hud.ink #xpb { background: #0e0d0c; box-shadow: none; border-right: 2px solid #efe8da } #hud.ink .xpt::after { display: none } #hud.ink #xpn { color: #efe8da } #hud.ink #xpburst i { background: #efe8da; box-shadow: 0 0 0 1px #0e0d0c }
-  .tl { position: absolute; left: max(10px, env(safe-area-inset-left)); top: max(12px, env(safe-area-inset-top)); width: min(220px, 46vw) }
-  .hpw { position: relative; height: 14px; border: 1px solid #000; background: #000a } .hpw i { display: block; height: 100%; background: linear-gradient(#c43a2a, #7e1616) } .hpw span { position: absolute; inset: 0; font-size: 10px; line-height: 13px; text-align: center }
-  #meters { margin-top: 5px; display: flex; flex-direction: column; gap: 3px }
-  .m { display: flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: .06em } .m span { width: 44px } .m i { flex: 1; height: 6px; background: #000a; border: 1px solid #000 } .m b { display: block; height: 100%; background: var(--paper) } .m.red b { background: var(--blood) }
-  .tag { font-size: 10px; letter-spacing: .06em } .tag.red { color: #ff6a5a }
-  .tc { position: absolute; left: 50%; transform: translateX(-50%); top: max(12px, env(safe-area-inset-top)); text-align: center } .tc b { display: block; font-size: 18px; letter-spacing: .05em } .tc span { font-size: 10px; letter-spacing: .12em; opacity: .9 }
-  .tr { position: absolute; right: max(10px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); text-align: right; display: flex; flex-direction: column; font-size: 11px }
-  #boss { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(max(10px, env(safe-area-inset-bottom)) + 28px); width: min(420px, 80vw); text-align: center; font-family: var(--serif); font-size: 15px; letter-spacing: .12em }
-  #boss i { display: block; height: 7px; margin-top: 2px; border: 1px solid #000; background: #000a } #boss b { display: block; height: 100%; background: var(--blood) }
-  #ban { position: absolute; left: 0; right: 0; top: 30%; text-align: center } #ban b { display: block; font: 700 clamp(28px, 7vw, 54px)/1 var(--serif); letter-spacing: .08em } #ban span { font-size: 12px; letter-spacing: .14em; text-transform: uppercase }
+__HUDCSS__
   .ov { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: #0e0d0cb8; overflow: auto }
   .box { width: min(1000px, 100%); text-align: center } .box h1, .box h2 { font: 700 clamp(30px, 8vw, 64px)/1 var(--serif); margin: 0 0 6px; letter-spacing: .06em } .box h2 { font-size: clamp(24px, 5vw, 36px) }
   .box p.sub { margin: 0 0 18px; opacity: .85 } .credit { font-size: 11px; opacity: .7; margin-top: 20px; max-width: 62ch; margin-inline: auto }
@@ -56,20 +32,27 @@
   .btn[disabled] { opacity: .4 } .keys { font-size: 11px; opacity: .7; margin-top: 8px }
   #stick { position: fixed; width: 96px; height: 96px; margin: -48px 0 0 -48px; border: 2px solid #efe8da88; border-radius: 50%; pointer-events: none } #knob { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; background: #efe8da66 }
   /* phone: the top keeps only the timer; hp, meters, xp and stats sit in a strip along the bottom edge, above the safe area */
-  @media (max-width: 520px) { .cards { grid-template-columns: 1fr; gap: 9px } .card { min-height: 0; padding: 10px } .card .ico { width: 56px; height: 56px } .card .ico img { width: 52px; height: 52px } .card b { font-size: 18px }
-    #xpw { left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 8px); gap: 6px } #lvl { font-size: 12px; padding: 2px 7px } #xpn { min-width: 0; font-size: 9.5px }
-    .tl { top: auto; bottom: calc(env(safe-area-inset-bottom) + 32px); width: 52vw; display: flex; flex-direction: column-reverse } #meters { margin: 0 0 4px } .hpw { height: 12px } .hpw span { line-height: 11px }
-    .tr { top: auto; bottom: calc(env(safe-area-inset-bottom) + 32px); font-size: 10.5px; line-height: 1.25 }
-    .tc { top: max(8px, env(safe-area-inset-top)) } .tc b { font-size: 16px } .tc span { font-size: 9px }
-    #boss { bottom: auto; top: calc(max(8px, env(safe-area-inset-top)) + 40px); width: 70vw } #ban { top: 24% } }
+  @media (max-width: 520px) { .cards { grid-template-columns: 1fr; gap: 9px } .card { min-height: 0; padding: 10px } .card .ico { width: 56px; height: 56px } .card .ico img { width: 52px; height: 52px } .card b { font-size: 18px } }
 </style>
 <canvas id="cv" aria-label="Berserk survivor game"></canvas>
-<div id="hud" hidden>
-  <div id="xpw"><b id="lvl">LV 1</b><div class="xpt"><i id="xpb"></i><div id="xpburst"></div></div><span id="xpn"></span></div>
-  <div class="tl"><div class="hpw"><i id="hpb"></i><span id="hpt"></span></div><div id="meters"></div></div>
+<div id="hud" data-skin="a" hidden>
+  <div class="vit">
+    <div class="bar hp"><i class="chip" id="hpc"></i><i class="fill" id="hpb"></i><em>HP</em><span id="hpt"></span></div>
+    <div class="bar brand" id="mb" hidden><i class="fill" id="mbf"></i><em>BRAND</em></div>
+    <div class="bar rage" id="mr" hidden><i class="fill" id="mrf"></i><i class="over" id="mro"></i><em id="mrl">RAGE</em></div>
+    <div id="tags"></div>
+    <svg id="sigil" viewBox="0 0 120 120" aria-hidden="true"><circle class="bg" cx="60" cy="60" r="26" fill="#120c0a" stroke="#5a1410" stroke-width="2"/>
+      <circle class="trk" cx="60" cy="60" r="54" stroke-width="3" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 60 60)"/><circle class="val xpv" id="sgx" cx="60" cy="60" r="54" stroke-width="3" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="75" transform="rotate(135 60 60)"/>
+      <circle class="trk" cx="60" cy="60" r="46" stroke-width="9" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 60 60)"/><circle class="val chip" id="sgc" cx="60" cy="60" r="46" stroke-width="9" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="0" transform="rotate(135 60 60)"/><circle class="val hpv" id="sgh" cx="60" cy="60" r="46" stroke-width="9" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="0" transform="rotate(135 60 60)"/>
+      <circle class="trk" cx="60" cy="60" r="36" stroke-width="5" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 60 60)"/><circle class="val brv" id="sgb" cx="60" cy="60" r="36" stroke-width="5" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="75" transform="rotate(135 60 60)"/>
+      <circle class="trk" cx="60" cy="60" r="30" stroke-width="3" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 60 60)"/><circle class="val rgv" id="sgr" cx="60" cy="60" r="30" stroke-width="3" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="75" transform="rotate(135 60 60)"/>
+      <path class="mark" d="M60 74 L60 44 C60 38 68 37 70 42 C71 46 66 48 62 46 M49 52 L71 52 M60 70 C54 76 52 80 47 84 M60 70 C66 76 68 80 73 84"/></svg>
+    <img id="portrait" alt=""><b id="sigtext"></b>
+  </div>
   <div class="tc"><b id="clock">00:00</b><span id="phase"></span></div>
-  <div class="tr"><span id="kills"></span><span id="gold"></span></div>
-  <div id="boss" hidden><span id="bossn"></span><i><b id="bossb"></b></i></div>
+  <div class="stats"><span id="kills"></span><span id="gold"></span></div>
+  <div id="xpw"><b id="lvl">LV 1</b><div class="xpt"><i id="xpb"></i><div id="xpburst"></div></div><span id="xpn"></span></div>
+  <div id="boss" hidden><span id="bossn"></span><div class="bar"><i class="chip" id="bossc"></i><i class="fill" id="bossb"></i></div></div>
   <div id="ban" hidden><b id="bant"></b><span id="bans"></span></div>
 </div>
 <div id="stick" hidden><div id="knob"></div></div>

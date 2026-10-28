@@ -266,6 +266,7 @@ function render(dt) {
   if (wipe) { wipe.t += dt; const r = ease(wipe.t / 0.9) * Math.hypot(W, H), x = SX(g.p.x), y = SY(g.p.y) - 20; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(x, y, r, 0, TAU, true); ctx.clip('evenodd'); world(wipe.from); ctx.restore(); ctx.strokeStyle = '#0e0d0c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; if (wipe.t > 0.9) wipe = null }
   if (g.biome().mist && st === 'golden') drawMist(g, n)
   for (const e of g.en) if (e.tel) drawTel(e, st)
+  if (SKIN === 'd' && state === 'play') feetRings(g, st)
   /* the frenzy pulses red at the edges of the screen */
   if (g.armorT > 0) { const k = 0.28 + 0.14 * Math.sin(g.rt * 6), gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) * 0.55); gr.addColorStop(0, 'rgba(179,20,26,0)'); gr.addColorStop(1, `rgba(179,20,26,${k.toFixed(3)})`); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H) }
   if (g.flashT > 0) { ctx.globalAlpha = Math.min(1, g.flashT) * 0.6; ctx.fillStyle = st === 'ink' && g.flashC !== '#0e0d0c' ? (g.flashC === '#b3141a' || g.flashC === '#e81010' ? '#b3141a' : '#efe8da') : g.flashC; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
@@ -273,42 +274,74 @@ function render(dt) {
   const gray = g.sense >= 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== gray) cv.style.filter = gray
 }
 
-/* ---------- hud ---------- */
-const hudSet = (el, k, v) => { if (el['_' + k] !== v) { el['_' + k] = v; if (k === 'text') el.textContent = v; else if (k === 'w') el.style.width = v; else if (k === 'hide') el.hidden = v; else if (k === 'cls') el.className = v } }
-function meter(label, v, cls) { return `<div class="m ${cls || ''}"><span>${label}</span><i><b style="width:${Math.round(clamp(v, 0, 1) * 100)}%"></b></i></div>` }
-let lastMeters = ''
+/* ---------- hud: one set of elements, four skins in hud.css. state rides on classes: ink, night, sense, hot brand, frenzy, hit, level-up ---------- */
+const hudSet = (el, k, v) => { if (el['_' + k] !== v) { el['_' + k] = v; if (k === 'text') el.textContent = v; else if (k === 'w') el.style.width = v; else if (k === 'hide') el.hidden = v; else if (k === 'cls') el.className = v; else if (k === 'off') el.setAttribute('stroke-dashoffset', v) } }
+const pct = v => (clamp(v, 0, 1) * 100).toFixed(1) + '%'
+let SKIN = (location.hash.match(/hud=([a-d])/) || [])[1] || 'a'
+const setSkin = s => { SKIN = s; $('hud').dataset.skin = s }
+setSkin(SKIN)
 /* the xp bar eases toward its target; on a level-up it runs to full, wraps to empty, flashes and throws sparks */
-const XP = { shown: 0, lvl: 1, wrap: 0, t: 0 }
-function xpBar(p) {
-  const now = performance.now(), dt = Math.min(0.1, (now - (XP.t || now)) / 1000); XP.t = now
+const XP = { shown: 0, lvl: 1, wrap: 0, t: 0, flash: 0 }
+function xpBar(p, dt) {
   if (p.lvl < XP.lvl) { XP.lvl = p.lvl; XP.shown = 0; XP.wrap = 0 }
   if (p.lvl > XP.lvl) { XP.wrap += p.lvl - XP.lvl; XP.lvl = p.lvl; levelBurst() }
-  const target = clamp(p.xp / p.next, 0, 1)
+  const target = clamp(p.xp / p.next, 0, 1); if (XP.flash > 0) XP.flash -= dt
   if (XP.wrap) { XP.shown += (1.05 - XP.shown) * Math.min(1, dt * 14); if (XP.shown >= 1) { XP.shown = 0; XP.wrap-- } } else XP.shown += (target - XP.shown) * Math.min(1, dt * 8)
-  hudSet($('xpb'), 'w', (XP.shown * 100).toFixed(1) + '%'); hudSet($('lvl'), 'text', 'LV ' + p.lvl); hudSet($('xpn'), 'text', Math.floor(p.xp) + ' / ' + p.next + ' xp')
+  hudSet($('xpb'), 'w', pct(XP.shown)); hudSet($('lvl'), 'text', 'LV ' + p.lvl); hudSet($('xpn'), 'text', Math.floor(p.xp) + ' / ' + p.next + ' xp'); hudSet($('sgx'), 'off', (75 - 75 * XP.shown).toFixed(1))
 }
 function levelBurst() {
-  const w = $('xpw'), b = $('xpburst'); w.classList.remove('lvup'); void w.offsetWidth; w.classList.add('lvup')
-  b.innerHTML = ''; for (let i = 0; i < 14; i++) { const s = document.createElement('i'), a = Math.random() * Math.PI - Math.PI, r = 18 + Math.random() * 30; s.style.left = 4 + Math.random() * 92 + '%'; s.style.top = '3px'; s.style.setProperty('--dx', (Math.cos(a) * r).toFixed(0) + 'px'); s.style.setProperty('--dy', (Math.sin(a) * r).toFixed(0) + 'px'); b.appendChild(s) }
+  XP.flash = 0.7; const b = $('xpburst'); b.innerHTML = ''
+  for (let i = 0; i < 14; i++) { const s = document.createElement('i'), a = Math.random() * Math.PI - Math.PI, r = 18 + Math.random() * 30; s.style.left = 4 + Math.random() * 92 + '%'; s.style.top = '3px'; s.style.setProperty('--dx', (Math.cos(a) * r).toFixed(0) + 'px'); s.style.setProperty('--dy', (Math.sin(a) * r).toFixed(0) + 'px'); b.appendChild(s) }
   setTimeout(() => { b.innerHTML = '' }, 800)
 }
+/* chip-away trails: the pale bar behind hp (and the boss) holds for a beat, then drains down to the real value */
+const CHIP = { hp: 1, hpHold: 0, hpLast: 1, boss: 1, bossHold: 0, bossLast: 1, hit: 0 }
+function chip(key, v, dt) {
+  if (v < CHIP[key + 'Last'] - 0.001) { CHIP[key + 'Hold'] = 0.45; if (key === 'hp') CHIP.hit = 0.25 }
+  CHIP[key + 'Last'] = v; if (v > CHIP[key]) CHIP[key] = v; else if ((CHIP[key + 'Hold'] -= dt) <= 0) CHIP[key] = Math.max(v, CHIP[key] - dt * 0.9)
+  return CHIP[key]
+}
+let lastTags = '', hudT = 0
 function hud() {
-  const g = game, p = g.p, ph = g.phase(), hide = g.sense >= 2
-  hudSet($('hud'), 'cls', (hide ? 'faded ' : '') + (g.style() === 'ink' ? 'ink' : 'gold'))
-  hudSet($('hpb'), 'w', Math.round((p.hp / p.maxHp) * 100) + '%'); hudSet($('hpt'), 'text', Math.ceil(p.hp) + ' / ' + Math.round(p.maxHp))
-  xpBar(p); hudSet($('clock'), 'text', fmtT(g.t))
+  const g = game, p = g.p, ph = g.phase(), now = performance.now(), dt = Math.min(0.1, (now - (hudT || now)) / 1000); hudT = now
+  if (CHIP.hit > 0) CHIP.hit -= dt
+  const hpv = p.hp / p.maxHp, hc = chip('hp', hpv, dt), ink = g.style() === 'ink'
+  hudSet($('hud'), 'cls', [ink ? 'ink' : 'gold', nightAmt(ph) > 0.5 ? 'night' : '', g.sense >= 2 ? 'sense2' : '', g.inkMode || g.brand > 70 ? 'hot' : '', g.armorT > 0 ? 'frenzy' : '', CHIP.hit > 0 ? 'hit' : '', XP.flash > 0 ? 'lvup' : ''].filter(Boolean).join(' '))
+  hudSet($('hpb'), 'w', pct(hpv)); hudSet($('hpc'), 'w', pct(hc)); hudSet($('hpt'), 'text', Math.ceil(p.hp) + ' / ' + Math.round(p.maxHp))
+  hudSet($('mb'), 'hide', !g.branded); hudSet($('mbf'), 'w', pct(g.brand / 100))
+  hudSet($('mr'), 'hide', !g.rageOn); hudSet($('mrl'), 'text', g.armorT > 0 ? 'FRENZY' : 'RAGE'); hudSet($('mrf'), 'w', pct(g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100)); hudSet($('mro'), 'w', pct(g.armorT > 0 ? g.rage / 100 : 0))
+  /* hud b: the same values as rings round the sigil */
+  if (SKIN === 'b') {
+    hudSet($('sgh'), 'off', (75 - 75 * clamp(hpv, 0, 1)).toFixed(1)); hudSet($('sgc'), 'off', (75 - 75 * clamp(hc, 0, 1)).toFixed(1)); hudSet($('sgb'), 'off', (75 - 75 * (g.branded ? g.brand / 100 : 0)).toFixed(1))
+    hudSet($('sgr'), 'off', (75 - 75 * clamp(g.rageOn ? (g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100) : 0, 0, 1)).toFixed(1)); hudSet($('sigtext'), 'text', Math.ceil(p.hp) + ' · LV ' + p.lvl)
+    /* the portrait: his head and shoulders cut from the facing-you idle frame (the head sits ~39px above the feet) */
+    if (!$('portrait').src) { const s = gutsSprite(2, 'i', 0), c = mkCanvas(30, 30); c.getContext('2d').drawImage(s.golden, -(s.px - 15), -(s.py - 39 - 13)); $('portrait').src = c.toDataURL() }
+  }
+  xpBar(p, dt); hudSet($('clock'), 'text', fmtT(g.t))
   hudSet($('phase'), 'text', g.pit ? 'THE PIT · NIGHT ' + g.nightN : ph.k === 'day' ? 'DAY ' + g.dayN + ' · ' + g.biome().name : ph.k === 'night' ? (g.nightN === 1 ? 'THE ECLIPSE' : 'NIGHT ' + g.nightN) : ph.k.toUpperCase())
   hudSet($('kills'), 'text', p.kills + ' slain'); hudSet($('gold'), 'text', p.gold + ' gold')
   let m = ''
-  if (g.branded) m += meter('BRAND', g.brand / 100, 'red')
-  if (g.rageOn) m += g.armorT > 0 ? meter('FRENZY', g.armorT / g.armorDur, 'red') + meter('OVER', g.rage / 100) : meter('RAGE', g.rage / 100)
-  if (g.inkMode) m += '<div class="tag red">THE BRAND BURNS · BLEEDING</div>'
-  if (g.sense) m += '<div class="tag">SENSE LOSS ' + 'I'.repeat(g.sense) + '</div>'
-  for (const a of g.allies) m += '<div class="tag' + (a.brand ? ' red' : '') + '">' + ALLY[a.id].name + ' ' + a.lvl + '</div>'
-  if (!g.eclipsed && g.t > 100) m += '<div class="tag red">ECLIPSE ' + fmtT(DAY1 + DUSK - g.t) + '</div>'
-  if (m !== lastMeters) { lastMeters = m; $('meters').innerHTML = m }
-  const b = g.boss; hudSet($('boss'), 'hide', !b); if (b) { hudSet($('bossn'), 'text', b.d.boss); hudSet($('bossb'), 'w', Math.round(clamp(b.hp / b.maxHp, 0, 1) * 100) + '%') }
+  if (g.inkMode) m += '<span class="tag red">THE BRAND BURNS · BLEEDING</span>'
+  if (g.sense) m += '<span class="tag">SENSE LOSS ' + 'I'.repeat(g.sense) + ' · ' + SENSECUE[g.sense - 1] + '</span>'
+  for (const a of g.allies) m += '<span class="tag' + (a.brand ? ' red' : '') + '">' + ALLY[a.id].name + ' ' + a.lvl + '</span>'
+  if (!g.eclipsed && g.t > 100) m += '<span class="tag red">ECLIPSE ' + fmtT(DAY1 + DUSK - g.t) + '</span>'
+  if (m !== lastTags) { lastTags = m; $('tags').innerHTML = m }
+  const b = g.boss; hudSet($('boss'), 'hide', !b); if (b) { const v = clamp(b.hp / b.maxHp, 0, 1); hudSet($('bossn'), 'text', b.d.boss); hudSet($('bossb'), 'w', pct(v)); hudSet($('bossc'), 'w', pct(chip('boss', v, dt))) } else CHIP.boss = CHIP.bossLast = 1
   const ban = g.ban; hudSet($('ban'), 'hide', !ban); if (ban) { hudSet($('bant'), 'text', ban.t); hudSet($('bans'), 'text', ban.sub); $('ban').style.opacity = Math.min(1, ban.a * 4, (ban.d - ban.a) * 2) }
+}
+const SENSECUE = ['COLOUR DRAINS', 'SIGHT FADES', 'ONLY INK REMAINS']
+/* hud d: the meters live on the ground at Guts' feet. hp is the front arc, the brand the back arc, rage the inner ring */
+function feetRings(g, st) {
+  const p = g.p, x = SX(p.x), y = SY(p.y) + 1, R = 26, ry = R * KY * 1.15, ink = st === 'ink', a = g.sense >= 2 ? 0.55 : 1, rt = g.rt
+  const arc = (r, a0, a1, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.ellipse(x, y, r, r * KY * 1.15, 0, a0, a1); ctx.stroke() }
+  ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round'
+  /* the front of the ellipse (screen angles 0.05pi..0.95pi pass under his feet); hp drains from right to left, over a dark (paper, in ink) track */
+  const hv = clamp(p.hp / p.maxHp, 0, 1), hc = CHIP.hp, F0 = Math.PI * 0.05, F1 = Math.PI * 0.95, span = F1 - F0
+  arc(R, F0, F1, 7, ink ? '#efe8da' : '#000000aa'); arc(R, F0, F1, 4, ink ? '#0e0d0c' : '#1a0a08')
+  if (hc > 0) arc(R, F1 - span * hc, F1, 3, ink ? '#efe8da' : '#f3d7a0'); if (hv > 0) arc(R, F1 - span * hv, F1, 3, ink ? '#b3141a' : '#e0281c')
+  if (g.branded) { const bv = g.brand / 100, pulse = g.inkMode || bv > 0.7 ? 0.6 + 0.4 * Math.sin(rt * 9) : 1; arc(R, Math.PI * 1.15, Math.PI * 1.85, 4, ink ? '#0e0d0c' : '#000000aa'); ctx.globalAlpha = a * pulse; arc(R, Math.PI * 1.15, Math.PI * (1.15 + 0.7 * bv), 2.5, ink ? '#b3141a' : '#ff6a2a'); ctx.globalAlpha = a }
+  if (g.rageOn) { const fr = g.armorT > 0, rv = fr ? g.armorT / g.armorDur : g.rage / 100; arc(R - 6, 0, TAU, 3, ink ? '#efe8da66' : '#00000066'); arc(R - 6, -Math.PI / 2, -Math.PI / 2 + TAU * rv, 2, fr ? (Math.sin(rt * 30) > 0 ? (ink ? '#efe8da' : '#ffd060') : (ink ? '#b3141a' : '#ff4010')) : ink ? '#0e0d0c' : '#f0c060') }
+  ctx.restore(); ptext(String(Math.ceil(p.hp)), x, y + ry + 4, ink ? '#efe8da' : '#f8dcae', '#0e0d0c')
 }
 
 /* ---------- menus ---------- */
@@ -382,7 +415,7 @@ function frame(now) {
 }
 resize(); game = new Game({ god: true, seed: 1 }); game.view = { w: W, h: H }; game.ban = null; showOv('ovTitle'); $('hud').hidden = true; requestAnimationFrame(frame)
 /* test hooks for the headless smoke run; harmless in play */
-window.__BZ = { get g() { return game }, start, auto: on => (AUTO.on = on), speed: v => (speed = v), perf: () => { const r = { frames: PERF.frames, ms: PERF.ms }; PERF.frames = 0; PERF.ms = 0; return r }, warmLeft: () => WARM.length,
+window.__BZ = { get g() { return game }, start, hud: setSkin, auto: on => (AUTO.on = on), speed: v => (speed = v), perf: () => { const r = { frames: PERF.frames, ms: PERF.ms }; PERF.frames = 0; PERF.ms = 0; return r }, warmLeft: () => WARM.length,
   /* step + render n frames back to back, reading a pixel each frame so the gpu work is counted too */
   bench: n => { const t0 = performance.now(); for (let i = 0; i < n; i++) { game.step(1 / 60); render(1 / 60); ctx.getImageData(0, 0, 1, 1) } return (performance.now() - t0) / n },
   horde: (n, types) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, r = 60 + Math.random() * 200; game.spawn(types[i % types.length], game.p.x + Math.cos(a) * r, game.p.y + Math.sin(a) * r * 0.9) } } }

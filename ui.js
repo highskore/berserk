@@ -283,30 +283,42 @@ function render(dt) {
   /* sense loss works on the world only (the hud is dom over the canvas and keeps its colours): grey, then dim and blurred */
   const sf = g.sense >= 2 ? 'grayscale(1) brightness(.72) blur(1px)' : g.sense === 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== sf) cv.style.filter = sf
 }
-/* the eclipse, unmistakable: the world goes black and blood-red (ink re-inked through a crimson multiply), a black
-   sun with a red-gold corona hangs at the top of the screen, and the god hand stand silhouetted around it */
-let GODSIL = null
+/* the eclipse, unmistakable: the world goes black and blood-red (ink re-inked through a crimson multiply), and a small
+   pixel-art black sun hangs in the sky clear of the hud, its corona in dithered bands of the game's gold, orange and blood,
+   chunky flares flickering through four baked frames, the five of the god hand standing in silhouette beneath it */
+const ECOL = ['#ffe8b0', '#f8a048', '#d0281a', '#7e1616'], BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
+let ESUN = null, GODSIL = null
+function eclipseSun(r) {
+  const fl = Math.round(r * 2.7), S = fl * 2 + 1, frames = []
+  for (let fr = 0; fr < 4; fr++) {
+    const c = mkCanvas(S, S), x = c.getContext('2d'), img = x.createImageData(S, S), d = img.data
+    const flare = Array.from({ length: 12 }, (_, i) => ({ a: (i / 12) * TAU + (h1(i * 7 + fr) - 0.5) * 0.25, l: r * (2 + 0.7 * h1(i * 13 + fr * 5)), w: 0.12 + 0.08 * h1(i + fr * 3) }))
+    const put = (i, hex) => { const v = parseInt(hex.slice(1), 16); d[i] = v >> 16; d[i + 1] = (v >> 8) & 255; d[i + 2] = v & 255; d[i + 3] = 255 }
+    for (let py = 0; py < S; py++) for (let px = 0; px < S; px++) {
+      const dx = px - fl, dy = py - fl, dist = Math.hypot(dx, dy), i = (py * S + px) * 4, th = (BAYER[(py & 3) * 4 + (px & 3)] + 0.5) / 16
+      if (dist <= r) { put(i, dist > r - 1 ? '#2a0604' : '#050303'); continue }
+      /* corona: three bands, each dithered into the next with a bayer threshold */
+      const u = (dist - r) / (r * 0.95)
+      if (u < 1) { const band = u * 3, k = Math.floor(band), f2 = band - k; put(i, ECOL[f2 > th ? k + 1 : k]); continue }
+      /* flares: chunky 2px wedges beyond the corona */
+      const cx2 = (px >> 1) * 2 - fl, cy2 = (py >> 1) * 2 - fl, cd = Math.hypot(cx2, cy2), ca = Math.atan2(cy2, cx2)
+      for (const F of flare) { let da = Math.abs(((ca - F.a + 3 * Math.PI) % TAU) - Math.PI); if (cd < F.l && da < F.w * (1 - (cd - r) / (F.l - r))) { put(i, cd < r * 2.1 ? ECOL[1] : (cd / F.l > th ? ECOL[3] : ECOL[2])); break } }
+    }
+    x.putImageData(img, 0, 0); frames.push(c)
+  }
+  return { r, fl, frames }
+}
 function drawEclipse(g, ph, st) {
   const k = ph.night === 1 ? (ph.k === 'dusk' ? ph.u : ph.k === 'night' ? 1 : ph.k === 'dawn' ? 1 - ph.u : 0) : 0; if (k <= 0) return
   if (st === 'ink' && g.eclipseOn()) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#c42a1c'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over' }
   else { ctx.globalAlpha = 0.55 * k; ctx.fillStyle = '#2a0604'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
-  const R = Math.min(W, H) * 0.13, cx = W / 2, cy = R * 1.05 + 4, t = g.rt
-  if (!GODSIL) { const s = sprite('godhand', 2, 4), c = mkCanvas(s.w, s.h), x = c.getContext('2d'); x.drawImage(s.golden, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#050303'; x.fillRect(0, 0, s.w, s.h); GODSIL = { c, s } }
-  ctx.globalAlpha = k
-  /* the corona: a red-gold halo with slow flickering streamers */
-  const gr = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 2.4); gr.addColorStop(0, 'rgba(255,214,140,0.95)'); gr.addColorStop(0.18, 'rgba(240,120,40,0.75)'); gr.addColorStop(0.5, 'rgba(170,20,10,0.35)'); gr.addColorStop(1, 'rgba(90,0,0,0)')
-  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R * 2.4, 0, TAU); ctx.fill()
-  ctx.strokeStyle = 'rgba(255,190,110,0.5)'; ctx.lineWidth = 1
-  for (let i = 0; i < 18; i++) { const a = (i / 18) * TAU + Math.sin(t * 0.3 + i) * 0.05, l = R * (1.25 + 0.55 * n2(t * 0.8 + i, i * 3.1)); ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.lineTo(cx + Math.cos(a) * l, cy + Math.sin(a) * l); ctx.stroke() }
-  ctx.fillStyle = '#030202'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill()
-  /* the five of the god hand, looming either side of the sun; the centre one, femto, highest with wings spread */
-  const { c, s } = GODSIL
-  for (const [dx, dy, sc] of [[-3.1, 0.9, 0.8], [-2, 0.4, 0.95], [0, -0.75, 0.75], [2, 0.4, 0.95], [3.1, 0.9, 0.8]]) {
-    const w = Math.round(s.w * sc * R / 60), h = Math.round(s.h * sc * R / 60), x = Math.round(cx + dx * R - w / 2), y = Math.round(cy + dy * R + R * 0.6 - h)
-    ctx.drawImage(c, x, y, w, h); ctx.fillStyle = '#ff3a1a'; const ey = y + h * 0.16; ctx.fillRect(Math.round(x + w * 0.5 - 2), Math.round(ey), 1, 1); ctx.fillRect(Math.round(x + w * 0.5 + 1), Math.round(ey), 1, 1)
-  }
-  /* blood-dark falloff at the edges */
-  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.hypot(W, H) * 0.6); vg.addColorStop(0, 'rgba(20,0,0,0)'); vg.addColorStop(1, 'rgba(20,0,0,0.8)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H)
+  /* about a sixth of the screen tall, at whole internal pixels: left of the boss bar on a wide screen, under it on a tall one */
+  const r = Math.max(6, Math.round(H * 0.034)); if (!ESUN || ESUN.r !== r) ESUN = eclipseSun(r)
+  const tall = H > W, cx = Math.round(tall ? W * 0.2 : W * 0.27), cy = Math.round(tall ? H * 0.2 : H * 0.15)
+  if (!GODSIL) { const sp = bake(o => drawGodhand(o), { t: 0.4 }, 2 * (Math.PI / 4), 0.42, [200, 280, 0.78]), c = mkCanvas(sp.w, sp.h), x = c.getContext('2d'); x.drawImage(sp.golden, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#050303'; x.fillRect(0, 0, sp.w, sp.h); GODSIL = { c, sp } }
+  ctx.globalAlpha = k; ctx.drawImage(ESUN.frames[Math.floor(g.rt * 5) & 3], cx - ESUN.fl, cy - ESUN.fl)
+  const { c, sp } = GODSIL, base = cy + Math.round(r * 2.9)
+  for (const dx of [-2, -1, 0, 1, 2]) { const x = cx + dx * Math.round(sp.w * 0.8) - (sp.w >> 1), y = base - sp.h - (dx === 0 ? 3 : Math.abs(dx) === 2 ? -2 : 0); ctx.drawImage(c, x, y); ctx.fillStyle = '#ff3a1a'; const ey = y + Math.round(sp.h * 0.18), ex = x + (sp.w >> 1); ctx.fillRect(ex - 1, ey, 1, 1); ctx.fillRect(ex + 1, ey, 1, 1) }
   ctx.globalAlpha = 1
 }
 

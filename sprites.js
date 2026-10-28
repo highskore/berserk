@@ -26,13 +26,17 @@ const SPEC = {
   soldier: { draw: FOLK.soldier, sc: 0.92, box: FOLKBOX, vars: 2 }, knight: { draw: FOLK.knight, sc: 1, box: FOLKBOX },
   ghost: { draw: drawSpirit, sc: 0.85, box: [140, 170, 0.72] }, wraith: { draw: o => drawSpirit(Object.assign({ host: 1 }, o)), sc: 1.7, box: [140, 170, 0.72] },
   crawler: { draw: o => drawBeast(Object.assign({ k: 'crawler' }, o)), sc: 1, box: [150, 110, 0.62] }, troll: { draw: o => drawBeast(Object.assign({ k: 'troll' }, o)), sc: 0.95, box: [230, 240, 0.7] },
-  imp: { draw: o => drawBeast(Object.assign({ k: 'imp' }, o)), sc: 0.7, box: [200, 200, 0.75] }, zodd: { draw: o => drawBeast(Object.assign({ k: 'zodd' }, o)), sc: 1.15, box: [320, 320, 0.7] },
-  count: { draw: drawApostle, sc: 1.1, box: [220, 230, 0.7] }, pitlord: { draw: o => drawApostle(Object.assign({ horns: 1 }, o)), sc: 1.1, box: [220, 230, 0.7] },
+  imp: { draw: o => drawBeast(Object.assign({ k: 'imp' }, o)), sc: 0.7, box: [200, 200, 0.75] },
+  pitlord: { draw: o => drawApostle(Object.assign({ horns: 1 }, o)), sc: 1.1, box: [220, 230, 0.7] },
   boscogn: { draw: FOLK.boscogn, sc: 1.45, box: FOLKBOX }, godhand: { draw: drawGodhand, sc: 1.15, box: [200, 280, 0.78] },
   casca: { draw: FOLK.casca, sc: 0.95, box: FOLKBOX }, judeau: { draw: FOLK.judeau, sc: 0.92, box: FOLKBOX }, pippin: { draw: FOLK.pippin, sc: 1.05, box: FOLKBOX }, corkus: { draw: FOLK.corkus, sc: 0.92, box: FOLKBOX },
   serpico: { draw: FOLK.serpico, sc: 0.95, box: FOLKBOX }, isidro: { draw: FOLK.isidro, sc: 0.78, box: FOLKBOX }, schierke: { draw: FOLK.schierke, sc: 0.68, box: FOLKBOX }, sellsword: { draw: FOLK.sellsword, sc: 1.05, box: FOLKBOX },
   skullknight: { draw: FOLK.skullknight, sc: 1.1, box: FOLKBOX }, puck: { draw: drawPuck, sc: 1, box: [60, 60, 0.75] },
 }
+/* apostles: one cached sprite per move pose ('zodd:C'), and the plain type is the pose they hold between moves */
+for (const b in BOSS) { const B = BOSS[b]; for (const v of 'ABCD') SPEC[b + ':' + v] = { draw: o => B.draw({ v, t: 1 + o.t * 0.1 }), sc: B.sc, box: B.box }; SPEC[b] = SPEC[b + ':' + B.idle] }
+/* queue every pose of an apostle for background baking the moment one appears */
+const bossWarm = (type, dir) => { for (const v of 'ABCD') for (let d = 0; d < 8; d++) { const dd = (dir + d) % 8; WARM.push(() => sprite(type + ':' + v, dd, 4)) } }
 const SPR = new Map()
 const dirOf = a => ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8
 /* frame f in 0..3 is a walk phase; f 4 is standing */

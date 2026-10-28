@@ -180,25 +180,24 @@ const FOLK = {
   skullknight: o => drawFolk(Object.assign({ torso: 'IRON', legs: 'ARMOR', head: 'skull', shield: 'IRON', cloak: 'CLOAK', weap: 'sword', bw: 1.15 }, o)),
 }
 
-/* ---------- BEASTS: the possessed, crawlers, trolls, imps, nosferatu zodd ---------- */
+/* ---------- BEASTS: the possessed, crawlers, trolls and imps ---------- */
 function drawBeast(o) {
   const k = o.k || 'demon', t = o.t || 0, p = o.walk || 0, mv = o.mv == null ? 1 : o.mv, reach = o.atk || 0, lurch = Math.sin(p) * 2
-  const R = k === 'troll' || k === 'zodd' ? 1.7 : 1, low = k === 'crawler', fly = k === 'imp' ? 26 + Math.sin(t * 9) * 2 : 0, up = k === 'zodd' ? 0.55 : 0
-  const fm = MAT.FLESH, hip = [-2, 0, (low ? 24 : 40) + fly + Math.abs(Math.cos(p)) * 1.5], sh = [low ? 20 : lerp(12, 4, up) + lurch * 0.3, 0, low ? 28 + fly : lerp(62, 70, up) + fly], head = v3.add(sh, [low ? 11 : lerp(10, 6, up), 0, low ? 2 : lerp(2, 12, up)])
+  const R = k === 'troll' ? 1.7 : 1, low = k === 'crawler', fly = k === 'imp' ? 26 + Math.sin(t * 9) * 2 : 0
+  const fm = MAT.FLESH, hip = [-2, 0, (low ? 24 : 40) + fly + Math.abs(Math.cos(p)) * 1.5], sh = [low ? 20 : 12 + lurch * 0.3, 0, low ? 28 + fly : 62 + fly], head = v3.add(sh, [low ? 11 : 10, 0, low ? 2 : 2])
   if (!fly) for (const s of [1, -1]) {
     const ph = s > 0 ? p : p + Math.PI, foot = [4 + Math.sin(ph) * 10 * mv, s * 7 * R, Math.max(0, Math.cos(ph)) * 5 * mv], ank = [foot[0] - 3, foot[1], 6]
     const hp = v3.add(hip, [0, s * 5 * R, 0]), kn = ik3(hp, ank, low ? 14 : 22, low ? 13 : 20, [1, s * 0.3, 0.2])
     cap(hp, kn, 4 * R, 2.6 * R, fm, 0.8, s > 0 ? 6 : 2, { tex: veins }); cap(kn, ank, 2.6 * R, 1.7 * R, fm, 0.8, s > 0 ? 6 : 2, { tex: veins }); sph(kn, 2.8 * R, fm, 0.9, s > 0 ? 6 : 2)
     cap(ank, [foot[0] + 6, foot[1], 0.6], 1.8 * R, 0.8, fm, 0.8, s > 0 ? 6 : 2); cap(ank, [foot[0] + 5, foot[1] + s * 2, 0.4], 1.1, 0.5, MAT.BONE, 0.8, s > 0 ? 6 : 2)
   } else { cap(hip, v3.add(hip, [-8, 3, -14]), 2.4, 0.8, fm, 0.8, 2); cap(hip, v3.add(hip, [-6, -3, -15]), 2.4, 0.8, fm, 0.8, 2) }
-  if (k === 'imp' || k === 'zodd') for (const s of [1, -1]) {
-    const W = k === 'zodd' ? 2.2 : 1, b = v3.add(sh, [-4, s * 4, 2]), fl = Math.sin(t * (k === 'imp' ? 18 : 3)) * 0.4
+  if (k === 'imp') for (const s of [1, -1]) {
+    const W = 1, b = v3.add(sh, [-4, s * 4, 2]), fl = Math.sin(t * 18) * 0.4
     tri(b, v3.add(b, [-14 * W, s * 22 * W, 18 * W + fl * 10]), v3.add(b, [-22 * W, s * 10 * W, -2 + fl * 6]), MAT.DARK, 0.4, 1, { tex: (x, y, u, v) => (u + v > 0.92 && h2(x, y) < 0.5 ? -1 : 1) })
   }
   sph(v3.add(hip, [1, 0, -1]), 7 * R, fm, 0.75, 8, { tex: veins }); cap(v3.add(hip, [2, 0, 4]), v3.add(sh, [-3, 0, 2]), 6 * R, 9 * R, fm, 0.85, 8, { tex: veins })
   sph(v3.add(sh, [-3, 0, 1]), 9 * R, fm, 0.82, 8, { tex: (x, y) => veins(x, y) * (y % 3 === 0 ? 0.75 : 1) })
   for (let i = 0; i < 7; i++) { const q = v3.lerp(v3.add(hip, [-3, 0, 5 * R]), v3.add(sh, [-8 * R, 0, 6 * R]), i / 6); cap(q, v3.add(q, [-2.4 * R, 0, 3 * R]), 1.4 * R, 0.4, MAT.BONE, 0.9, 9) }
-  if (k === 'zodd') sph(v3.add(sh, [-4, 0, 6]), 9, MAT.HAIR, 0.7, 9, { tex: (x, y, dx, dy) => (dx * dx + dy * dy > 0.7 && h2(x, y) < 0.5 ? -1 : 1) })
   cap(v3.add(sh, [1, 0, 2]), head, 3.2 * R, 2.6 * R, fm, 0.85, 10, { tex: veins }); sph(head, 5 * R, fm, 0.9, 10, { tex: veins })
   const jaw = 0.5 + 0.5 * Math.sin(t * 6) + reach * 0.6
   cap(v3.add(head, [3 * R, 0, -3 * R]), v3.add(head, [8 * R, 0, (-4 - jaw * 2) * R]), 3 * R, 2 * R, MAT.DARK, 0.15, 10)
@@ -206,15 +205,13 @@ function drawBeast(o) {
   for (let i = 0; i < 4; i++) sph(v3.add(head, [(4 + i * 1.3) * R, (i - 1.5) * R, (-3.2 - jaw * 1.2) * R]), 0.6 * R, MAT.BONE, 1, 10)
   for (const s of [1, -1]) {
     sph(v3.add(head, [4.2 * R, s * 2 * R, 0.8 * R]), 0.9 * R, MAT.EYE, 1, 10)
-    if (k === 'zodd') cap(v3.add(head, [0, s * 4, 4]), v3.add(head, [-6, s * 14, 16]), 2.6, 0.6, MAT.BONE, 0.9, 10)
-    else cap(v3.add(head, [-1, s * 2, 3]), v3.add(head, [-6, s * 4, 9]), 1.5, 0.4, MAT.BONE, 0.9, 10)
+    cap(v3.add(head, [-1, s * 2, 3]), v3.add(head, [-6, s * 4, 9]), 1.5, 0.4, MAT.BONE, 0.9, 10)
   }
   for (const s of [1, -1]) {
     const S = v3.add(sh, [2, s * 8 * R, -1]), Hh = low ? [32 + Math.sin(p + s) * 6, s * 9, 2] : s > 0 ? v3.lerp([8, 10 * R, 32 * R / 1.3 + fly], [34, 6, 50 + fly], reach) : v3.lerp([24, -9 * R, 34 + fly], [34, -6, 44 + fly], reach)
     const e = ik3(S, Hh, (low ? 15 : 17) * Math.sqrt(R), (low ? 15 : 17) * Math.sqrt(R), [-0.4, s, low ? 0.6 : -0.6])
     cap(S, e, 3.2 * R, 2.2 * R, fm, 0.85, s > 0 ? 3 : 12, { tex: veins }); cap(e, Hh, 2.2 * R, 1.6 * R, fm, 0.85, s > 0 ? 3 : 12, { tex: veins }); sph(e, 2.2 * R, fm, 0.9, s > 0 ? 3 : 12)
     for (let i = -1; i <= 1; i++) cap(Hh, v3.add(Hh, [6, i * 2.5, -5 + Math.sin(t * 11 + i)]), 1.1, 0.35, MAT.BONE, 0.95, s > 0 ? 3 : 12)
-    if (k === 'zodd' && s < 0) { const d = v3.norm([1, 0.1, -0.3 + reach]); cap(Hh, v3.add(Hh, d, 70), 3.5, 1.5, MAT.STEEL, 0.9, 13) }
   }
 }
 

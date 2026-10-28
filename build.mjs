@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const here = dirname(fileURLToPath(import.meta.url))
 const read = f => readFileSync(join(here, f), 'utf8')
 
-const js = ['render.js', 'shade.js', 'figs.js', 'game.js', 'sprites.js', 'icons.js', 'ui.js'].map(read).join('\n')
+const js = ['render.js', 'shade.js', 'figs.js', 'bosses.js', 'game.js', 'sprites.js', 'icons.js', 'ui.js'].map(read).join('\n')
 if (js.includes('</script')) throw new Error('script terminator inside the game source')
 const page = read('page.html').replace('__GAME__', () => js)
 const split = page.indexOf('</style>') + '</style>'.length

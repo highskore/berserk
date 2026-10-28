@@ -13,8 +13,10 @@ const EN = {
   crawler: { hp: 14, spd: 48, dmg: 9, r: 8, xp: 2, mass: 1.2, h: 18, sc: 1 },
   troll: { hp: 40, spd: 32, dmg: 14, r: 11, xp: 4, mass: 3, h: 52, sc: 0.95 },
   imp: { hp: 7, spd: 67, dmg: 6, r: 6, xp: 1, mass: 0.6, h: 40, fly: 1, sc: 0.7 },
-  zodd: { hp: 1500, spd: 41, dmg: 20, r: 18, xp: 50, mass: 30, h: 80, boss: 'NOSFERATU ZODD', ai: 'zodd', sc: 1.15 },
-  count: { hp: 1300, spd: 26, dmg: 18, r: 20, xp: 50, mass: 30, h: 70, boss: 'THE COUNT', ai: 'spit', sc: 1.1 },
+  zodd: { hp: 1500, spd: 44, dmg: 20, r: 18, xp: 50, mass: 30, h: 100, boss: 'NOSFERATU ZODD', ai: 'apostle', sc: 1 },
+  count: { hp: 1300, spd: 26, dmg: 18, r: 24, xp: 50, mass: 40, h: 80, boss: 'THE COUNT', ai: 'apostle', sc: 1 },
+  grunbeld: { hp: 2600, spd: 30, dmg: 24, r: 26, xp: 90, mass: 80, h: 120, boss: 'GRUNBELD', ai: 'apostle', sc: 1 },
+  rosine: { hp: 1200, spd: 50, dmg: 16, r: 14, xp: 60, mass: 15, h: 90, boss: 'ROSINE', ai: 'apostle', fly: 1, sc: 1 },
   boscogn: { hp: 1700, spd: 30, dmg: 22, r: 16, xp: 50, mass: 40, h: 64, boss: 'BOSCOGN', ai: 'axe', sc: 1.45 },
   godhand: { hp: 2400, spd: 22, dmg: 24, r: 18, xp: 80, mass: 60, h: 92, boss: 'A HAND OF GOD', ai: 'god', fly: 1, sc: 1.15 },
   wraith: { hp: 1000, spd: 34, dmg: 15, r: 16, xp: 50, mass: 20, h: 60, boss: 'THE HOWLING HOST', ai: 'wraith', fly: 1, spirit: 1, sc: 1.7 },
@@ -128,8 +130,11 @@ const nightAmt = ph => (ph.k === 'night' ? 1 : ph.k === 'dusk' ? ph.u : ph.k ===
 const BIOMES = [
   { name: 'MIDLAND BATTLEFIELD', tile: 'field', props: ['tree', 'spear', 'banner', 'rock', 'stake', 'sword', 'spear', 'campfire', 'wagon', 'torch'] },
   { name: 'DOLDREY', tile: 'stone', props: ['pillar', 'brazier', 'banner', 'rock', 'pillar', 'torch', 'brazier'] },
+  { name: 'THE MISTY VALLEY', tile: 'field', mist: 1, props: ['tree', 'tree', 'tree', 'rock', 'tree', 'campfire', 'stake'] },
   { name: 'THE HILL OF SWORDS', tile: 'field', props: ['sword', 'sword', 'cross', 'wheel', 'tree', 'rock', 'campfire', 'torch'] },
 ]
+/* each biome's day boss: zodd's duel on the battlefield, boscogn at doldrey, rosine in her valley, grunbeld late on the hill */
+const DAYBOSS = ['zodd', 'boscogn', 'rosine', 'grunbeld'], NIGHTBOSS = ['wraith', 'zodd', 'godhand', 'count', 'grunbeld']
 
 function Game(opts) { this.opts = opts || {}; this.reset() }
 const GP = Game.prototype
@@ -158,7 +163,7 @@ GP.setPending = function (p) { this.pending = p; this.pver++ }
 GP.flash = function (c, a) { this.flashC = c; this.flashT = a }
 GP.nearest = function (x, y, maxD) { let best = null, bd = (maxD || 1e9) ** 2; for (const e of this.en) { if (e.dead) continue; const d = (e.x - x) ** 2 + (e.y - y) ** 2; if (d < bd) { bd = d; best = e } } return best }
 GP.phase = function () { return phaseAt(this.t) }
-GP.biome = function () { return BIOMES[(this.dayN - 1) % 3] }
+GP.biome = function () { return BIOMES[(this.dayN - 1) % BIOMES.length] }
 GP.depth = function () { return this.dayN + this.nightN }
 /* ink is a state, not a time of day: the burning brand, the eclipse, or the last sense lost */
 GP.inkOn = function () { return this.sense >= 3 || this.inkMode || (this.nightN === 1 && this.phase().k === 'night') }
@@ -182,7 +187,7 @@ GP.spawn = function (type, x, y, o) {
   if (d.boss) { g.boss = e; g.banner(d.boss, BOSSSUB[type] || '', 2.4); g.shake = Math.max(g.shake, 6) }
   g.en.push(e); return e
 }
-const BOSSSUB = { zodd: 'the immortal comes for a duel', count: 'the apostle feeds', boscogn: 'the tudor iron wall', godhand: 'it does not touch the ground', wraith: 'a hundred dead voices', pitlord: 'it was waiting under the sand' }
+const BOSSSUB = { zodd: 'the immortal comes for a duel', count: 'the apostle feeds', grunbeld: 'the dragon of fire and crystal', rosine: 'the elf queen of the misty valley', boscogn: 'the tudor iron wall', godhand: 'it does not touch the ground', wraith: 'a hundred dead voices', pitlord: 'it was waiting under the sand' }
 GP.spawnRing = function (type, n, r) { for (let i = 0; i < n; i++) { const a = (i / n) * TAU; this.spawn(type, this.p.x + Math.cos(a) * r, this.p.y + Math.sin(a) * r) } }
 GP.rateSpawn = function (dt, rate, pick, cap) {
   const g = this; if (g.en.length >= (cap || 190) + Math.min(120, g.t / 5)) return
@@ -356,12 +361,12 @@ GP.updateWorld = function (dt) {
   if (g.dayN === 1 && ph.k === 'day') {
     g.once('ring', t >= 75, () => { g.spawnRing('soldier', 24, 180); g.banner('ENCIRCLED', 'the spear wall closes', 2) })
     g.once('zodd1', t >= 100, () => { g.dayBoss = g.spawn('zodd'); g.flash('#c03030', 0.6) })
-  } else if (ph.k === 'day') g.once('dboss' + g.dayN, ph.u > 0.45, () => { g.dayBoss = g.spawn(['boscogn', 'zodd', 'count'][(g.dayN - 2) % 3]) })
+  } else if (ph.k === 'day') g.once('dboss' + g.dayN, ph.u > 0.45, () => { g.dayBoss = g.spawn(DAYBOSS[(g.dayN - 1) % DAYBOSS.length]) })
   if (g.dayBoss && !g.dayBoss.dead && g.t - g.dayBoss.born > 45) { g.dayBoss.dead = true; if (g.boss === g.dayBoss) g.boss = null; g.banner(g.dayBoss.d.boss + ' WITHDRAWS', '', 2); g.dayBoss = null }
   if (ph.k === 'night') {
     if (g.nightN === 1) g.once('count', ph.u > 0.45, () => g.spawn('count'))
     else if (g.pit) g.once('pit' + g.nightN, ph.u > 0.06, () => { const b = g.bounds; g.bounds = null; const e = g.spawn('pitlord', g.p.x, g.p.y - 140); g.bounds = b; e.hp = e.maxHp = 1300 + g.nightN * 500 })
-    else g.once('nboss' + g.nightN, ph.u > 0.45, () => { g.spawn(['wraith', 'zodd', 'godhand'][(g.nightN - 2) % 3]); g.flash('#efe8da', 0.5) })
+    else g.once('nboss' + g.nightN, ph.u > 0.45, () => { g.spawn(NIGHTBOSS[(g.nightN - 2) % NIGHTBOSS.length]); g.flash('#efe8da', 0.5) })
     if (g.skRoll) { g.skT -= dt; if (g.skT <= 0) { g.skRoll = false; g.skullKnight() } }
   }
   /* the brand fills at night and when spirits touch you. full, it burns: the world turns to ink for ten
@@ -404,7 +409,8 @@ GP.step = function (dt) {
   if (g.hitstop > 0) { g.hitstop -= dt; return }
   g.t += dt; const p = g.p
   let ix = g.input.x, iy = g.input.y; const il = Math.hypot(ix, iy); if (il > 1) { ix /= il; iy /= il }
-  const spd = p.spd * g.spdMul(); p.moving = il > 0.15
+  let slow = 1; for (const f of g.fx) if ((f.kind === 'acid' || f.kind === 'dust') && Math.hypot(p.x - f.x, p.y - f.y) < f.rad) slow = Math.min(slow, f.kind === 'acid' ? 0.5 : 0.6)
+  const spd = p.spd * g.spdMul() * slow; p.moving = il > 0.15
   /* input is in screen space; the ground is squashed, so vertical screen motion covers more ground */
   if (p.moving) { p.x += ix * spd * dt; p.y += (iy * spd * dt) / Math.sqrt(CAM.ky); p.walk += dt * spd * 0.12; if (!p.swing && !p.spin) p.face = Math.atan2(iy, ix); p.mdx = ix / (il || 1); p.mdy = iy / (il || 1) }
   if (p.dash) { p.x += p.dash.vx * dt; p.y += p.dash.vy * dt; p.dash.t -= dt; if (p.dash.t <= 0) p.dash = null }
@@ -461,17 +467,14 @@ GP.updateEnemies = function (dt) {
         for (let j = g.gridH[yy * GW + xx]; j >= 0; j = g.gridN[j]) { if (j === i) continue; const o = en[j]; if (o.dead) continue; const ddx = e.x - o.x, ddy = e.y - o.y, rr = d.r + o.d.r - 2, d2 = ddx * ddx + ddy * ddy; if (d2 < rr * rr && d2 > 0.01) { const dd = Math.sqrt(d2), push = (rr - dd) * 0.5 * Math.min(1, o.d.mass / d.mass); e.x += (ddx / dd) * push; e.y += (ddy / dd) * push } }
       }
     }
-    if (dist < d.r * (e.elite ? 1.25 : 1) + 6 && !e.flee) g.hurt(d.dmg * (e.elite ? 1.6 : 1) * (g.pit ? 1 + g.nightN * 0.08 : 1), e)
+    if (dist < d.r * (e.elite ? 1.25 : 1) + 6 && !e.flee && !(e.z > 20)) g.hurt(d.dmg * (e.elite ? 1.6 : 1) * (g.pit ? 1 + g.nightN * 0.08 : 1), e)
     if (!g.bounds && !d.boss && dist > 520) { const a = Math.atan2(dy, dx); e.x = p.x - Math.cos(a) * 290; e.y = p.y - Math.sin(a) * 300 }
     if (g.bounds) { e.x = clamp(e.x, g.bounds.x0 + 4, g.bounds.x1 - 4); e.y = clamp(e.y, g.bounds.y0 + 4, g.bounds.y1 - 4) }
   }
   g.en = en.filter(e => !e.dead)
 }
 const BOSSAI = {
-  zodd(g, e, dt, dx, dy, dist) { const a = e.ai; a.t -= dt
-    if (a.s === 0) { e.x += (dx / dist) * e.spd * dt; e.y += (dy / dist) * e.spd * dt; if (a.t <= 0 && dist < 260) { a.s = 1; a.t = 0.7; a.dx = dx / dist; a.dy = dy / dist } }
-    else if (a.s === 1) { e.flash = Math.sin(a.t * 40) > 0 ? 0.05 : 0; if (a.t <= 0) { a.s = 2; a.t = 0.75; g.shake = Math.max(g.shake, 4) } }
-    else { e.x += a.dx * e.spd * 4.6 * dt; e.y += a.dy * e.spd * 4.6 * dt; if (a.t <= 0) { a.s = 0; a.t = 3.2 } } },
+  apostle: apostleAI,
   spit(g, e, dt, dx, dy, dist) { const a = e.ai; a.t -= dt; e.x += (dx / dist) * e.spd * dt; e.y += (dy / dist) * e.spd * dt
     if (a.t <= 0) { a.t = 2.4; const base = Math.atan2(dy, dx); for (let k = -2; k <= 2; k++) { const an = base + k * 0.24; g.eb.push({ x: e.x, y: e.y, vx: Math.cos(an) * 115, vy: Math.sin(an) * 115, life: 3, r: 5, dmg: 12, kind: 'bile' }) } } },
   axe(g, e, dt, dx, dy, dist) { const a = e.ai; a.t -= dt
@@ -534,7 +537,9 @@ GP.updateProj = function (dt) {
     for (const e of g.en) { if (e.dead || q.hit.has(e) || q.life <= 0) continue; if (Math.hypot(e.x - q.x, e.y - q.y) < e.d.r + q.r) { q.hit.add(e); if (q.kind === 'ball') { g.explode(q.x, q.y, q.rad, q.dmg); q.life = 0 } else { g.damage(e, q.dmg, q.vx, q.vy, q.kind === 'bolt' ? 40 : 25); if (--q.pierce <= 0) q.life = 0 } } }
   }
   g.pr = g.pr.filter(q => q.life > 0)
-  for (const f of g.fx) { if (f.kind === 'timer' && !f.done && f.t + dt >= f.d) { f.done = true; f.fn() } if (f.kind === 'fire') { f.tick -= dt; if (f.tick <= 0) { f.tick = 0.3; for (const e of g.en) if (Math.hypot(e.x - f.x, e.y - f.y) < f.rad * 0.7) g.damage(e, f.dmg, 0, 0, 0, { quiet: true }) } } }
+  for (const f of g.fx) { if (f.kind === 'timer' && !f.done && f.t + dt >= f.d) { f.done = true; f.fn() } if (f.kind === 'fire') { f.tick -= dt; if (f.tick <= 0) { f.tick = 0.3; for (const e of g.en) if (Math.hypot(e.x - f.x, e.y - f.y) < f.rad * 0.7) g.damage(e, f.dmg, 0, 0, 0, { quiet: true }) } }
+    /* boss hazards on the ground: burning ground, acid brood, scale-dust. they burn you; acid and dust slow you */
+    if (f.kind === 'bfire' || f.kind === 'acid' || f.kind === 'dust') { f.tick -= dt; if (f.tick <= 0) { f.tick = 0.5; if (Math.hypot(p.x - f.x, p.y - f.y) < (f.core || f.rad * 0.8)) g.hurt(f.dmg, null) } } }
   for (const b of g.eb) { b.life -= dt
     if (b.ring) { b.R += b.v * dt; if (Math.abs(Math.hypot(p.x - b.x, p.y - b.y) - b.R) < b.w) g.hurt(b.dmg, b) }
     else { b.x += b.vx * dt; b.y += b.vy * dt; if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 5) { g.hurt(b.dmg, b); b.life = 0 } } }

@@ -34,7 +34,7 @@ function shadow(st, x, y, rx) { const sx = SX(x), sy = SY(y); ctx.beginPath(); c
 const CH = 220
 /* things that burn: light radius, colour, flame height above the ground (px) and size */
 const LIT = { torch: { r: 90, c: [255, 160, 80], z: 30, s: 1 }, campfire: { r: 130, c: [255, 150, 70], z: 5, s: 1.7 }, brazier: { r: 100, c: [255, 170, 90], z: 15, s: 1.2 }, wagon: { r: 150, c: [255, 130, 60], z: 12, s: 2.2 } }
-const EYES = { crawler: [255, 120, 40], troll: [255, 120, 40], imp: [255, 150, 60], zodd: [255, 90, 40], count: [255, 200, 90], pitlord: [255, 200, 90], ghost: [190, 220, 255], wraith: [190, 220, 255], godhand: [255, 60, 40] }
+const EYES = { grunbeld: [255, 160, 60], rosine: [220, 240, 255], crawler: [255, 120, 40], troll: [255, 120, 40], imp: [255, 150, 60], zodd: [255, 90, 40], count: [255, 200, 90], pitlord: [255, 200, 90], ghost: [190, 220, 255], wraith: [190, 220, 255], godhand: [255, 60, 40] }
 let LIGHTS = []
 function flame(x, y, s, st, seed, t) {
   for (let i = 0; i < 4; i++) {
@@ -86,7 +86,10 @@ function drawWorld(g, st) {
     } else if (lt) it.smoke = 1
     if (onScreen(pr.x, pr.y, 60)) L.push(it)
   }
-  for (const e of g.en) { if (!onScreen(e.x, e.y, 70)) continue; const s = sprite(e.type, dirOf(e.face), e.stun > 0 ? 4 : Math.floor(e.anim) & 3, e.type === 'soldier' ? (e.ph > Math.PI ? 1 : 0) : 0); L.push({ y: e.y, s, x: e.x, sh: e.d.r, e }); if (e.lantern) LIGHTS.push({ x: e.x + Math.cos(e.face + 1.2) * 8, y: e.y + Math.sin(e.face + 1.2) * 8, z: 20, r: 60, c: [255, 200, 120], i: 0.85 + 0.15 * Math.sin(g.rt * 9 + e.ph) }) }
+  for (const e of g.en) {
+    const B = BOSS[e.type]; if (!onScreen(e.x, e.y, B ? 160 : 70)) continue
+    if (B) { if (!e.warm) { e.warm = 1; bossWarm(e.type, dirOf(e.face)) } L.push({ y: e.y, s: sprite(e.type + ':' + (e.pose || B.idle), dirOf(e.face), 4), x: e.x, z: e.z || 0, sh: B.shadow, e }); continue }
+    const s = sprite(e.type, dirOf(e.face), e.stun > 0 ? 4 : Math.floor(e.anim) & 3, e.type === 'soldier' ? (e.ph > Math.PI ? 1 : 0) : 0); L.push({ y: e.y, s, x: e.x, sh: e.d.r, e }); if (e.lantern) LIGHTS.push({ x: e.x + Math.cos(e.face + 1.2) * 8, y: e.y + Math.sin(e.face + 1.2) * 8, z: 20, r: 60, c: [255, 200, 120], i: 0.85 + 0.15 * Math.sin(g.rt * 9 + e.ph) }) }
   for (const c of g.corpses) if (onScreen(c.x, c.y, 80)) L.push({ y: c.y - 1, c })
   for (const a of g.allies) L.push({ y: a.y, s: sprite(a.id, dirOf(a.face), a.moving ? Math.floor(a.anim) & 3 : 4), x: a.x, sh: 8, a })
   for (const r of g.riders) L.push({ y: r.y, s: sprite('skullknight', dirOf(r.face), Math.floor(r.anim) & 3), x: r.x, sh: 10 })
@@ -96,7 +99,7 @@ function drawWorld(g, st) {
   LIGHTS.push({ x: g.p.x, y: g.p.y, z: 24, r: 80, c: [255, 225, 180], i: 1 })
   if (g.branded) LIGHTS.push({ x: g.p.x, y: g.p.y, z: 34, r: 30 + g.brand * 0.4, c: [255, 50, 30], i: (0.45 + 0.35 * Math.sin(g.rt * 7)) * (0.3 + g.brand / 140) })
   if (g.armorT > 0) LIGHTS.push({ x: g.p.x, y: g.p.y, z: 10, r: 70, c: [255, 70, 30], i: 0.8 + 0.2 * Math.sin(g.rt * 13) })
-  for (const f of g.fx) if (f.kind === 'boom' || f.kind === 'fire' || f.kind === 'muzzle') LIGHTS.push({ x: f.x, y: f.y, z: 6, r: f.kind === 'boom' ? f.rad * 3 : f.kind === 'fire' ? 75 : 45, c: [255, 170, 80], i: f.kind === 'fire' ? 0.7 + 0.3 * Math.random() : 1 - f.t / f.d })
+  for (const f of g.fx) if (f.kind === 'boom' || f.kind === 'fire' || f.kind === 'bfire' || f.kind === 'muzzle') LIGHTS.push({ x: f.x, y: f.y, z: 6, r: f.kind === 'boom' ? f.rad * 3 : f.kind === 'fire' ? 75 : 45, c: [255, 170, 80], i: f.kind === 'fire' ? 0.7 + 0.3 * Math.random() : 1 - f.t / f.d })
   for (const it of L) if (it.s && it.sh) shadow(st, it.x, it.y, it.sh)
   for (const it of L) if (it.e && it.e.elite) { ctx.strokeStyle = COL.ink.blood; ctx.beginPath(); ctx.ellipse(SX(it.x), SY(it.y), it.sh + 4, (it.sh + 4) * KY, 0, 0, TAU); ctx.stroke() }
   L.sort((a, b) => a.y - b.y)
@@ -133,7 +136,14 @@ function drawWorld(g, st) {
   for (const f of g.fx) {
     const x = SX(f.x || 0), y = SY(f.y || 0), u = f.t / f.d
     if (f.kind === 'boom') { ctx.save(); ctx.translate(x, y); ctx.scale(1, KY); ctx.beginPath(); ctx.arc(0, 0, f.rad * (0.4 + u * 0.6), 0, TAU); if (st === 'ink') { ctx.fillStyle = C.light; ctx.fill(); ctx.strokeStyle = C.dark; ctx.lineWidth = 2; ctx.stroke() } else { ctx.globalAlpha = 1 - u; ctx.fillStyle = u < 0.3 ? '#fff8d0' : '#f8a048'; ctx.fill() } ctx.restore(); ctx.globalAlpha = 1; ctx.lineWidth = 1 }
-    else if (f.kind === 'fire') { for (let i = 0; i < 6; i++) { const a = i + g.rt * 3, r = f.rad * 0.5 * h1(i + Math.floor(g.rt * 8)), fx2 = x + Math.cos(a) * r, fy = y + Math.sin(a) * r * KY; ctx.fillStyle = st === 'ink' ? (i & 1 ? C.dark : C.light) : i & 1 ? '#f8a048' : '#ffd890'; ctx.fillRect(fx2 - 1, fy - 4 - (i % 3) * 2, 2, 4 + (i % 3) * 2) } }
+    else if (f.kind === 'acid' || f.kind === 'dust') {
+      const k = Math.min(1, f.t * 3, (f.d - f.t) * 2); ctx.save(); ctx.translate(x, y); ctx.scale(1, KY); ctx.beginPath(); ctx.arc(0, 0, f.rad, 0, TAU)
+      if (st === 'ink') { ctx.fillStyle = f.kind === 'acid' ? DENSE : SPARSE; ctx.globalAlpha = k; ctx.fill(); ctx.strokeStyle = C.dark; ctx.lineWidth = 1.2; ctx.stroke() }
+      else { ctx.globalAlpha = k * (f.kind === 'acid' ? 0.6 : 0.32); ctx.fillStyle = f.kind === 'acid' ? '#7c7a40' : '#d8ccb4'; ctx.fill(); if (f.core) { ctx.beginPath(); ctx.arc(0, 0, f.core, 0, TAU); ctx.globalAlpha = k * 0.4; ctx.fillStyle = '#f0e0c0'; ctx.fill() } }
+      ctx.restore(); ctx.globalAlpha = 1; ctx.lineWidth = 1
+      if (f.kind === 'acid') for (let i = 0; i < 3; i++) { const a = i * 2.1 + g.rt * 2, r = f.rad * 0.6 * h1(i + Math.floor(g.rt * 2)); ctx.fillStyle = st === 'ink' ? C.light : '#c8c070'; ctx.fillRect(x + Math.cos(a) * r, y + Math.sin(a) * r * KY, 2, 1) }
+    }
+    else if (f.kind === 'fire' || f.kind === 'bfire') { for (let i = 0; i < 6; i++) { const a = i + g.rt * 3, r = f.rad * 0.5 * h1(i + Math.floor(g.rt * 8)), fx2 = x + Math.cos(a) * r, fy = y + Math.sin(a) * r * KY; ctx.fillStyle = st === 'ink' ? (i & 1 ? C.dark : C.light) : i & 1 ? '#f8a048' : '#ffd890'; ctx.fillRect(fx2 - 1, fy - 4 - (i % 3) * 2, 2, 4 + (i % 3) * 2) } }
     else if (f.kind === 'slash' || f.kind === 'muzzle') { ctx.fillStyle = C.light; ctx.fillRect(x - 4, y - 16, 9, 2) }
     else if (f.kind === 'dust') { for (let i = 0; i < 10; i++) { const a = i * 0.63 + u * 4, r = 6 + u * 22; ctx.fillStyle = st === 'ink' ? C.light : '#fff8d0'; ctx.fillRect(SX(g.p.x) + Math.cos(a) * r, SY(g.p.y) - 24 + Math.sin(a) * r * KY - u * 10, 1, 1) } }
   }
@@ -143,7 +153,7 @@ function drawWorld(g, st) {
 }
 /* corpse halves: the legs topple, the torso flies and lands; a gore stripe marks the cut */
 function drawCorpse(c, st) {
-  const s = sprite(c.type, dirOf(c.face), c.frame, c.v), cv2 = s[st], cut = s.cut, a = c.t > 7 ? 1 - (c.t - 7) / 2 : 1, gore = st === 'ink' ? COL.ink.blood : '#741c1c', bone = st === 'ink' ? '#efe8da' : '#e8dcb8'
+  const s = sprite(c.type, dirOf(c.face), BOSS[c.type] ? 4 : c.frame, c.v), cv2 = s[st], cut = s.cut, a = c.t > 7 ? 1 - (c.t - 7) / 2 : 1, gore = st === 'ink' ? COL.ink.blood : '#741c1c', bone = st === 'ink' ? '#efe8da' : '#e8dcb8'
   const stripe = () => { ctx.fillStyle = gore; ctx.fillRect(cut.x0, cut.y - 1, cut.x1 - cut.x0 + 1, 2); ctx.fillStyle = bone; ctx.fillRect(((cut.x0 + cut.x1) >> 1), cut.y - 1, 1, 1) }
   ctx.globalAlpha = a
   const fall = c.fall * ease((c.t - 0.25) / 0.45) * 1.3, fx = SX(c.x), fy = SY(c.y)
@@ -204,6 +214,34 @@ function drawDark(g, st, amt) {
   dctx.fillStyle = '#0e0d0c'; dctx.fillRect(0, 0, W, H); ring(r0 * 2, '#000', 'destination-out'); ring(r0 * 2, DENSE); ring(r0 * 1.55, '#000', 'destination-out'); ring(r0 * 1.55, SPARSE); ring(r0, '#000', 'destination-out')
   ctx.drawImage(DK, 0, 0)
 }
+/* boss telegraphs, rasterised once per change into a ground-aligned canvas (camera moves are just a blit).
+   day: a blood-ochre wash with a dark rim; ink: black and white only. solid means it lands next, faint means after */
+function drawTel(e, st) {
+  const T = e.tel; if (!T || !T.sh) return
+  if (!T.c || T.cv !== T.ver || T.cst !== st) {
+    const b = T.sh.bb, x0 = Math.floor(b[0]) - 2, y0 = Math.floor(b[1] * KY) - 2, w = Math.min(900, Math.ceil(b[2] - b[0]) + 4), h = Math.min(600, Math.ceil((b[3] - b[1]) * KY) + 4), reg = new Uint8Array(w * h)
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) reg[j * w + i] = T.sh(x0 + i + 0.5, (y0 + j + 0.5) / KY)
+    const c = T.c && T.c.width === w && T.c.height === h ? T.c : mkCanvas(w, h), cx = c.getContext('2d'), img = cx.createImageData(w, h), d = img.data, ink = st === 'ink'
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = j * w + i, r = reg[k]; if (!r) continue
+      let edge = 0; for (const q of [k - 1, k + 1, k - w, k + w]) { const rr = q >= 0 && q < w * h ? reg[q] : 0; if (!rr) edge = 2; else if (rr === 2 && r === 1 && edge < 1) edge = 1 }
+      const edge2 = !edge && [k - 2, k + 2, k - 2 * w, k + 2 * w].some(q => q < 0 || q >= w * h || !reg[q]); let col, a
+      if (ink) { const x = i + x0, y = j + y0, on = r === 3 ? 0 : edge === 2 ? 1 : edge2 ? 0 : edge === 1 ? (x + y) & 1 : r === 1 ? ((x + y) % 3 === 0 || (x - y + 3000) % 3 === 0 ? 1 : 0) : (x + y) % 4 === 0 ? 1 : 0; col = on ? [14, 13, 12] : [239, 232, 218]; a = 255 }
+      else { if (r === 3) { col = [248, 220, 174]; a = 0.85 } else if (edge === 2) { col = [58, 14, 20]; a = 0.9 } else if (edge2) { col = [248, 220, 174]; a = 0.5 } else if (edge === 1) { col = [58, 14, 20]; a = 0.5 } else if (r === 1) { col = [176, 42, 34]; a = 0.44 + (((i >> 1) + (j >> 1)) & 1 ? 0.05 : 0) } else { col = [176, 42, 34]; a = 0.2 } a *= 255 }
+      d[k * 4] = col[0]; d[k * 4 + 1] = col[1]; d[k * 4 + 2] = col[2]; d[k * 4 + 3] = a
+    }
+    cx.putImageData(img, 0, 0); T.c = c; T.cv = T.ver; T.cst = st; T.x0 = x0; T.y0 = y0
+  }
+  /* in the dark the wash is laid on twice so it still reads against the night */
+  const tx = Math.round(T.x0 - game.cam.x + W / 2 + ox), ty = Math.round(T.y0 - game.cam.y * KY + H / 2 + 14 + oy); ctx.drawImage(T.c, tx, ty); if (st === 'golden' && nightAmt(game.phase()) > 0.5) ctx.drawImage(T.c, tx, ty)
+  for (const [x, y, s] of T.labels || []) ptext(s, SX(x), SY(y) - 2, st === 'ink' ? '#efe8da' : '#f8dcae', '#0e0d0c')
+}
+/* rosine's valley: banks of mist drifting through the trees */
+function drawMist(g, n) {
+  ctx.save(); ctx.globalAlpha = 0.16 * (1 - n * 0.5); ctx.fillStyle = '#e8e4dc'
+  for (let k = 0; k < 7; k++) { const x = ((h1(k) * 900 + g.rt * (6 + k * 2) - g.cam.x) % 900 + 900) % 900 - 210, y = ((h1(k + 9) * 700 - g.cam.y * KY) % 700 + 700) % 700 - 210; ctx.beginPath(); ctx.ellipse(x, y, 140 + k * 12, 34 + k * 3, 0, 0, TAU); ctx.fill() }
+  ctx.restore()
+}
 let curStyle = null, wipe = null
 function render(dt) {
   const g = game; KY = CAM.ky; const ph = g.phase(), n = nightAmt(ph), st = g.style()
@@ -215,6 +253,8 @@ function render(dt) {
   world(st)
   /* the page turns: the new style spreads out from guts in a widening circle */
   if (wipe) { wipe.t += dt; const r = ease(wipe.t / 0.9) * Math.hypot(W, H), x = SX(g.p.x), y = SY(g.p.y) - 20; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(x, y, r, 0, TAU, true); ctx.clip('evenodd'); world(wipe.from); ctx.restore(); ctx.strokeStyle = '#0e0d0c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; if (wipe.t > 0.9) wipe = null }
+  if (g.biome().mist && st === 'golden') drawMist(g, n)
+  for (const e of g.en) if (e.tel) drawTel(e, st)
   /* the frenzy pulses red at the edges of the screen */
   if (g.armorT > 0) { const k = 0.28 + 0.14 * Math.sin(g.rt * 6), gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) * 0.55); gr.addColorStop(0, 'rgba(179,20,26,0)'); gr.addColorStop(1, `rgba(179,20,26,${k.toFixed(3)})`); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H) }
   if (g.flashT > 0) { ctx.globalAlpha = Math.min(1, g.flashT) * 0.6; ctx.fillStyle = st === 'ink' && g.flashC !== '#0e0d0c' ? (g.flashC === '#b3141a' || g.flashC === '#e81010' ? '#b3141a' : '#efe8da') : g.flashC; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }

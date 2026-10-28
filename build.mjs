@@ -16,7 +16,7 @@ const head = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Berserk · highskore</title>
 <meta name="description" content="An unofficial Berserk fan game: an endless survivor roguelike in golden age paint, where a burning Brand turns the world to ink.">
 <meta name="theme-color" content="#0e0d0c">

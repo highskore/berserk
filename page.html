@@ -3,6 +3,7 @@
 <style>
   :root { --ink: #0e0d0c; --paper: #efe8da; --blood: #b3141a; --gold: #f0c48a; --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif }
   * { box-sizing: border-box }
+  * { touch-action: manipulation } #cv { touch-action: none }   /* no double-tap zoom on ios, wherever the tap lands */
   html, body { margin: 0; height: 100%; background: var(--ink); color: var(--paper); overflow: hidden; font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-user-select: none; user-select: none; touch-action: none; overscroll-behavior: none }
   #cv { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; image-rendering: pixelated; image-rendering: crisp-edges; display: block; touch-action: none }
   [hidden] { display: none !important }
@@ -75,4 +76,10 @@ __HUDCSS__
 <div class="ov" id="ovDead" hidden><div class="box"><h2>THE STRUGGLE ENDS</h2><p class="sub" id="deadS"></p><button class="btn" id="againB">Rise again</button><p class="credit">Fan work in memory of Kentaro Miura.</p></div></div>
 <script>
 __GAME__
+</script>
+<script>
+  /* ios safari ignores user-scalable=no: block pinch and double-tap zoom by hand */
+  for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false })
+  let lastTouch = 0
+  document.addEventListener('touchend', e => { const now = e.timeStamp; if (now - lastTouch < 350 && e.target.id !== 'cv') e.preventDefault(); lastTouch = now }, { passive: false })
 </script>

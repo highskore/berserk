@@ -13,35 +13,38 @@
   @keyframes spark { to { transform: translate(var(--dx), var(--dy)); opacity: 0 } }
   @keyframes shake { 20% { transform: translate(-2px, 1px) } 40% { transform: translate(2px, -1px) } 60% { transform: translate(-1px, 0) } 80% { transform: translate(1px, 1px) } }
   #hud.hit .vit, #hud.hit #sigil { animation: shake .25s }
-  /* sense loss: the hud never disappears. it dims and greys, and every few seconds it flickers back */
-  #hud.sense2 > :not(#ban):not(#boss) { filter: grayscale(1) contrast(.85); animation: senseflick 5s steps(1) infinite }
-  @keyframes senseflick { 0% { opacity: .42 } 70% { opacity: .42 } 72% { opacity: .95 } 80% { opacity: .95 } 82% { opacity: .42 } }
   @media (max-width: 520px) {
     #hud .vit { top: auto; bottom: calc(var(--sb) + 34px); width: 55vw; flex-direction: column-reverse }
     #hud .stats { top: auto; bottom: calc(var(--sb) + 34px) } #hud #xpw { left: 10px; right: 10px; bottom: calc(var(--sb) + 8px); gap: 6px }
     #hud #boss { bottom: auto; top: calc(max(8px, var(--st)) + 46px); width: 82vw } #hud #ban { top: 22% }
   }
 
-  /* ---------- the brand sigil: hp, brand and rage are rings round the Brand of Sacrifice, next to Guts' face ---------- */
+  /* ---------- the emblem: guts' face in an iron frame, ringed by xp, hp, brand and rage. matte iron and dried
+     blood, no neon; the hud keeps its colours through sense loss and ink so the rings stay told apart ---------- */
   #hud { font-family: 'IM Fell English SC', 'Cormorant Garamond', Georgia, serif; color: #efe0c4; text-shadow: 0 1px 0 #000, 0 0 4px #000 }
   #hud .vit .bar, #hud #xpw { display: none } #hud .vit { top: auto; left: max(14px, var(--sl)); bottom: max(12px, var(--sb)); width: auto; gap: 0 }
-  #hud #sigil { display: block; width: 150px; height: 150px; filter: drop-shadow(0 2px 6px #000) }
-  #hud #portrait { display: block; position: absolute; left: 112px; bottom: 6px; width: 54px; height: 54px; border-radius: 50%; border: 2px solid #8a2018; background: radial-gradient(#2a1a14, #0a0605) center/cover; box-shadow: 0 0 0 2px #000, 0 0 12px #b3141a88; image-rendering: pixelated; object-fit: cover; object-position: 50% 12% }
-  #hud #sigil .trk { fill: none; stroke: #00000099; stroke-linecap: round } #hud #sigil .val { fill: none; stroke-linecap: round; transition: stroke-dashoffset .15s }
-  #hud #sigil .chip { stroke: #f3d7a0; opacity: .8 } #hud #sigil .hpv { stroke: #d8241c; filter: drop-shadow(0 0 3px #ff2a1a) } #hud #sigil .brv { stroke: #ff7a30 } #hud #sigil .rgv { stroke: #f0c060 } #hud #sigil .xpv { stroke: #e8d8a8; opacity: .85 }
-  /* the brand: filled carved strokes with a dark lip, glowing like a fresh wound */
-  #hud #sigil .mark { fill: #c01a14; stroke: #3a0606; stroke-width: .5; stroke-linejoin: round; paint-order: stroke; filter: drop-shadow(0 0 3px #ff2010) }
-  #hud.hot #sigil .mark { animation: brandbeat .8s ease-in-out infinite } @keyframes brandbeat { 50% { fill: #ff4a24; filter: drop-shadow(0 0 9px #ff3010) } }
-  #hud .bicon { width: 8px; height: 12px; margin-right: 4px; vertical-align: -2px; fill: #ff4a30; filter: drop-shadow(0 0 2px #000) }
-  #hud.frenzy #sigil .rgv { stroke: #ff5010; animation: fringe .3s steps(2) infinite } @keyframes fringe { 50% { stroke: #ffd060; filter: drop-shadow(0 0 6px #ff6010) } }
-  #hud #sigtext { position: absolute; left: 0; width: 150px; bottom: 6px; text-align: center; font-size: 13px; letter-spacing: .06em }
-  #hud #tags { position: absolute; left: 172px; bottom: 8px; width: 220px; flex-direction: column; font-size: 11px }
+  #hud #sigil { display: block; width: 150px; height: 150px; filter: drop-shadow(0 2px 3px #000) }
+  #hud #sigil .bg { fill: #16110d } #hud #sigil #portrait { image-rendering: pixelated }
+  #hud #sigil .rim { fill: none; stroke: #3a332c; stroke-width: 2.4 }
+  #hud #sigil .trk { fill: none; stroke: #1c1814; stroke-linecap: butt } #hud #sigil .val { fill: none; stroke-linecap: butt; transition: stroke-dashoffset .15s }
+  #hud #sigil .chip { stroke: #b89a70; opacity: .7 } #hud #sigil .hpv { stroke: #8e1c15 } #hud #sigil .brv { stroke: #b04a1e } #hud #sigil .rgv { stroke: #a8843c } #hud #sigil .xpv { stroke: #c9b78e; opacity: .9 }
+  /* the brand sits small in the gap at the foot of the rings: dried blood, darkening fresh when it runs hot */
+  #hud #sigil .mark { fill: #7d1712; stroke: #1e0605; stroke-width: .6; stroke-linejoin: round; paint-order: stroke }
+  #hud.hot #sigil .mark { animation: brandbeat .8s ease-in-out infinite } @keyframes brandbeat { 50% { fill: #b4261a } }
+  #hud .bicon { width: 8px; height: 12px; margin-right: 4px; vertical-align: -2px; fill: #a52a1c }
+  #hud.frenzy #sigil .rgv { animation: fringe .3s steps(2) infinite } @keyframes fringe { 50% { stroke: #c4561e } }
+  #hud #sigtext { position: absolute; left: 0; width: 150px; bottom: 2px; text-align: center; font-size: 13px; letter-spacing: .06em }
+  #hud #tags { position: absolute; left: 158px; bottom: 8px; width: 240px; flex-direction: column; font-size: 11px }
+  #hud .tag.sense { color: #d8ccb4; letter-spacing: .14em }
+  /* the eclipse title card: huge, black on blood */
+  #hud #ban.eclipse b { font-size: clamp(40px, 11vw, 96px); color: #0e0d0c; text-shadow: 0 0 2px #ff5a2a, 0 0 18px #c41a10, 0 0 40px #8a0a06; letter-spacing: .16em }
+  #hud #ban.eclipse span { color: #f0b080; font-size: 14px }
   #hud .tc b { font-size: 24px; letter-spacing: .06em } #hud .tc span { font-size: 12px; letter-spacing: .12em; color: #d8b890 }
   #hud .stats { font-size: 14px; gap: 2px } #hud #gold { color: #f0c060 }
   #hud #boss { bottom: auto; top: calc(max(8px, var(--st)) + 50px); width: min(380px, 70vw) } #hud #bossn { font-size: 18px; letter-spacing: .14em } #hud #boss .bar { height: 6px; margin-top: 3px; background: #000a; box-shadow: 0 0 0 1px #8a2018 } #hud #boss .fill { background: #c41a14 } #hud #boss .chip { background: #f3d7a0 }
-   #hud.ink #sigil { filter: none } #hud.ink #sigil .trk { stroke: #0e0d0c66 } #hud.ink #sigil .rgv, #hud.ink #sigil .xpv { stroke: #0e0d0c } #hud.ink #sigil .bg { fill: #efe8da; stroke: #0e0d0c; stroke-width: 2 }
-  @media (max-width: 520px) { #hud .vit { left: 50%; transform: translateX(-66%); bottom: calc(var(--sb) + 6px) } #hud #sigil { width: 128px; height: 128px } #hud #sigtext { width: 128px } #hud #portrait { left: 98px; width: 46px; height: 46px }
-    #hud #tags { left: 150px; bottom: 60px; width: 120px } #hud .stats { top: max(10px, var(--st)); bottom: auto } }
+  #hud.ink #sigil .rim { stroke: #0e0d0c; stroke-width: 3 }
+  @media (max-width: 520px) { #hud .vit { left: 50%; transform: translateX(-50%); bottom: calc(var(--sb) + 6px) } #hud #sigil { width: 128px; height: 128px } #hud #sigtext { width: 128px }
+    #hud #tags { left: 134px; bottom: 30px; width: 120px } #hud .stats { top: max(10px, var(--st)); bottom: auto } }
 
   /* ink: free-floating text  is paper with a hard ink outline, so it reads over black falloff and white paper alike */
   #hud.ink { color: #efe8da; text-shadow: 1px 0 0 #0e0d0c, -1px 0 0 #0e0d0c, 0 1px 0 #0e0d0c, 0 -1px 0 #0e0d0c, 1px 1px 0 #0e0d0c, -1px -1px 0 #0e0d0c, 0 0 5px #0e0d0c }

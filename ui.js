@@ -10,7 +10,7 @@ function resize() {
 addEventListener('resize', resize)
 
 /* a 3x5 pixel font for numbers and short callouts */
-const FONT = { 0: '75557', 1: '26227', 2: '71747', 3: '71717', 4: '55711', 5: '74717', 6: '74757', 7: '71111', 8: '75757', 9: '75717', '+': '02720', '-': '00700', A: '25755', B: '65656', C: '34443', D: '65556', E: '74647', F: '74644', G: '34553', H: '55755', I: '72227', J: '11153', K: '55655', L: '44447', M: '57755', N: '65555', O: '25552', P: '65644', Q: '25563', R: '65655', S: '34216', T: '72222', U: '55557', V: '55552', W: '55775', X: '55255', Y: '55222', Z: '71247', ' ': '00000', '!': '22202' }
+const FONT = { 0: '75557', 1: '26227', 2: '71747', 3: '71717', 4: '55711', 5: '74717', 6: '74757', 7: '71111', 8: '75757', 9: '75717', '+': '02720', '-': '00700', A: '25755', B: '65656', C: '34443', D: '65556', E: '74647', F: '74644', G: '34553', H: '55755', I: '72227', J: '11153', K: '55655', L: '44447', M: '57755', N: '65555', O: '25552', P: '65644', Q: '25563', R: '65655', S: '34216', T: '72222', U: '55557', V: '55552', W: '55775', X: '55255', Y: '55222', Z: '71247', ' ': '00000', '!': '22202', '.': '00002' }
 function ptext(s, x, y, col, out) {
   x = Math.round(x - s.length * 2); y = Math.round(y)
   for (const pass of out ? [0, 1] : [1]) { ctx.fillStyle = pass ? col : out
@@ -104,13 +104,18 @@ function drawWorld(g, st) {
   for (const f of g.fx) if (f.kind === 'boom' || f.kind === 'fire' || f.kind === 'bfire' || f.kind === 'muzzle') LIGHTS.push({ x: f.x, y: f.y, z: 6, r: f.kind === 'boom' ? f.rad * 3 : f.kind === 'fire' ? 75 : 45, c: [255, 170, 80], i: f.kind === 'fire' ? 0.7 + 0.3 * Math.random() : 1 - f.t / f.d })
   for (const it of L) if (it.s && it.sh) shadow(st, it.x, it.y, it.sh)
   for (const it of L) if (it.e && it.e.elite) { ctx.strokeStyle = COL.ink.blood; ctx.beginPath(); ctx.ellipse(SX(it.x), SY(it.y), it.sh + 4, (it.sh + 4) * KY, 0, 0, TAU); ctx.stroke() }
+  /* mutated foes wear a second ring: pale for swift, double iron for iron-hide, pulsing red for the ones that burst */
+  for (const it of L) { const m = it.e && it.e.mut; if (!m) continue; const r = it.sh + 7, x = SX(it.x), y = SY(it.y); ctx.strokeStyle = m === 'swift' ? C.light : m === 'iron' ? C.steel : Math.sin(g.rt * 10) > 0 ? COL.ink.blood : C.dark; ctx.beginPath(); ctx.ellipse(x, y, r, r * KY, 0, 0, TAU); ctx.stroke(); if (m === 'iron') { ctx.beginPath(); ctx.ellipse(x, y, r + 2, (r + 2) * KY, 0, 0, TAU); ctx.stroke() } }
+  /* the tell before a shot or a charge: a red line on the ground along the locked aim */
+  for (const it of L) { const e = it.e; if (!e || !(e.rs === 1 || e.rs === 2) || !e.d.role) continue; const len = e.d.role === 'charge' ? 170 : Math.hypot(g.p.x - e.x, g.p.y - e.y), x0 = SX(e.x), y0 = SY(e.y), x1 = SX(e.x + Math.cos(e.aim) * len), y1 = SY(e.y + Math.sin(e.aim) * len)
+    ctx.strokeStyle = st === 'ink' ? (Math.sin(g.rt * 30) > 0 ? COL.ink.blood : C.dark) : 'rgba(200,40,26,0.75)'; ctx.lineWidth = e.d.role === 'charge' ? 3 : 1; ctx.setLineDash(e.rs === 1 ? [4, 3] : []); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1 }
   L.sort((a, b) => a.y - b.y)
   for (const it of L) {
     if (it.c) { drawCorpse(it.c, st); continue }
     if (it.guts) { const p = g.p; if (g.armorT > 0) frenzyAura(g, st, it.s); blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); if (p.healT > 0) healFlash(it.s, st, p); continue }
     if (it.lit || it.smoke) { blit(it.s, st, it.x, it.y, 0, 1); const x = SX(it.x), y = SY(it.y) - (it.lit || LIT.torch).z; if (it.lit) flame(x, y + 2, it.lit.s, st, it.seed, g.rt); else { ctx.fillStyle = st === 'ink' ? '#0e0d0c' : '#5c5a5a'; for (let k = 0; k < 3; k++) ctx.fillRect(x + Math.round(Math.sin(g.rt * 2 + k) * 2), y - 3 - ((g.rt * 8 + k * 5) % 14), 1, 1) } continue }
     if (it.e && it.e.lantern) { blit(it.s, st, it.x, it.y, 0, 1, it.e.flash > 0); const x = SX(it.x + Math.cos(it.e.face + 1.2) * 8), y = SY(it.y + Math.sin(it.e.face + 1.2) * 8) - 16; ctx.fillStyle = '#1e140e'; ctx.fillRect(x - 2, y - 3, 4, 5); ctx.fillStyle = st === 'ink' ? '#efe8da' : '#ffd890'; ctx.fillRect(x - 1, y - 2, 2, 3); continue }
-    if (it.a) { blit(it.s, st, it.x, it.y, 0, it.a.fade ? 1 - it.a.fade : 1); if (it.a.brand) { ctx.fillStyle = COL.ink.blood; ctx.fillRect(SX(it.x) - 1, SY(it.y) - it.s.py + 8, 3, 3) } continue }
+    if (it.a) { blit(it.s, st, it.x, it.y, it.a.z || 0, it.a.fade ? 1 - it.a.fade : 1); if (it.a.brand) { const x = SX(it.x), y = SY(it.y) - it.s.py + it.s.top - 12; ctx.save(); ctx.translate(x, y); ctx.shadowColor = '#ff2a10'; ctx.shadowBlur = 6; ctx.fillStyle = '#ff4020'; ctx.fill(BRAND2D); ctx.restore() } continue }
     blit(it.s, st, it.x, it.y, it.z || 0, it.e && it.e.flee ? 0.6 : 1, it.e && it.e.flash > 0)
   }
   /* projectiles and enemy fire */
@@ -122,6 +127,7 @@ function drawWorld(g, st) {
   for (const b of g.eb) {
     const x = SX(b.x), y = SY(b.y) - (b.ring ? 0 : 14)
     if (b.ring) { ctx.strokeStyle = C.dark; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, b.R, b.R * KY, 0, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = st === 'ink' ? C.light : '#94764c'; ctx.stroke() }
+    else if (b.kind === 'arrow') { const l = Math.hypot(b.vx, b.vy) || 1, dx = b.vx / l, dy = (b.vy / l) * KY; ctx.fillStyle = C.dark; for (let i = 0; i < 7; i++) ctx.fillRect(Math.round(x - dx * i), Math.round(y - dy * i), 2, 2); ctx.fillStyle = st === 'ink' ? C.light : '#e8d8b0'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1) }
     else { ctx.fillStyle = C.dark; ctx.beginPath(); ctx.arc(x, y, b.r, 0, TAU); ctx.fill(); ctx.fillStyle = st === 'ink' ? C.light : b.kind === 'orb' ? '#e0a46a' : '#96904e'; ctx.beginPath(); ctx.arc(x, y, b.r - 1.5, 0, TAU); ctx.fill() }
   }
   /* the swing: a crescent of light dragged along the ground at waist height */
@@ -259,6 +265,8 @@ function render(dt) {
   ox = g.shake > 0 ? Math.round((Math.random() - 0.5) * g.shake) : 0; oy = g.shake > 0 ? Math.round((Math.random() - 0.5) * g.shake) : 0
   if (curStyle && st !== curStyle) wipe = { from: curStyle, t: 0 }; curStyle = st
   frenzyTick(g, dt)
+  /* the eclipse's apostles are heavy to bake: queue their frames during the golden age so the flood doesn't hitch */
+  if (g.t > 40 && !g.warmEcl) { g.warmEcl = 1; for (const t of ['horse', 'bloat', 'winged', 'snake', 'lzodd', 'lgrun', 'lcount', 'lrosine', 'archer', 'lancer']) for (let d = 0; d < 8; d++) for (let f = 0; f < 5; f++) WARM.push(() => sprite(t, d, f, 0)) }
   /* each look draws its own world: painted (dark under the light map at night) or ink (lined falloff at night) */
   const world = s => { drawWorld(g, s); if (s === 'ink') { if (n > 0.5) drawDark(g, s, n) } else if (n > 0) drawNight(g, n) }
   world(st)
@@ -270,7 +278,35 @@ function render(dt) {
   if (g.armorT > 0) { const k = 0.28 + 0.14 * Math.sin(g.rt * 6), gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) * 0.55); gr.addColorStop(0, 'rgba(179,20,26,0)'); gr.addColorStop(1, `rgba(179,20,26,${k.toFixed(3)})`); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H) }
   if (g.flashT > 0) { ctx.globalAlpha = Math.min(1, g.flashT) * 0.6; ctx.fillStyle = st === 'ink' && g.flashC !== '#0e0d0c' ? (g.flashC === '#b3141a' || g.flashC === '#e81010' ? '#b3141a' : '#efe8da') : g.flashC; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
   if (st === 'ink') { ctx.fillStyle = '#0e0d0c'; ctx.fillRect(0, 0, W, 2); ctx.fillRect(0, H - 2, W, 2); ctx.fillRect(0, 0, 2, H); ctx.fillRect(W - 2, 0, 2, H) }
-  const gray = g.sense >= 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== gray) cv.style.filter = gray
+  drawEclipse(g, ph, st)
+  /* sense loss works on the world only (the hud is dom over the canvas and keeps its colours): grey, then dim and blurred */
+  const sf = g.sense >= 2 ? 'grayscale(1) brightness(.72) blur(1px)' : g.sense === 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== sf) cv.style.filter = sf
+}
+/* the eclipse, unmistakable: the world goes black and blood-red (ink re-inked through a crimson multiply), a black
+   sun with a red-gold corona hangs at the top of the screen, and the god hand stand silhouetted around it */
+let GODSIL = null
+function drawEclipse(g, ph, st) {
+  const k = ph.night === 1 ? (ph.k === 'dusk' ? ph.u : ph.k === 'night' ? 1 : ph.k === 'dawn' ? 1 - ph.u : 0) : 0; if (k <= 0) return
+  if (st === 'ink' && g.eclipseOn()) { ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#c42a1c'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over' }
+  else { ctx.globalAlpha = 0.55 * k; ctx.fillStyle = '#2a0604'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
+  const R = Math.min(W, H) * 0.13, cx = W / 2, cy = R * 1.05 + 4, t = g.rt
+  if (!GODSIL) { const s = sprite('godhand', 2, 4), c = mkCanvas(s.w, s.h), x = c.getContext('2d'); x.drawImage(s.golden, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#050303'; x.fillRect(0, 0, s.w, s.h); GODSIL = { c, s } }
+  ctx.globalAlpha = k
+  /* the corona: a red-gold halo with slow flickering streamers */
+  const gr = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 2.4); gr.addColorStop(0, 'rgba(255,214,140,0.95)'); gr.addColorStop(0.18, 'rgba(240,120,40,0.75)'); gr.addColorStop(0.5, 'rgba(170,20,10,0.35)'); gr.addColorStop(1, 'rgba(90,0,0,0)')
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, R * 2.4, 0, TAU); ctx.fill()
+  ctx.strokeStyle = 'rgba(255,190,110,0.5)'; ctx.lineWidth = 1
+  for (let i = 0; i < 18; i++) { const a = (i / 18) * TAU + Math.sin(t * 0.3 + i) * 0.05, l = R * (1.25 + 0.55 * n2(t * 0.8 + i, i * 3.1)); ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.lineTo(cx + Math.cos(a) * l, cy + Math.sin(a) * l); ctx.stroke() }
+  ctx.fillStyle = '#030202'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.fill()
+  /* the five of the god hand, looming either side of the sun; the centre one, femto, highest with wings spread */
+  const { c, s } = GODSIL
+  for (const [dx, dy, sc] of [[-3.1, 0.9, 0.8], [-2, 0.4, 0.95], [0, -0.75, 0.75], [2, 0.4, 0.95], [3.1, 0.9, 0.8]]) {
+    const w = Math.round(s.w * sc * R / 60), h = Math.round(s.h * sc * R / 60), x = Math.round(cx + dx * R - w / 2), y = Math.round(cy + dy * R + R * 0.6 - h)
+    ctx.drawImage(c, x, y, w, h); ctx.fillStyle = '#ff3a1a'; const ey = y + h * 0.16; ctx.fillRect(Math.round(x + w * 0.5 - 2), Math.round(ey), 1, 1); ctx.fillRect(Math.round(x + w * 0.5 + 1), Math.round(ey), 1, 1)
+  }
+  /* blood-dark falloff at the edges */
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.hypot(W, H) * 0.6); vg.addColorStop(0, 'rgba(20,0,0,0)'); vg.addColorStop(1, 'rgba(20,0,0,0.8)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H)
+  ctx.globalAlpha = 1
 }
 
 /* ---------- hud: the brand sigil (hud.css). state rides on classes: ink, night, sense, hot brand, frenzy, hit, level-up ---------- */
@@ -283,7 +319,7 @@ function xpBar(p, dt) {
   if (p.lvl > XP.lvl) { XP.wrap += p.lvl - XP.lvl; XP.lvl = p.lvl; levelBurst() }
   const target = clamp(p.xp / p.next, 0, 1); if (XP.flash > 0) XP.flash -= dt
   if (XP.wrap) { XP.shown += (1.05 - XP.shown) * Math.min(1, dt * 14); if (XP.shown >= 1) { XP.shown = 0; XP.wrap-- } } else XP.shown += (target - XP.shown) * Math.min(1, dt * 8)
-  hudSet($('xpb'), 'w', pct(XP.shown)); hudSet($('lvl'), 'text', 'LV ' + p.lvl); hudSet($('xpn'), 'text', Math.floor(p.xp) + ' / ' + p.next + ' xp'); hudSet($('sgx'), 'off', (75 - 75 * XP.shown).toFixed(1))
+  hudSet($('xpb'), 'w', pct(XP.shown)); hudSet($('lvl'), 'text', 'LV ' + p.lvl); hudSet($('xpn'), 'text', fmtN(Math.floor(p.xp)) + ' / ' + fmtN(p.next) + ' xp'); hudSet($('sgx'), 'off', (75 - 75 * XP.shown).toFixed(1))
 }
 function levelBurst() {
   XP.flash = 0.7; const b = $('xpburst'); b.innerHTML = ''
@@ -302,27 +338,29 @@ function hud() {
   const g = game, p = g.p, ph = g.phase(), now = performance.now(), dt = Math.min(0.1, (now - (hudT || now)) / 1000); hudT = now
   if (CHIP.hit > 0) CHIP.hit -= dt
   const hpv = p.hp / p.maxHp, hc = chip('hp', hpv, dt), ink = g.style() === 'ink'
-  hudSet($('hud'), 'cls', [ink ? 'ink' : 'gold', nightAmt(ph) > 0.5 ? 'night' : '', g.sense >= 2 ? 'sense2' : '', g.inkMode || g.brand > 70 ? 'hot' : '', g.armorT > 0 ? 'frenzy' : '', CHIP.hit > 0 ? 'hit' : '', XP.flash > 0 ? 'lvup' : ''].filter(Boolean).join(' '))
-  hudSet($('hpb'), 'w', pct(hpv)); hudSet($('hpc'), 'w', pct(hc)); hudSet($('hpt'), 'text', Math.ceil(p.hp) + ' / ' + Math.round(p.maxHp))
+  hudSet($('hud'), 'cls', [ink ? 'ink' : 'gold', nightAmt(ph) > 0.5 ? 'night' : '', g.eclipseOn() ? 'eclipse' : '', g.inkMode || g.brand > 70 ? 'hot' : '', g.armorT > 0 ? 'frenzy' : '', CHIP.hit > 0 ? 'hit' : '', XP.flash > 0 ? 'lvup' : ''].filter(Boolean).join(' '))
+  hudSet($('hpb'), 'w', pct(hpv)); hudSet($('hpc'), 'w', pct(hc)); hudSet($('hpt'), 'text', fmtN(Math.ceil(p.hp)) + ' / ' + fmtN(p.maxHp))
   hudSet($('mb'), 'hide', !g.branded); hudSet($('mbf'), 'w', pct(g.brand / 100))
   hudSet($('mr'), 'hide', !g.rageOn); hudSet($('mrl'), 'text', g.armorT > 0 ? 'FRENZY' : 'RAGE'); hudSet($('mrf'), 'w', pct(g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100)); hudSet($('mro'), 'w', pct(g.armorT > 0 ? g.rage / 100 : 0))
   /* the same values as rings round the brand sigil */
   hudSet($('sgh'), 'off', (75 - 75 * clamp(hpv, 0, 1)).toFixed(1)); hudSet($('sgc'), 'off', (75 - 75 * clamp(hc, 0, 1)).toFixed(1)); hudSet($('sgb'), 'off', (75 - 75 * (g.branded ? g.brand / 100 : 0)).toFixed(1))
-  hudSet($('sgr'), 'off', (75 - 75 * clamp(g.rageOn ? (g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100) : 0, 0, 1)).toFixed(1)); hudSet($('sigtext'), 'text', Math.ceil(p.hp) + ' · LV ' + p.lvl)
+  hudSet($('sgr'), 'off', (75 - 75 * clamp(g.rageOn ? (g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100) : 0, 0, 1)).toFixed(1)); hudSet($('sigtext'), 'text', fmtN(Math.ceil(p.hp)) + ' · LV ' + p.lvl)
   xpBar(p, dt); hudSet($('clock'), 'text', fmtT(g.t))
   hudSet($('phase'), 'text', g.pit ? 'THE PIT · NIGHT ' + g.nightN : ph.k === 'day' ? 'DAY ' + g.dayN + ' · ' + g.biome().name : ph.k === 'night' ? (g.nightN === 1 ? 'THE ECLIPSE' : 'NIGHT ' + g.nightN) : ph.k.toUpperCase())
-  hudSet($('kills'), 'text', p.kills + ' slain'); hudSet($('gold'), 'text', p.gold + ' gold')
+  hudSet($('kills'), 'text', fmtN(p.kills) + ' slain'); hudSet($('gold'), 'text', fmtN(p.gold) + ' gold')
   let m = ''
-  if (!$('portrait').src) $('portrait').src = portrait()
+  if (!PORTRAIT) $('portrait').setAttribute('href', (PORTRAIT = portrait()))
   if (g.inkMode) m += '<span class="tag red">' + BRANDICON + 'THE BRAND BURNS · BLEEDING</span>'
-  if (g.sense) m += '<span class="tag">SENSE LOSS ' + 'I'.repeat(g.sense) + ' · ' + SENSECUE[g.sense - 1] + '</span>'
-  for (const a of g.allies) m += '<span class="tag' + (a.brand ? ' red' : '') + '">' + ALLY[a.id].name + ' ' + a.lvl + '</span>'
+  if (g.sense) m += '<span class="tag sense">SENSE LOSS ' + 'I'.repeat(g.sense) + '</span>'
+  /* a big band lists its named members and folds the raiders into one line */
+  let raid = 0; for (const a of g.allies) { if (a.leave) continue; if (ALLY[a.id].squad) { raid++; continue } m += '<span class="tag' + (a.brand ? ' red' : '') + '">' + ALLY[a.id].name + ' ' + a.lvl + '</span>' }
+  if (raid) m += '<span class="tag">Hawk Raiders ×' + raid + '</span>'
   if (!g.eclipsed && g.t > 100) m += '<span class="tag red">ECLIPSE ' + fmtT(DAY1 + DUSK - g.t) + '</span>'
   if (m !== lastTags) { lastTags = m; $('tags').innerHTML = m }
   const b = g.boss; hudSet($('boss'), 'hide', !b); if (b) { const v = clamp(b.hp / b.maxHp, 0, 1); hudSet($('bossn'), 'text', b.d.boss); hudSet($('bossb'), 'w', pct(v)); hudSet($('bossc'), 'w', pct(chip('boss', v, dt))) } else CHIP.boss = CHIP.bossLast = 1
-  const ban = g.ban; hudSet($('ban'), 'hide', !ban); if (ban) { hudSet($('bant'), 'text', ban.t); hudSet($('bans'), 'text', ban.sub); $('ban').style.opacity = Math.min(1, ban.a * 4, (ban.d - ban.a) * 2) }
+  const ban = g.ban; hudSet($('ban'), 'hide', !ban); if (ban) { hudSet($('ban'), 'cls', ban.t === 'THE ECLIPSE' ? 'eclipse' : ''); hudSet($('bant'), 'text', ban.t); hudSet($('bans'), 'text', ban.sub); $('ban').style.opacity = Math.min(1, ban.a * 4, (ban.d - ban.a) * 2) }
 }
-const SENSECUE = ['COLOUR DRAINS', 'SIGHT FADES', 'ONLY INK REMAINS']
+let PORTRAIT = ''
 /* the brand of sacrifice, drawn as carved strokes. one unit is its height; it is 0.625 wide. a stem with a small pointed
    crown; two arms start just off the stem near the top, swing out to elbows and back in to meet it at 0.4; from there a
    closed lower diamond flares out and comes to a point at the foot. arms are thickest at the elbows and taper to fine ends */
@@ -346,7 +384,8 @@ function brandPath(cx, top, H, seed) {
   }
   return d
 }
-$('brandmark').setAttribute('d', brandPath(60, 37, 46, 7))
+$('brandmark').setAttribute('d', brandPath(60, 88, 15, 7))
+const BRAND2D = new Path2D(brandPath(0, -5, 10, 5))
 const BRANDICON = `<svg class="bicon" viewBox="0 0 14 22" aria-hidden="true"><path d="${brandPath(7, 1, 20, 3)}"/></svg>`
 /* the portrait: a proper bust of guts, swordless, half-turned toward you, rendered big and cropped to head and shoulders */
 function portrait() {

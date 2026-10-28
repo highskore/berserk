@@ -36,7 +36,15 @@ const SPEC = {
   casca: { draw: FOLK.casca, sc: 0.95, box: FOLKBOX }, judeau: { draw: FOLK.judeau, sc: 0.92, box: FOLKBOX }, pippin: { draw: FOLK.pippin, sc: 1.05, box: FOLKBOX }, corkus: { draw: FOLK.corkus, sc: 0.92, box: FOLKBOX },
   serpico: { draw: FOLK.serpico, sc: 0.95, box: FOLKBOX }, isidro: { draw: FOLK.isidro, sc: 0.78, box: FOLKBOX }, schierke: { draw: FOLK.schierke, sc: 0.68, box: FOLKBOX }, sellsword: { draw: FOLK.sellsword, sc: 1.05, box: FOLKBOX },
   skullknight: { draw: FOLK.skullknight, sc: 1.1, box: FOLKBOX }, puck: { draw: drawPuck, sc: 1, box: [60, 60, 0.75] },
+  archer: { draw: FOLK.archer, sc: 0.92, box: FOLKBOX }, lancer: { draw: FOLK.lancer, sc: 1, box: FOLKBOX },
+  hound: { draw: o => drawBeast(Object.assign({ k: 'crawler' }, o)), sc: 1.2, box: [150, 110, 0.62] }, spitter: { draw: o => drawBeast(Object.assign({ k: 'imp' }, o)), sc: 0.8, box: [200, 200, 0.75] },
+  rickert: { draw: FOLK.rickert, sc: 0.8, box: FOLKBOX }, gaston: { draw: FOLK.gaston, sc: 1, box: FOLKBOX }, griffith: { draw: FOLK.griffith, sc: 0.98, box: FOLKBOX }, raider: { draw: FOLK.raider, sc: 0.92, box: FOLKBOX },
+  horse: { draw: o => drawLesser(Object.assign({ k: 'horse' }, o)), sc: 0.95, box: [200, 250, 0.78] }, bloat: { draw: o => drawLesser(Object.assign({ k: 'bloat' }, o)), sc: 1, box: [200, 190, 0.74] },
+  winged: { draw: o => drawLesser(Object.assign({ k: 'winged' }, o)), sc: 0.85, box: [280, 300, 0.82] }, snake: { draw: o => drawLesser(Object.assign({ k: 'snake' }, o)), sc: 1, box: [240, 190, 0.72] },
 }
+/* lesser apostles: the boss rigs at a fraction of their size, walking, standing, or mid-strike */
+for (const [id, rig, k] of [['lzodd', 'zodd', 0.5], ['lgrun', 'grunbeld', 0.4], ['lcount', 'count', 0.45], ['lrosine', 'rosine', 0.55]])
+  SPEC[id] = { draw: o => BOSS[rig].draw({ P: o.mv ? bossPose(rig, 'walk', Math.round(o.walk / (Math.PI / 2)) & 3) : o.atk ? bossPose(rig, 'A', 2) : bossPose(rig, 'idle', 0), t: 1 }), sc: BOSS[rig].sc * k, box: BOSS[rig].box }
 /* apostles: every animation frame (walk, idle, each move's wind-up/strike/recover, hurt, stagger, death) per direction */
 function bossSprite(type, anim, k, dir) {
   const key = 'B' + type + anim + k + '|' + dir; let s = SPR.get(key); if (s) return s

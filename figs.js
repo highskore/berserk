@@ -178,6 +178,58 @@ const FOLK = {
   schierke: o => drawFolk(Object.assign({ torso: 'CLOAK', legs: 'CLOAK', head: 'witch', weap: 'staff', cloak: 'CLOAK', bw: 0.8 }, o)),
   sellsword: o => drawFolk(Object.assign({ torso: 'MAIL', head: 'kettle', weap: 'axe', tabard: 1, bw: 1.15 }, o)),
   skullknight: o => drawFolk(Object.assign({ torso: 'IRON', legs: 'ARMOR', head: 'skull', shield: 'IRON', cloak: 'CLOAK', weap: 'sword', bw: 1.15 }, o)),
+  archer: o => drawFolk(Object.assign({ head: 'kettle', weap: 'crossbow', tabard: 1 }, o)),
+  lancer: o => drawFolk(Object.assign({ torso: 'ARMOR', legs: 'ARMOR', head: 'helm', weap: 'spear', tabard: 1, bw: 1.05 }, o)),
+  /* the rest of the band of the hawk */
+  rickert: o => drawFolk(Object.assign({ torso: 'CLOTH', head: 'bare', hairM: 'WOOD', weap: 'knife', cloak: 'CLOTH', bw: 0.78 }, o)),
+  gaston: o => drawFolk(Object.assign({ torso: 'ARMOR', head: 'bare', hairM: 'HAIR', weap: 'sword', shield: 'IRON', cloak: 'CLOTH', bw: 1.1 }, o)),
+  griffith: o => drawFolk(Object.assign({ torso: 'STEEL', legs: 'STEEL', head: 'bare', hairM: 'BONE', long: 1, weap: 'sword', cloak: 'BONE', bw: 0.92 }, o)),
+  raider: o => drawFolk(Object.assign({ head: 'kettle', weap: 'sword', cloak: 'CLOTH' }, o)),
+}
+
+/* ---------- LESSER APOSTLES: the eclipse's horde. a horse-skulled stalker, a bloated maw-sack, a winged
+   harpy and a serpent-tailed thing, all flesh and bone like the bosses but man-sized ---------- */
+function drawLesser(o) {
+  const k = o.k, t = o.t || 0, p = o.walk || 0, mv = o.mv == null ? 1 : o.mv, atk = o.atk || 0, fm = MAT.FLESH
+  const fl = (x, y) => 0.8 + (n2(x * 0.22, y * 0.22) - 0.5) * 0.45
+  const limb = (a, b, r0, r1, pr) => cap(a, b, r0, r1, fm, 0.8, pr, { tex: veins })
+  const claw = (Hh, pr) => { for (let i = -1; i <= 1; i++) cap(Hh, v3.add(Hh, [7, i * 2.5, -5]), 1.2, 0.3, MAT.BONE, 0.95, pr) }
+  if (k === 'horse') {
+    /* a gaunt biped with a horse's skull, mane of spines, long clawed arms */
+    for (const s of [1, -1]) { const ph = s > 0 ? p : p + Math.PI, f = [Math.sin(ph) * 12 * mv, s * 7, Math.max(0, Math.cos(ph)) * 6 * mv], hp = [0, s * 6, 50], kn = ik3(hp, [f[0] - 4, f[1], 8], 28, 26, [1, s * 0.2, 0]); limb(hp, kn, 5, 3.4, s > 0 ? 6 : 2); limb(kn, [f[0] - 4, f[1], 8], 3.4, 2.4, s > 0 ? 6 : 2); cap([f[0] - 4, f[1], 8], f, 2.4, 1.6, MAT.BONE, 0.8, s > 0 ? 6 : 2) }
+    sph([0, 0, 52], 9, fm, 0.75, 8, { tex: fl }); cap([1, 0, 54], [6, 0, 80], 8, 11, fm, 0.8, 8, { tex: (x, y) => fl(x, y) * (y % 3 === 0 ? 0.78 : 1) })
+    for (let i = 0; i < 6; i++) cap([-2 - i * 0.4, 0, 62 + i * 4], [-9 - i, 0, 64 + i * 5], 1.6, 0.3, MAT.BONE, 0.9, 9)
+    const N = [10, 0, 86]; cap([6, 0, 80], N, 4, 3.6, fm, 0.8, 10, { tex: veins })
+    const H = [14 + atk * 4, 0, 94]; sph(H, 5.5, MAT.BONE, 0.85, 11); cap(H, v3.add(H, [16, 0, -9 - atk * 3]), 4.6, 2.4, MAT.BONE, 0.88, 11)
+    cap(v3.add(H, [6, 0, -6]), v3.add(H, [15, 0, -13 - atk * 6]), 2.6, 1.6, MAT.BONE, 0.7, 11); for (const s of [1, -1]) sph(v3.add(H, [3, s * 3.6, 1]), 1.3, MAT.EYE, 1, 12)
+    for (const s of [1, -1]) cap(v3.add(H, [-2, s * 3, 4]), v3.add(H, [-6, s * 5, 12]), 1.4, 0.4, MAT.BONE, 0.9, 12)
+    for (const s of [1, -1]) { const S = [6, s * 11, 78], Hh = s > 0 ? v3.lerp([14, 14, 40], [36, 6, 60], atk) : [20, -14, 44 + Math.sin(t * 3) * 3], E = ik3(S, Hh, 22, 22, [-0.4, s, -0.4]); limb(S, E, 3.6, 2.6, s > 0 ? 3 : 13); limb(E, Hh, 2.6, 1.8, s > 0 ? 3 : 13); claw(Hh, s > 0 ? 3 : 13) }
+  } else if (k === 'bloat') {
+    /* a sack of flesh on stubby legs, a ring of mouths round the belly and a little head stuck on top */
+    const br = Math.sin(t * 2) * 1.5
+    for (const s of [1, -1]) { const ph = s > 0 ? p : p + Math.PI, f = [Math.sin(ph) * 6 * mv, s * 12, Math.max(0, Math.cos(ph)) * 3 * mv]; limb([0, s * 11, 16], f, 6, 4, s > 0 ? 3 : 1) }
+    sph([0, 0, 34 + br], 26, fm, 0.7, 5, { tex: (x, y) => fl(x, y) + (h2(x >> 2, y >> 2) < 0.08 ? -0.25 : 0) })
+    for (let i = 0; i < 5; i++) { const a = -0.9 + i * 0.45, c = [Math.cos(a) * 24, Math.sin(a) * 24, 30 + (i % 2) * 8]; sph(c, 4.6, MAT.GORE, 0.4, 6); for (let j = -1; j <= 1; j++) sph(v3.add(c, [1.5, j * 2.2, 3]), 0.8, MAT.BONE, 1, 7); for (let j = -1; j <= 1; j++) sph(v3.add(c, [1.5, j * 2.2, -3]), 0.8, MAT.BONE, 1, 7) }
+    const H = [6, 0, 62 + br]; sph(H, 6, MAT.SKIN, 0.75, 8); for (const s of [1, -1]) sph(v3.add(H, [5, s * 2, 1]), 0.9, MAT.EYE, 1, 9)
+    for (const s of [1, -1]) { const S = [8, s * 22, 46], Hh = [22 + atk * 8, s * 22, 30 + atk * 10]; limb(S, Hh, 4, 2.6, s > 0 ? 3 : 11); claw(Hh, s > 0 ? 3 : 11) }
+  } else if (k === 'winged') {
+    /* a lean harpy hanging in the air on bat wings, talons forward */
+    const z = 22 + Math.sin(t * 8) * 3
+    for (const s of [1, -1]) { const hp = [0, s * 4, 40 + z], kn = [6, s * 5, 28 + z]; limb(hp, kn, 3.4, 2.4, 2); limb(kn, [2, s * 5, 16 + z], 2.4, 1.6, 2); claw([2, s * 5, 16 + z], 2) }
+    sph([0, 0, 42 + z], 7, fm, 0.75, 6, { tex: fl }); cap([1, 0, 44 + z], [4, 0, 64 + z], 6.4, 8, fm, 0.82, 6, { tex: fl })
+    const H = [8 + atk * 3, 0, 74 + z]; sph(H, 5.4, fm, 0.85, 9, { tex: veins }); cap(v3.add(H, [3, 0, -2]), v3.add(H, [11, 0, -6 - atk * 4]), 3, 0.8, MAT.BONE, 0.9, 9)
+    for (const s of [1, -1]) { sph(v3.add(H, [4, s * 2.2, 1.2]), 1, MAT.EYE, 1, 10); cap(v3.add(H, [-1, s * 3, 3]), v3.add(H, [-7, s * 5, 9]), 1.6, 0.4, MAT.BONE, 0.9, 10) }
+    const fl2 = 0.6 + 0.4 * Math.sin(t * 16); for (const s of [1, -1]) bzBatWing([-2, s * 7, 64 + z], s, 52, 0.55 + fl2 * 0.4, 0.25 + fl2 * 0.5, 0.25, s > 0 ? 1 : 14, MAT.DARK, MAT.BONE)
+    for (const s of [1, -1]) { const S = [5, s * 9, 62 + z], Hh = [18 + atk * 10, s * 10, 50 + z]; limb(S, Hh, 2.6, 1.8, 12); claw(Hh, 12) }
+  } else {
+    /* a man's torso on a coiled serpent's tail that sways as it slithers */
+    const n = 14, P = []; for (let i = 0; i <= n; i++) { const u = i / n; P.push([-u * 46, Math.sin(p * 1.2 + u * 6) * 10 * (0.3 + u), 6 + (1 - u) * 26 * (u < 0.25 ? 1 : 0.4) + Math.max(0, 0.25 - u) * 40]) }
+    for (let i = 0; i < n; i++) cap(P[i], P[i + 1], 9 - i * 0.5, 9 - (i + 1) * 0.5, fm, 0.7, 2, { tex: (x, y) => ((x + ((y >> 2) & 1) * 2) % 4 === 0 ? 0.72 : 1) * fl(x, y) })
+    const T = [2, 0, 40]; sph(T, 9, fm, 0.75, 6, { tex: fl }); cap(T, [4, 0, 62], 8.6, 10.4, fm, 0.82, 6, { tex: (x, y) => fl(x, y) * (y % 3 === 0 ? 0.76 : 1) })
+    const H = [8 + atk * 3, 0, 74]; sph(H, 6.4, fm, 0.85, 9, { tex: veins }); cap(v3.add(H, [4, 0, -3]), v3.add(H, [10, 0, -6 - atk * 6]), 4, 2.6, MAT.DARK, 0.1, 9)
+    for (const s of [1, -1]) { sph(v3.add(H, [5, s * 2.4, 1.4]), 1, MAT.EYE, 1, 10); cap(v3.add(H, [-2, s * 3, 4]), v3.add(H, [-3, s * 9, 3]), 1.8, 0.4, MAT.BONE, 0.9, 10) }
+    for (const s of [1, -1]) { const S = [4, s * 12, 60], Hh = s > 0 ? v3.lerp([14, 14, 38], [34, 6, 52], atk) : [18, -15, 40], E = ik3(S, Hh, 16, 16, [-0.4, s, -0.5]); limb(S, E, 3.4, 2.6, s > 0 ? 3 : 13); limb(E, Hh, 2.6, 1.8, s > 0 ? 3 : 13); claw(Hh, s > 0 ? 3 : 13) }
+  }
 }
 
 /* ---------- BEASTS: the possessed, crawlers, trolls and imps ---------- */

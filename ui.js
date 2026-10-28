@@ -73,7 +73,7 @@ function drawWorld(g, st) {
   /* ground items */
   for (const k of g.gems) { if (!onScreen(k.x, k.y, 6)) continue; const x = SX(k.x), y = SY(k.y) - 3 - Math.round(Math.sin(g.rt * 4 + k.x) * 1), big = k.v > 4; ctx.fillStyle = C.dark; ctx.fillRect(x - 2, y - 3, 5, 7); ctx.fillStyle = C.gem; ctx.fillRect(x - 1, y - 2, 3, 5); ctx.fillStyle = C.gem2; ctx.fillRect(x, y - 2, 1, big ? 4 : 2) }
   for (const k of g.coins) { if (!onScreen(k.x, k.y, 6)) continue; const x = SX(k.x), y = SY(k.y) - 2; ctx.fillStyle = C.dark; ctx.fillRect(x - 2, y - 2, 5, 4); ctx.fillStyle = C.coin; ctx.fillRect(x - 1, y - 1, 3, 2) }
-  for (const k of g.pickups) { const x = SX(k.x), y = SY(k.y) - 4; ctx.fillStyle = C.dark; ctx.fillRect(x - 5, y - 4, 11, 8); ctx.fillStyle = k.kind === 'chest' ? C.coin : C.blood; ctx.fillRect(x - 4, y - 3, 9, 6); if (k.kind === 'chest') { ctx.fillStyle = C.dark; ctx.fillRect(x - 4, y - 1, 9, 1) } }
+  for (const k of g.pickups) { const x = SX(k.x), y = SY(k.y) - 4; if (k.kind === 'item' || k.kind === 'flask') { const c = k.kind === 'flask' ? '#c8302a' : { common: '#c9b78e', rare: '#5a8fd0', epic: '#a65ad0', legendary: '#e0962a' }[k.item.rar], b = Math.sin(g.rt * 6 + k.x) > 0.6; ctx.fillStyle = C.dark; ctx.fillRect(x - 4, y - 5, 9, 9); ctx.fillStyle = st === 'ink' && k.kind === 'item' ? C.light : c; ctx.fillRect(x - 3, y - 4, 7, 7); if (b) { ctx.fillStyle = '#fff'; ctx.fillRect(x - 1, y - 8, 1, 3); ctx.fillRect(x - 2, y - 7, 3, 1) } continue } ctx.fillStyle = C.dark; ctx.fillRect(x - 5, y - 4, 11, 8); ctx.fillStyle = k.kind === 'chest' ? C.coin : C.blood; ctx.fillRect(x - 4, y - 3, 9, 6); if (k.kind === 'chest') { ctx.fillStyle = C.dark; ctx.fillRect(x - 4, y - 1, 9, 1) } }
   /* everything standing, painter-sorted by ground depth */
   const L = [], p0 = g.p, sn = g.snuffed || (g.snuffed = new Set()), dark = nightAmt(g.phase()) > 0.3; LIGHTS = []
   for (const pr of propsInView(g)) {
@@ -115,12 +115,13 @@ function drawWorld(g, st) {
     if (it.guts) { const p = g.p; if (g.armorT > 0) frenzyAura(g, st, it.s); blit(it.s, st, it.x, it.y, 0, 1, p.hurtT > 0 && Math.sin(g.rt * 40) > 0); if (p.healT > 0) healFlash(it.s, st, p); continue }
     if (it.lit || it.smoke) { blit(it.s, st, it.x, it.y, 0, 1); const x = SX(it.x), y = SY(it.y) - (it.lit || LIT.torch).z; if (it.lit) flame(x, y + 2, it.lit.s, st, it.seed, g.rt); else { ctx.fillStyle = st === 'ink' ? '#0e0d0c' : '#5c5a5a'; for (let k = 0; k < 3; k++) ctx.fillRect(x + Math.round(Math.sin(g.rt * 2 + k) * 2), y - 3 - ((g.rt * 8 + k * 5) % 14), 1, 1) } continue }
     if (it.e && it.e.lantern) { blit(it.s, st, it.x, it.y, 0, 1, it.e.flash > 0); const x = SX(it.x + Math.cos(it.e.face + 1.2) * 8), y = SY(it.y + Math.sin(it.e.face + 1.2) * 8) - 16; ctx.fillStyle = '#1e140e'; ctx.fillRect(x - 2, y - 3, 4, 5); ctx.fillStyle = st === 'ink' ? '#efe8da' : '#ffd890'; ctx.fillRect(x - 1, y - 2, 2, 3); continue }
-    if (it.a) { blit(it.s, st, it.x, it.y, it.a.z || 0, it.a.fade ? 1 - it.a.fade : 1); if (it.a.brand) { const x = SX(it.x), y = SY(it.y) - it.s.py + it.s.top - 12; ctx.save(); ctx.translate(x, y); ctx.shadowColor = '#ff2a10'; ctx.shadowBlur = 6; ctx.fillStyle = '#ff4020'; ctx.fill(BRAND2D); ctx.restore() } continue }
+    if (it.a) { blit(it.s, st, it.x, it.y, it.a.z || 0, it.a.fade ? 1 - it.a.fade : it.a.down > 0 ? 0.35 : 1); if (it.a.brand) { const x = SX(it.x), y = SY(it.y) - it.s.py + it.s.top - 12; ctx.save(); ctx.translate(x, y); ctx.shadowColor = '#ff2a10'; ctx.shadowBlur = 6; ctx.fillStyle = '#ff4020'; ctx.fill(BRAND2D); ctx.restore() } continue }
     blit(it.s, st, it.x, it.y, it.z || 0, it.e && it.e.flee ? 0.6 : 1, it.e && it.e.flash > 0)
   }
   /* projectiles and enemy fire */
   for (const q of g.pr) {
     const x = SX(q.x), y = SY(q.y) - (q.z || 0) * 0.8, l = Math.hypot(q.vx || 0, q.vy || 0) || 1, dx = (q.vx || 0) / l, dy = ((q.vy || 0) / l) * KY
+    if (q.kind === 'wave') { ctx.strokeStyle = st === 'ink' ? C.dark : 'rgba(255,240,210,.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x - dx * 6, y - dy * 6, 9, Math.atan2(dy, dx) - 1, Math.atan2(dy, dx) + 1); ctx.stroke(); ctx.lineWidth = 1; continue }
     if (q.kind === 'knife' || q.kind === 'bolt') { const n = q.kind === 'bolt' ? 7 : 5; ctx.fillStyle = C.dark; for (let i = 0; i <= n; i++) ctx.fillRect(Math.round(x - dx * i), Math.round(y - dy * i), 2, 2); ctx.fillStyle = st === 'ink' ? C.light : C.steel; for (let i = 0; i < n - 1; i++) ctx.fillRect(Math.round(x - dx * i), Math.round(y - dy * i), 1, 1) }
     else { ctx.fillStyle = C.dark; ctx.beginPath(); ctx.arc(x, y, q.kind === 'ball' ? 3.5 : 3, 0, TAU); ctx.fill(); ctx.fillStyle = C.light; ctx.fillRect(x - 1, y - 2, 1, 1); if (q.kind === 'bomb') { ctx.fillStyle = Math.sin(g.rt * 40) > 0 ? C.fire : C.light; ctx.fillRect(x + 1, y - 4, 1, 2) } }
   }
@@ -353,11 +354,10 @@ function hud() {
   if (g.inkMode) m += '<span class="tag red">' + BRANDICON + 'THE BRAND BURNS · BLEEDING</span>'
   if (g.sense) m += '<span class="tag sense">SENSE LOSS ' + 'I'.repeat(g.sense) + '</span>'
   /* a big band lists its named members and folds the raiders into one line */
-  let raid = 0; for (const a of g.allies) { if (a.leave) continue; if (ALLY[a.id].squad) { raid++; continue } m += '<span class="tag' + (a.brand ? ' red' : '') + '">' + ALLY[a.id].name + ' ' + a.lvl + '</span>' }
-  if (raid) m += '<span class="tag">Hawk Raiders ×' + raid + '</span>'
   if (!g.eclipsed && g.t > 100) m += '<span class="tag red">ECLIPSE ' + fmtT(DAY1 + DUSK - g.t) + '</span>'
   if (m !== lastTags) { lastTags = m; $('tags').innerHTML = m }
   const b = g.boss; hudSet($('boss'), 'hide', !b); if (b) { const v = clamp(b.hp / b.maxHp, 0, 1); hudSet($('bossn'), 'text', b.d.boss); hudSet($('bossb'), 'w', pct(v)); hudSet($('bossc'), 'w', pct(chip('boss', v, dt))) } else CHIP.boss = CHIP.bossLast = 1
+  altarHud(g, dt)
   const ban = g.ban; hudSet($('ban'), 'hide', !ban); if (ban) { hudSet($('ban'), 'cls', ban.t === 'THE ECLIPSE' ? 'eclipse' : ''); hudSet($('bant'), 'text', ban.t); hudSet($('bans'), 'text', ban.sub); $('ban').style.opacity = Math.min(1, ban.a * 4, (ban.d - ban.a) * 2) }
 }
 let PORTRAIT = ''
@@ -425,6 +425,7 @@ addEventListener('blur', () => { if (state === 'play' && !paused && !game.pendin
 const keys = {}
 addEventListener('keydown', e => {
   keys[e.code] = 1
+  if (altarKey(e)) { e.preventDefault(); return }
   if (e.code === 'KeyP' || e.code === 'Escape') togglePause()
   if (/^Digit[1-4]$/.test(e.code)) choose(+e.code.slice(5) - 1)
   if (e.code === 'Enter' || e.code === 'Space') { if (state === 'title') start(); else if (game && game.over) start(); else if (game && game.pending && game.pending.type === 'shop') choose('go'); else if (paused) togglePause() }
@@ -450,9 +451,10 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now
   if (state === 'play') {
     const t0 = performance.now(); readInput()
-    if (!paused) { acc += dt * speed; let n = 0; while (acc >= 1 / 60 && n < 10 * speed) { game.step(1 / 60); acc -= 1 / 60; n++ } if (acc > 0.25) acc = 0 }
+    game.opts.autoAbil = AUTO.on
+    if (!paused && !PANEL) { acc += dt * speed; let n = 0; while (acc >= 1 / 60 && n < 10 * speed) { game.step(1 / 60); acc -= 1 / 60; n++ } if (acc > 0.25) acc = 0 }
     if (AUTO.on && game.pending && !paused) { if (game.pending.type === 'shop') { game.choose(0); game.choose('go') } else if (game.pending.type !== 'dead') game.choose(Math.floor(Math.random() * game.pending.choices.length)) }
-    render(paused ? 0 : dt * speed); hud(); syncMenus(); PERF.ms += performance.now() - t0; PERF.frames++
+    render(paused || PANEL ? 0 : dt * speed); hud(); syncMenus(); drawPanel(); PERF.ms += performance.now() - t0; PERF.frames++
   }
   else if (game) {
     /* behind the title a demo guts wanders the field on his own */
@@ -462,7 +464,7 @@ function frame(now) {
   if (WARM.length) warmUp(state === 'play' ? 3 : 8)
   requestAnimationFrame(frame)
 }
-resize(); game = new Game({ god: true, seed: 1 }); game.view = { w: W, h: H }; game.ban = null; showOv('ovTitle'); $('hud').hidden = true; requestAnimationFrame(frame)
+resize(); game = new Game({ god: true, seed: 1, autoAbil: 1 }); game.view = { w: W, h: H }; game.ban = null; showOv('ovTitle'); $('hud').hidden = true; requestAnimationFrame(frame)
 /* test hooks for the headless smoke run; harmless in play */
 window.__BZ = { get g() { return game }, start, auto: on => (AUTO.on = on), speed: v => (speed = v), perf: () => { const r = { frames: PERF.frames, ms: PERF.ms }; PERF.frames = 0; PERF.ms = 0; return r }, warmLeft: () => WARM.length,
   /* step + render n frames back to back, reading a pixel each frame so the gpu work is counted too */

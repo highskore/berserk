@@ -49,3 +49,73 @@
   /* ink: free-floating text  is paper with a hard ink outline, so it reads over black falloff and white paper alike */
   #hud.ink { color: #efe8da; text-shadow: 1px 0 0 #0e0d0c, -1px 0 0 #0e0d0c, 0 1px 0 #0e0d0c, 0 -1px 0 #0e0d0c, 1px 1px 0 #0e0d0c, -1px -1px 0 #0e0d0c, 0 0 5px #0e0d0c }
   #hud.ink .tc span, #hud.ink #gold { color: #efe8da }
+
+  /* ---------- the blood altar: no frame at all. bronze diamond sockets float along the bottom centre, the ultimate
+     wears a blood-red rim, the party sits top left as round portraits ringed by their hp, the compass top right ---------- */
+  #hud kbd { font: 600 10px/1 Inter, system-ui, sans-serif; color: #efe0c4; text-shadow: 0 1px 1px #000, 0 0 2px #000 }
+  #hud #abar { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(18px, var(--sb)); display: flex; gap: 16px; pointer-events: auto }
+  #hud .ab { position: relative; width: 50px; height: 50px; cursor: pointer; touch-action: none }
+  #hud .ab .sk { position: absolute; inset: 0; transform: rotate(45deg) scale(.82); border: 2px solid #a8843c; background: #0a0706; box-shadow: 0 0 0 2px #000, 0 0 12px #000; overflow: hidden }
+  #hud .ab .sk img { position: absolute; left: -10%; top: -10%; width: 120%; height: 120%; transform: rotate(-45deg); image-rendering: pixelated; filter: brightness(.55) saturate(.6) }
+  #hud .ab.ready .sk img { filter: none } #hud .ab.ready .sk { border-color: #d0a850 }
+  #hud .ab .sw { position: absolute; inset: -30%; transform: rotate(-45deg); background: conic-gradient(rgba(6,4,3,.7) var(--cd), transparent 0) }
+  #hud .ab .secs { position: absolute; inset: 0; display: grid; place-items: center; font: 700 15px Inter, sans-serif; color: #fff; text-shadow: 0 0 3px #000, 0 1px 0 #000 }
+  #hud .ab .ch { position: absolute; right: -4px; bottom: -2px; font: 700 12px Inter, sans-serif; font-style: normal; color: #fff; text-shadow: 0 0 2px #000 }
+  #hud .ab kbd { position: absolute; left: 50%; bottom: -15px; transform: translateX(-50%) }
+  #hud .ab.ult { width: 60px; height: 60px; margin-top: -10px } #hud .ab.ult .sk { border-color: #8e1c15; box-shadow: 0 0 0 2px #000, 0 0 14px #5a0a06 } #hud .ab.ult.ready .sk { border-color: #c4261a; box-shadow: 0 0 0 2px #000, 0 0 16px #8a1a0e }
+  #hud #quick { position: absolute; left: calc(50% + 268px); bottom: max(26px, var(--sb)); display: flex; gap: 6px; pointer-events: auto }
+  #hud .qs { position: relative; width: 36px; height: 36px; border-radius: 50%; border: 2px solid #6a5a3a; background: #0a0706; box-shadow: 0 0 0 1px #000; cursor: pointer; touch-action: none }
+  #hud .qs img { width: 100%; height: 100%; border-radius: 50%; image-rendering: pixelated } #hud .qs.empty img { filter: grayscale(1) brightness(.4) }
+  #hud .qs em { position: absolute; right: -3px; bottom: -3px; font: 700 11px Inter, sans-serif; font-style: normal; color: #fff; text-shadow: 0 0 2px #000 } #hud .qs kbd { position: absolute; left: 50%; top: -13px; transform: translateX(-50%) }
+  #hud #party { position: absolute; left: max(14px, var(--sl)); top: max(14px, var(--st)); display: flex; flex-direction: column; gap: 6px }
+  #hud .pm { display: flex; align-items: center; gap: 8px; font-size: 12px } #hud .pm small { margin-left: 5px; opacity: .7 }
+  #hud .ring { --hp: 100%; position: relative; display: block; width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(#8e1c15 var(--hp), #1c1814 0); padding: 3px; box-shadow: 0 0 0 1px #000 }
+  #hud .ring img { width: 30px; height: 30px; border-radius: 50%; background: #16110d; image-rendering: pixelated } #hud .ring.down img { filter: grayscale(1) brightness(.5) }
+  #hud #buffs { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(100px, calc(var(--sb) + 88px)); display: flex; gap: 5px }
+  #hud .bf { position: relative; width: 24px; height: 24px; border-radius: 3px; box-shadow: 0 0 0 1px #a8843c; background: #0a0706 } #hud .bf.debuff { box-shadow: 0 0 0 1px #c4261a }
+  #hud .bf img { width: 100%; height: 100%; image-rendering: pixelated } #hud .bf em { position: absolute; left: 0; right: 0; bottom: -12px; text-align: center; font: 600 9px Inter, sans-serif; font-style: normal }
+  #hud #mini { position: absolute; right: max(16px, var(--sr)); top: max(14px, var(--st)); width: 120px; height: 120px; border-radius: 50%; box-shadow: 0 0 0 2px #a8843c, 0 0 0 4px #000, 0 4px 14px #000 }
+  #hud #mini canvas { display: block; border-radius: 50% } #hud #mini span { position: absolute; font-size: 11px; color: #d0a850 }
+  #hud #mini .n { top: 1px; left: 50%; transform: translateX(-50%) } #hud #mini .s { bottom: 1px; left: 50%; transform: translateX(-50%) } #hud #mini .e { right: 3px; top: 50%; transform: translateY(-50%) } #hud #mini .w { left: 3px; top: 50%; transform: translateY(-50%) }
+  #hud #mini b { position: absolute; top: 126px; left: -30px; right: -30px; text-align: center; font-size: 11px; font-weight: 400; letter-spacing: .08em }
+  #hud .stats { top: 168px; right: max(16px, var(--sr)) }
+  #hud #cast { position: relative; height: 12px; width: 70%; margin: 4px auto 0; background: #000a; box-shadow: 0 0 0 1px #a8843c } #hud #cast i { position: absolute; left: 0; top: 0; bottom: 0; background: #a8843c }
+  #hud #cast span { position: absolute; left: 6px; top: -1px; font: 600 10px Inter, sans-serif; color: #fff; text-shadow: 0 0 2px #000 }
+  #hud #sysb { position: absolute; left: max(14px, var(--sl)); bottom: calc(max(12px, var(--sb)) + 160px); display: flex; gap: 6px; pointer-events: auto }
+  #hud #sysb button { position: relative; font: 13px 'IM Fell English SC', Georgia, serif; color: #efe0c4; background: #0a0706cc; border: 1px solid #a8843c; padding: 4px 9px; cursor: pointer } #hud #sysb em { position: absolute; right: -7px; top: -7px; min-width: 16px; padding: 0 3px; background: #c4261a; border-radius: 8px; font: 700 11px/16px Inter, sans-serif; font-style: normal } #hud #sysb em:empty { display: none }
+  @media (max-width: 520px) {
+    #hud #abar { left: auto; right: max(8px, var(--sr)); transform: none; bottom: calc(var(--sb) + 150px); width: 170px; flex-wrap: wrap-reverse; justify-content: flex-end; gap: 10px 8px }
+    #hud .ab, #hud .ab.ult { width: 50px; height: 50px; margin: 0 } #hud .ab .sk { border-radius: 50%; transform: none } #hud .ab .sk img { transform: none; left: 0; top: 0; width: 100%; height: 100% } #hud .ab .sw { inset: 0; transform: none; border-radius: 50% } #hud .ab kbd { display: none }
+    #hud #quick { right: auto; left: max(8px, var(--sl)); bottom: calc(var(--sb) + 150px); flex-direction: column; gap: 8px } #hud .qs { width: 42px; height: 42px } #hud .qs kbd { display: none }
+    #hud #party, #hud #mini { display: none } #hud .stats { top: max(10px, var(--st)) } #hud #buffs { bottom: auto; top: calc(max(8px, var(--st)) + 104px) }
+    #hud #sysb { left: auto; right: max(8px, var(--sr)); top: calc(max(10px, var(--st)) + 104px); bottom: auto; flex-direction: column; align-items: flex-end } #hud #sysb kbd { display: none }
+  }
+
+  /* gear and talent screens: dark altar panels with thin bronze rules */
+  .ov.altar { background: #0a0605d9 } .ov.altar .box.panel { position: relative; width: min(1000px, 100%); text-align: left; padding: 18px 22px; background: rgba(10,6,5,.96); border: 1px solid #a8843c; box-shadow: 0 0 0 1px #000, 0 0 60px #000; color: #efe0c4; font-family: 'IM Fell English SC', Georgia, serif }
+  .panel h2 { font-size: 26px !important; letter-spacing: .08em } .panel h2 small, .panel h3 small { font-size: 13px; opacity: .7; margin-left: 8px } .panel h3 { margin: 4px 0 8px; font-weight: 400; font-size: 16px; letter-spacing: .08em }
+  .panel .btn.close { position: absolute; right: 14px; top: 14px; font-size: 14px; padding: 6px 12px }
+  .panel .gwrap { display: grid; grid-template-columns: 300px 220px 1fr; gap: 18px }
+  .panel .doll { position: relative; height: 400px } .panel .doll .fig { position: absolute; left: 70px; top: 70px; width: 160px; height: 260px; object-fit: contain; image-rendering: pixelated }
+  .panel .gs { position: absolute; width: 58px; text-align: center } .panel .gs small { display: block; font: 600 10px Inter, sans-serif; text-transform: uppercase; letter-spacing: .1em; opacity: .8; margin-top: 2px }
+  .panel .gs-helm { left: 121px; top: 0 } .panel .gs-weapon { left: 0; top: 140px } .panel .gs-gauntlet { right: 0; top: 140px } .panel .gs-armor { left: 0; top: 290px } .panel .gs-charm { right: 0; top: 290px }
+  .panel .cell { position: relative; display: block; width: 52px; height: 52px; padding: 0; border: 1px solid var(--rc, #4a3a26); background: #0a0706; cursor: pointer } .panel .cell img { width: 100%; height: 100%; image-rendering: pixelated } .panel .cell.emp { cursor: default; opacity: .5 }
+  .panel .r-common { --rc: #8a7e6a } .panel .r-rare { --rc: #4f7fb0 } .panel .r-epic { --rc: #8e4fb0 } .panel .r-legendary { --rc: #c8862a }
+  .panel .grid { display: grid; grid-template-columns: repeat(6, 52px); gap: 6px } .panel .stats2 p { display: flex; justify-content: space-between; margin: 5px 0; font: 13px Inter, sans-serif }
+  .panel .tip { margin-top: 12px; padding: 10px 12px; background: #0a0706; border: 1px solid var(--rc, #a8843c); font: 13px/1.45 Inter, sans-serif } .panel .tip small { font-size: 10px; letter-spacing: .12em; color: var(--rc, #d0a850) } .panel .tip b { display: block; font: 18px 'IM Fell English SC', serif; margin: 2px 0 6px }
+  .panel .tip p { margin: 0 0 6px } .panel .tip .dn, .panel .cmp .dn { color: #d0503a } .panel .cmp .up { color: #7fb06a } .panel .cmp span { display: block }
+  .panel .acts { display: flex; gap: 8px } .panel .acts button, .panel .tabs button { font: 600 13px Inter, sans-serif; color: #efe0c4; background: #2a1c14; border: 1px solid #a8843c; padding: 7px 12px; cursor: pointer } .panel .acts button:disabled { opacity: .4; cursor: default }
+  .panel .hint { font: 13px Inter, sans-serif; opacity: .7; margin-top: 12px }
+  .panel .tabs { display: none } .panel .trees { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
+  .panel .tree h3 { display: flex; align-items: center; gap: 8px } .panel .tree h3 img { width: 28px; height: 28px; image-rendering: pixelated }
+  .panel .tw { position: relative; width: 300px; height: 420px; margin: 0 auto } .panel .links { position: absolute; inset: 0 } .panel .links line { stroke: #a8843c; stroke-width: 3; opacity: .7 } .panel .links line.dim { opacity: .2; stroke-dasharray: 4 4 }
+  .panel .tn { position: absolute; width: 52px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: center; cursor: pointer } .panel .tn img { width: 52px; height: 52px; border-radius: 50%; border: 2px solid #4a3a26; background: #0a0706; image-rendering: pixelated }
+  .panel .tn.got img { border-color: #d0a850 } .panel .tn.off img { filter: grayscale(1) brightness(.45) } .panel .tn.can img { box-shadow: 0 0 0 2px #000, 0 0 10px #d0a850 } .panel .tn.cap img { border-color: #8e1c15 } .panel .tn.sel img { outline: 2px solid #efe0c4 }
+  .panel .tn em { position: absolute; right: -6px; top: 34px; font: 700 11px Inter, sans-serif; font-style: normal; padding: 0 3px; background: #000c } .panel .tn span { display: block; width: 110px; margin-left: -29px; font-size: 11px; line-height: 1.1 } .panel .tn .plus { display: none }
+  @media (max-width: 720px) {
+    .ov.altar { padding: 0; align-items: stretch } .ov.altar .box.panel { min-height: 100%; padding: 14px } .panel .gwrap { grid-template-columns: 1fr } .panel .doll { height: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px } .panel .doll .fig { display: none } .panel .gs { position: static; width: auto }
+    .panel .grid { grid-template-columns: repeat(6, 1fr) } .panel .cell { width: auto; height: auto; aspect-ratio: 1 }
+    .panel .tabs { display: flex; gap: 6px; margin-bottom: 8px } .panel .tabs button { flex: 1 } .panel .tabs .on { background: #8e1c15 } .panel .trees { display: block } .panel .tree { display: none } .panel .tree.on { display: block } .panel .tree h3 { display: none }
+    .panel .tw { width: auto; height: auto } .panel .links { display: none } .panel .tn { position: static; display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 0; border-bottom: 1px solid #ffffff1c; text-align: left } .panel .tn img { width: 44px; height: 44px; flex: none }
+    .panel .tn span { width: auto; margin: 0; flex: 1; font-size: 15px } .panel .tn em { position: static; background: none } .panel .tn .plus { display: block; font-style: normal; width: 36px; height: 36px; line-height: 34px; text-align: center; border: 1px solid #a8843c } .panel .btn.close { position: static; width: 100%; margin-top: 12px }
+  }

@@ -171,7 +171,7 @@ GP.reset = function () {
   g.eclipsed = false; g.branded = false; g.brand = 0; g.brandRate = 1; g.light = 1; g.bleed = 0; g.burn = 0; g.thorns = 0; g.skT = 0; g.skRoll = false
   g.rageOn = false; g.rage = 0; g.rageMul = 1; g.armorT = 0; g.armorDur = 8; g.drain = 3.2; g.hunger = 0; g.sense = 0; g.tired = 0
   g.allyMul = 1; g.lost = {}; g.tags = {}; g.sets = {}; g.reroll = 2; g.shops = 0; g.pit = false; g.lastPh = 'day'; g.nightN = 0; g.dayN = 1
-  g.addWeapon('sweep'); g.allies.push(mkAlly(g, 'casca')); g.ups['ally:casca'] = 1
+  g.addWeapon('sweep'); g.allies.push(mkAlly(g, 'casca')); g.ups['ally:casca'] = 1; g.sysReset()
   g.banner('THE GOLDEN AGE', 'day 1 - ' + BIOMES[0].name.toLowerCase(), 3)
 }
 GP.R = function () { this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0; return this.seed / 4294967296 }
@@ -201,8 +201,8 @@ GP.eclipseOn = function () { return this.nightN === 1 && this.phase().k === 'nig
 GP.inkOn = function () { return this.sense >= 3 || this.inkMode || this.eclipseOn() }
 GP.style = function () { return this.inkOn() ? 'ink' : 'golden' }
 /* frenzy power scales with fury and the beast swing; frenzy inside ink is the rare peak */
-GP.frenzyMul = function () { return this.armorT > 0 ? (1 + 0.6 * (1 + 0.1 * this.ulvl('fury') + (this.wlvl('beast') ? 0.2 : 0))) * (this.inkMode ? 1.15 : 1) : 1 }
-GP.dmgMul = function () { return (this.inkMode ? 1.5 : this.branded ? 1 + this.brand / 400 : 1) * this.frenzyMul() * (this.sense >= 3 ? 1.3 : 1) * (this.eclipseOn() ? 1.45 : 1) }
+GP.frenzyMul = function () { return this.armorT > 0 ? (1 + 0.6 * (1 + 0.1 * this.ulvl('fury') + (this.wlvl('beast') ? 0.2 : 0) + (this.frenzyBonus || 0))) * (this.inkMode ? 1.15 : 1) : 1 }
+GP.dmgMul = function () { return (this.cryT > 0 ? 1 + this.cryMul : 1) * (this.inkMode ? 1.5 : this.branded ? 1 + this.brand / 400 : 1) * this.frenzyMul() * (this.sense >= 3 ? 1.3 : 1) * (this.eclipseOn() ? 1.45 : 1) }
 GP.lootMul = function () { return this.sense >= 3 ? 3 : this.sense >= 1 ? 2 : 1 }
 GP.spdMul = function () { return this.armorT > 0 ? 1.3 : this.tired > 0 ? 0.7 : 1 }
 
@@ -252,9 +252,11 @@ GP.kill = function (e, kx, ky) {
   if (e.d.boss) {
     for (let i = 0; i < 14; i++) g.dropGem(e.x + (g.R() - 0.5) * 50, e.y + (g.R() - 0.5) * 40, Math.ceil(xp / 14))
     for (let i = 0; i < 12; i++) g.coins.push({ x: e.x + (g.R() - 0.5) * 50, y: e.y + (g.R() - 0.5) * 40, v: 2 })
-    g.pickups.push({ x: e.x, y: e.y, kind: 'chest', t: 0 }); g.shake = 10; g.hitstop = 0.12; g.flash('#fff3b0', 0.5); g.boss = null; g.banner(e.d.boss + ' FALLS', '', 2)
+    g.pickups.push({ x: e.x, y: e.y, kind: 'chest', t: 0 }); g.pickups.push({ x: e.x + 14, y: e.y, kind: 'item', item: g.makeItem(null, 1), t: 0 }); g.tp++; g.text(g.p.x, g.p.y, 70, '+1 TALENT POINT', 'heal'); g.shake = 10; g.hitstop = 0.12; g.flash('#fff3b0', 0.5); g.boss = null; g.banner(e.d.boss + ' FALLS', '', 2)
   } else {
     g.dropGem(e.x, e.y, xp)
+    if (e.elite && g.R() < 0.07) g.pickups.push({ x: e.x, y: e.y - 4, kind: 'item', item: g.makeItem(), t: 0 })
+    if (g.R() < (e.elite ? 0.08 : 0.0015)) g.pickups.push({ x: e.x + 5, y: e.y, kind: 'flask', fl: g.pick(FLORDER), t: 0 })
     if (e.elite || g.R() < 0.07 * (g.pit ? 2 : 1)) g.coins.push({ x: e.x + 3, y: e.y, v: e.elite ? 5 : 1 })
     if ((e.elite && g.R() < 0.15) || g.R() < 0.012) g.pickups.push({ x: e.x - 4, y: e.y, kind: 'meat', t: 0 })
   }
@@ -269,7 +271,7 @@ GP.kill = function (e, kx, ky) {
   }
   /* kills feed the rage, but a mowed-down horde no faster than a steady fight: the gain falls off with the kill rate */
   g.kpsAcc = (g.kpsAcc || 0) + 1; const kr = 1 / (1 + (g.kps || 0) / 3)
-  if (g.rageOn) { if (g.armorT > 0) { g.rage += 1.6 * g.rageMul * kr; if (g.hunger) g.heal(g.hunger) } else if (!(g.tired > 0)) g.rage = Math.min(100, g.rage + 0.35 * g.rageMul * kr) }
+  if (g.rageOn) { if (g.armorT > 0) { g.rage += 1.6 * g.rageMul * kr; if (g.hunger) g.heal(g.hunger); if (g.tal.cap_bers) g.armorT += 0.1 } else if (!(g.tired > 0)) g.rage = Math.min(100, g.rage + 0.35 * g.rageMul * kr) }
   if (g.hungerHeal && g.R() < 0.25) g.heal(1)
 }
 /* at the gem cap the farthest gem is folded into the new one, so xp follows the fight instead of piling up far behind */
@@ -299,12 +301,13 @@ GP.gainXp = function (v) {
   const p = this.p; p.xp = Math.min(1e300, p.xp + v); let up = false, n = 0
   /* the curve steepens from level 15 with a cubic term; it never stops, it just slows. a vast gem pays out over
      several pickups (64 levels at a time) rather than looping forever */
-  while (p.xp >= p.next && n++ < 64) { p.xp -= p.next; p.lvl++; p.next = Math.min(1e300, Math.round(5 + p.lvl * 4 + p.lvl * p.lvl * 0.25 + Math.max(0, p.lvl - 15) ** 3 * 0.045)); this.queueLv++; up = true }
+  while (p.xp >= p.next && n++ < 64) { p.xp -= p.next; p.lvl++; p.next = Math.min(1e300, Math.round(5 + p.lvl * 4 + p.lvl * p.lvl * 0.25 + Math.max(0, p.lvl - 15) ** 3 * 0.045)); this.queueLv++; up = true; if (p.lvl % 2 === 0) this.tp++ }
   if (up && !this.over) { if (p.hp < p.maxHp) this.text(p.x, p.y, 58, '+HP', 'heal'); p.hp = p.maxHp; p.healT = 0.5 }
 }
 GP.pool = function () {
   const g = this, a = ['w:sweep', 'w:knives', 'w:bolts', 'w:bombs', ...PASSIVES, 'evo_beast', 'evo_salamander']
   a.push('banner', ...Object.keys(ALLY).map(id => 'ally:' + id))
+  for (const id of ABORDER) if (id !== 'dash' || g.ab.dash) a.push('ab:' + id)
   if (g.eclipsed) a.push('w:cleave', 'w:lunge', 'w:cannon', 'w:puck', 'torch', 'talisman', 'armor', 'fury', 'ironwill', 'bloodrush', 'hunger')
   return a
 }
@@ -325,7 +328,7 @@ GP.rollChoices = function (n, pool) {
   while (out.length < n) out.push('meat')
   return out.map(id => g.card(id))
 }
-GP.card = function (id) { const u = UPG[id], c = u.weapon ? this.wlvl(u.weapon) : this.ulvl(id); return { id, name: u.title ? u.title(this) : u.name, lvl: c + 1, isNew: c === 0 && !u.filler, evo: !!u.evo, relic: !!u.relic, rar: rarOf(this, id, c), desc: u.desc(this, c + 1) } }
+GP.card = function (id) { const u = UPG[id], c = u.weapon ? this.wlvl(u.weapon) : u.ability ? (this.ab[u.ability] ? this.ab[u.ability].rank : 0) : this.ulvl(id); return { id, name: u.title ? u.title(this) : u.name, lvl: c + 1, isNew: c === 0 && !u.filler, evo: !!u.evo, relic: !!u.relic, rar: rarOf(this, id, c), desc: u.desc(this, c + 1) } }
 GP.applyUpg = function (id) { const u = UPG[id]; if (!u) return; if (!u.weapon) this.ups[id] = (this.ups[id] || 0) + 1; u.apply(this) }
 GP.choose = function (i) {
   const g = this, pd = g.pending; if (!pd) return
@@ -342,18 +345,22 @@ GP.relicChest = function () {
 GP.openShop = function () { this.shops++; this.reroll = 2 + this.shops; this.setPending({ type: 'shop', title: "BETWEEN NIGHTS · GODO'S FORGE AND PUCK'S MARKET", items: this.shopRoll(), gold: this.p.gold }) }
 GP.shopRoll = function () {
   const g = this, keys = Object.keys(ITEMS).filter(k => { const it = ITEMS[k]; return (!it.req || it.req(g)) && (!it.weapon || g.wlvl(it.weapon) > 0 || g.weapons.length < 6) }), out = []
-  while (out.length < 4 && keys.length) {
+  while (out.length < 6 && keys.length) {
     const k = keys.splice(Math.floor(g.R() * keys.length), 1)[0], it = ITEMS[k], l = it.weapon ? g.wlvl(it.weapon) : 0
+    if (out.length === 2) { for (let j = 0; j < 2; j++) { const gi = g.makeItem(); out.push({ gear: gi, key: gi.icon, rar: gi.rar, name: gi.name, vendor: gi.slot === "charm" ? "Puck's Market" : "Godo's Forge", tags: [], price: gi.price, desc: gearDesc(gi), sold: false }) } const fl = g.pick(FLORDER); out.push({ flask: fl, key: FLASK[fl].icon, rar: "common", name: FLASK[fl].name + " ×2", vendor: "Puck's Market", tags: [], price: Math.round(FLASK[fl].price * 2 * (1 + g.shops * 0.1)), desc: FLASK[fl].desc, sold: false }) }
     out.push({ key: k, rar: it.rar || (it.price >= 28 ? 'rare' : 'common'), name: it.name + (it.weapon && l ? ' T' + (l + 1) : ''), vendor: it.v === 'forge' ? "Godo's Forge" : "Puck's Market", tags: it.tags, price: Math.round(it.price * (1 + g.shops * 0.15)), desc: it.weapon ? UPG['w:' + it.weapon].desc(g, l + 1) : it.desc, sold: false })
   }
   return out
 }
+const gearDesc = it => Object.entries(it.mods).map(([k, v]) => statLine(k, v).t).join(', ') + '. Item level ' + it.lvl + '.'
 GP.shopChoose = function (i) {
   const g = this, pd = g.pending
   if (i === 'reroll') { if (g.p.gold >= g.reroll) { g.p.gold -= g.reroll; g.reroll += 2; pd.items = g.shopRoll() } pd.gold = g.p.gold; g.pver++; return }
   if (i === 'go') { g.setPending(null); return }
   const it = pd.items[i]; if (!it || it.sold || g.p.gold < it.price) return
-  g.p.gold -= it.price; it.sold = true; const def = ITEMS[it.key]; def.apply(g); pd.note = ''
+  g.p.gold -= it.price; it.sold = true; pd.note = ''
+  if (it.gear) { g.gainItem(it.gear); pd.gold = g.p.gold; g.pver++; return } if (it.flask) { g.flasks[it.flask] += 2; pd.gold = g.p.gold; g.pver++; return }
+  const def = ITEMS[it.key]; def.apply(g)
   for (const t of def.tags) { g.tags[t] = (g.tags[t] || 0) + 1; const S = SETS[t]; if (S && g.tags[t] >= S.n && !g.sets[t]) { g.sets[t] = 1; S.apply(g); pd.note = 'SET BONUS: ' + S.name } }
   pd.gold = g.p.gold; g.pver++
 }
@@ -367,6 +374,9 @@ GP.updateAllies = function (dt) {
   for (const a of g.allies) {
     if (a.leave) { a.fade = (a.fade || 0) + dt * 0.8; a.z = (a.z || 0) + dt * 30; if (a.fade >= 1) a.gone = true; continue }
     if (a.doom != null) { a.doom -= dt; if (a.doom <= 0) { a.fade = (a.fade || 0) + dt * 1.4; if (a.fade >= 1 && !a.gone) { a.gone = true; g.lost[a.id] = 1; g.ups['ally:' + a.id] = 0; g.blood(a.x, a.y, 20, 26, 0, 0); g.pools.push({ x: a.x, y: a.y, s: 1, r: 1, t: 0 }); g.text(a.x, a.y, 44, ALLY[a.id].name.toUpperCase(), 'crit'); for (let k = 0; k < 3; k++) g.spawn('ghost', a.x + (g.R() - 0.5) * 30, a.y + (g.R() - 0.5) * 20) } } continue }
+    if (a.maxHp == null) { a.maxHp = 60; a.hp = 60 } a.maxHp = 60 + 20 * a.lvl; if (a.inv > 0) a.inv -= dt
+    if (a.down > 0) { a.down -= dt; if (a.down <= 0) a.hp = a.maxHp * 0.5; continue }
+    if (!(a.inv > 0)) { const e = g.nearest(a.x, a.y, 14); if (e && !e.d.boss) { a.hp -= e.d.dmg * 0.5 * Math.min(4, g.hitMul()); a.inv = 0.6; if (a.hp <= 0) { a.hp = 0; a.down = 8; g.text(a.x, a.y, 40, 'DOWN', 'hurt') } } }
     a.cd -= dt; const hx = p.x + a.slot[0], hy = p.y + a.slot[1], L = a.lvl, A = ALLY[a.id], mul = g.allyMul * pk * (A.squad ? 0.6 : 1)
     const move = (tx, ty, s) => { const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy); a.moving = d > 3; if (d > 2) { const v = Math.min(d, s * dt); a.x += (dx / d) * v; a.y += (dy / d) * v; a.face = Math.atan2(dy, dx); a.anim += dt * 6 } return d }
     const ai = A.ai
@@ -439,7 +449,7 @@ GP.updateWorld = function (dt) {
     if (!g.inkMode) {
       if (ph.k === 'night') g.brand = Math.min(100, g.brand + 2 * g.brandRate * dt)
       if (g.brand < 100 && ph.k === 'day') g.brand = Math.max(0, g.brand - 2.5 * dt)
-      if (g.brand >= 100) { g.inkMode = true; g.brand = 100; g.banner('THE BRAND BURNS', 'the world turns to ink', 2.2); g.flash('#b3141a', 0.7); g.spawnRing('ghost', 12, 130) }
+      if (g.brand >= 100) { g.inkMode = true; g.brand = 100; if (g.tal.cap_strug) { const d = 100 * (1 + g.depth() * 0.4); for (const e of g.en) if (Math.abs(e.x - g.p.x) < 280 && Math.abs(e.y - g.p.y) < 200) g.damage(e, d, e.x - g.p.x, e.y - g.p.y, 120) } g.banner('THE BRAND BURNS', 'the world turns to ink', 2.2); g.flash('#b3141a', 0.7); g.spawnRing('ghost', 12, 130) }
     } else {
       g.brand -= 10 * dt
       if (!g.opts.god) { g.p.hp -= 3 * dt; if (g.p.hp <= 0) { g.p.hp = 0; g.over = true; g.setPending({ type: 'dead' }) } } if (g.R() < dt * 20) g.blood(g.p.x + 2, g.p.y, 30, 1, 0, 0)
@@ -500,6 +510,7 @@ GP.step = function (dt) {
   if (g.bounds) { p.x = clamp(p.x, g.bounds.x0 + 10, g.bounds.x1 - 10); p.y = clamp(p.y, g.bounds.y0 + 10, g.bounds.y1 - 10) }
   if (p.inv > 0) p.inv -= dt; if (p.hurtT > 0) p.hurtT -= dt; if (p.regen) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt)
   g.cam.x += (p.x - g.cam.x) * Math.min(1, dt * 8); g.cam.y += (p.y - g.cam.y) * Math.min(1, dt * 8)
+  g.abilTick(dt); if (g.opts.autoAbil) g.autoCast()
   g.updateWorld(dt); g.spawnTick(dt)
   for (const tl of g.tele) { tl.t -= dt; if (tl.t <= 0) { const b = g.bounds; g.bounds = null; g.spawn(tl.type, tl.x, tl.y, tl.o); g.bounds = b } } g.tele = g.tele.filter(t => t.t > 0)
   for (const w of g.weapons) { w.cd -= dt * (g.armorT > 0 ? 1.3 : 1); if (w.cd <= 0) { const nd = WFIRE[w.id](g, w); w.cd = (nd == null ? WEAP[w.id].cd(wl(w)) : nd) * p.cdr } if (w.id === 'bolts') boltTick(g, w, dt); if (w.id === 'puck') w.ang += dt * 2.4 }
@@ -509,7 +520,7 @@ GP.step = function (dt) {
   g.gems = g.gems.filter(k => !k.got)
   for (const k of g.coins) { const dx = p.x - k.x, dy = p.y - k.y, d = Math.hypot(dx, dy) || 1; if (d < mg * 0.8 || k.mag) { k.mag = true; k.x += (dx / d) * 220 * dt; k.y += (dy / d) * 220 * dt } if (d < 9) { k.got = true; p.gold += k.v * (g.pit ? 2 : 1) } }
   g.coins = g.coins.filter(k => !k.got)
-  for (const k of g.pickups) { k.t += dt; if (Math.hypot(p.x - k.x, p.y - k.y) < 14) { k.got = true; if (k.kind === 'meat') g.heal(30); else { for (const gm of g.gems) gm.mag = true; g.relicChest() } } }
+  for (const k of g.pickups) { k.t += dt; if (Math.hypot(p.x - k.x, p.y - k.y) < 14) { k.got = true; if (k.kind === 'meat') g.heal(30); else if (k.kind === 'item') g.gainItem(k.item); else if (k.kind === 'flask') { g.flasks[k.fl]++; g.text(p.x, p.y, 60, '+' + FLASK[k.fl].name.toUpperCase(), 'heal') } else { for (const gm of g.gems) gm.mag = true; g.relicChest() } } }
   g.pickups = g.pickups.filter(k => !k.got)
   if (g.queueLv > 0 && !g.pending && !g.over) { g.queueLv--; g.setPending({ type: 'level', title: 'LEVEL ' + (p.lvl - g.queueLv), choices: g.rollChoices(g.choices) }) }
   g.updateFx(dt)
@@ -637,7 +648,7 @@ GP.updateProj = function (dt) {
   for (const q of g.pr) {
     if (q.delay > 0) { q.delay -= dt; q.x = p.x; q.y = p.y; continue }
     if (q.kind === 'bomb') { q.t += dt; const u = Math.min(1, q.t / q.d); q.x = q.sx + (q.tx - q.sx) * u; q.y = q.sy + (q.ty - q.sy) * u; q.z = Math.sin(u * Math.PI) * 40
-      if (u >= 1) { q.life = 0; g.explode(q.x, q.y, q.rad, q.dmg, p.salamander); if (p.salamander && !q.child) for (let k = 0; k < 2; k++) { const a = g.R() * TAU; g.pr.push({ x: q.x, y: q.y, sx: q.x, sy: q.y, tx: q.x + Math.cos(a) * 50, ty: q.y + Math.sin(a) * 50, t: 0, d: 0.5, z: 0, kind: 'bomb', dmg: q.dmg * 0.5, rad: q.rad * 0.7, life: 2, hit: new Set(), child: 1 }) } } continue }
+      if (u >= 1) { q.life = 0; g.explode(q.x, q.y, q.rad, q.dmg, p.salamander || q.fire); if (p.salamander && !q.child) for (let k = 0; k < 2; k++) { const a = g.R() * TAU; g.pr.push({ x: q.x, y: q.y, sx: q.x, sy: q.y, tx: q.x + Math.cos(a) * 50, ty: q.y + Math.sin(a) * 50, t: 0, d: 0.5, z: 0, kind: 'bomb', dmg: q.dmg * 0.5, rad: q.rad * 0.7, life: 2, hit: new Set(), child: 1 }) } } continue }
     q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt
     for (const e of g.en) { if (e.dead || q.hit.has(e) || q.life <= 0) continue; if (Math.hypot(e.x - q.x, e.y - q.y) < e.d.r + q.r) { q.hit.add(e); if (q.kind === 'ball') { g.explode(q.x, q.y, q.rad, q.dmg); q.life = 0 } else { g.damage(e, q.dmg, q.vx, q.vy, q.kind === 'bolt' ? 40 : 25); if (--q.pierce <= 0) q.life = 0 } } }
   }

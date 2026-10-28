@@ -357,3 +357,103 @@ function drawProp(k, s) {
   else if (k === 'flesh') { for (let i = 0; i < 4; i++) sph([(r(i) - 0.5) * 20, (r(i + 9) - 0.5) * 20, 4 + r(i + 3) * 6], 6 + r(i + 5) * 6, MAT.FLESH, 0.7, 1 + i, { tex: veins }); sph([0, 0, 12], 3, MAT.EYE, 1, 6) }
   else if (k === 'sword') { const d = v3.norm([r(1) - 0.5, r(2) - 0.5, 3]); cap([0, 0, 0], v3.add([0, 0, 0], d, 40), 2.2, 1.4, MAT.STEEL, 0.9, 1); cap(v3.add([0, 0, 0], d, 34), v3.add(v3.add([0, 0, 0], d, 34), [0, 6, 0]), 1.2, 1.2, MAT.IRON, 0.8, 2) }
 }
+
+/* ---------- THE KUSHAN INVASION, and the apostles of the run's middle: picked takes A. signature shapes (turbans,
+   masks, the moth's wings, the emperor's crown) are oversized on purpose so they read at play size ---------- */
+const kHead = o => { const mv = o.mv == null ? 1 : o.mv, p = o.walk || 0, hz = 44 - (mv ? 1.4 * Math.abs(Math.cos(p)) : 0), T = torsoF(hz, 0.1 + (o.atk || 0) * 0.1, 0); return { T, H: T(3, 0, 37) } }
+const kWrap = (x, y) => ((y >> 1) % 3 === 0 ? 0.72 : 1) * (0.92 + h2(x, y) * 0.12)
+const kScales = (x, y) => (((x >> 1) + ((y >> 1) & 1)) % 2 ? 0.74 : 1.04)
+/* a tall kushan turban: three stacked wraps tapering to a peak, a jewel at the front and a plume */
+function kTurban(H, m, k) {
+  const M = MAT[m || 'BONE'], s = k || 1
+  sph(v3.add(H, [-0.6, 0, 3.4 * s]), 8.8 * s, M, 0.9, 12, { sq: 0.7, tex: kWrap }); sph(v3.add(H, [-1, 0, 8.6 * s]), 8 * s, M, 0.92, 12, { sq: 0.75, tex: kWrap }); sph(v3.add(H, [-1.4, 0, 13 * s]), 5.6 * s, M, 0.95, 12, { tex: kWrap })
+  cap(v3.add(H, [-1.6, 0, 15 * s]), v3.add(H, [-2.6, 0, 20 * s]), 1.8, 0.3, M, 0.95, 12); sph(v3.add(H, [6.2 * s, 0, 5 * s]), 1.6, MAT.BRAND, 0.9, 13); cap(v3.add(H, [5.6 * s, 0, 6.4 * s]), v3.add(H, [4 * s, 0, 16 * s]), 0.9, 0.3, MAT.EYE, 0.9, 13)
+}
+const kVeil = (H, m) => { cap(v3.add(H, [5.2, -3.4, -1.6]), v3.add(H, [5.2, 3.4, -1.6]), 2.6, 2.6, MAT[m || 'DARK'], 0.3, 13); tri(v3.add(H, [6, -3, -3]), v3.add(H, [6, 3, -3]), v3.add(H, [5, 0, -9]), MAT[m || 'DARK'], 0.3, 13, { n: [1, 0, 0] }) }
+function kTalwar(Hd, d, L, pr) { const w = v3.norm(v3.cross(d, [0, 0, 1])); let q = v3.add(Hd, d, 2); for (let i = 0; i < 6; i++) { const n = v3.add(v3.add(q, d, L / 6), w, i * 0.35); cap(q, n, 1.7 - i * 0.18, 1.5 - i * 0.18, MAT.STEEL, 1, pr); q = n } cap(v3.add(Hd, w, -3), v3.add(Hd, w, 3), 0.8, 0.8, MAT.EYE, 0.8, pr) }
+function kShield(C, r, pr) { for (let k = 0; k < 12; k++) { const a0 = (k / 12) * TAU, a1 = ((k + 1) / 12) * TAU; tri(C, v3.add(C, [0, Math.cos(a0) * r, Math.sin(a0) * r]), v3.add(C, [0, Math.cos(a1) * r, Math.sin(a1) * r]), k % 2 ? MAT.TABARD : MAT.LEATHER, 0.8, pr, { n: [1, 0, 0.3] }) } sph(C, r * 0.25, MAT.EYE, 0.9, pr + 1) }
+function kBow(T) { const C = T(13, -5, 20), R = 20; let prev = null; for (let i = 0; i <= 8; i++) { const a = -1 + i * 0.25, q = v3.add(C, [Math.cos(a * 1.6) * 4 - 4 + (Math.abs(a) > 0.8 ? 3 : 0), 0, a * R]); if (prev) cap(prev, q, 1.9, 1.9, MAT.WOOD, 0.85, 14); prev = q } cap(v3.add(C, [-4, 0, -R]), v3.add(C, [-4, 0, R]), 0.35, 0.35, MAT.BONE, 0.9, 14); cap(T(-5, 8, 30), T(-7, 9, 6), 2.6, 2.4, MAT.LEATHER, 0.7, 2); for (let k = 0; k < 4; k++) cap(T(-5, 8 + k * 0.8, 30), T(-4, 7 + k, 38), 0.4, 0.4, MAT.BONE, 0.9, 2) }
+function kKatar(Hd, pr) { cap(v3.add(Hd, [0, -2, 0]), v3.add(Hd, [0, 2, 0]), 0.7, 0.7, MAT.IRON, 0.8, pr); tri(v3.add(Hd, [1, -2, 0]), v3.add(Hd, [1, 2, 0]), v3.add(Hd, [14, 0, -2]), MAT.STEEL, 1, pr, { n: [0, 0, 1] }) }
+function kMask(H, m) { sph(v3.add(H, [3.4, 0, 0.4]), 5.2, MAT[m || 'BONE'], 0.95, 13, { sq: 1.15 }); for (const s of [1, -1]) cap(v3.add(H, [8, s * 1.2, 1.4]), v3.add(H, [7.6, s * 3.2, 1.4]), 0.6, 0.5, MAT.DARK, 0.1, 13, { fl: 1 }) }
+function kHood(H) { sph(v3.add(H, [-1, 0, 1.4]), 7.6, MAT.CLOAK, 0.6, 12, { tex: kWrap }); cap(v3.add(H, [-2, 0, 4]), v3.add(H, [-8, 0, -8]), 5, 3, MAT.CLOAK, 0.55, 12) }
+const kBody = (o, x) => drawFolk(Object.assign({ torso: 'MAIL', legs: 'CLOTH', head: 'bare', skin: 'LEATHER', weap: 'knife' }, x, o))
+const KUSH = {
+  /* line infantry: tall cream turban, red face cloth, scale coat, curved talwar and a round painted shield */
+  ksoldier: o => { kBody(o, { cloak: 'TABARD' }); const { T, H } = kHead(o); kTurban(H, 'BONE'); kVeil(H, 'TABARD'); cap(T(1, 0, 4), T(1, 0, 20), 9.4, 10.2, MAT.MAIL, 0.85, 8, { tex: kScales }); kTalwar(T(10, -8, 12 + (o.atk || 0) * 22), v3.norm([0.6, -0.1, 0.8 - (o.atk || 0) * 1.6]), 30, 15); kShield(T(10, 11, 14), 10, 16) },
+  /* archer: tall turban, face cloth, a big recurve bow and quiver */
+  karcher: o => { kBody(o, { torso: 'CLOTH', cloak: 'CLOTH', bw: 0.95 }); const { T, H } = kHead(o); kTurban(H, 'BONE', 1.05); kVeil(H, 'TABARD'); kBow(T) },
+  /* bakiraka: dark wrapped hood, plain bone mask with slit eyes, a katar on each fist */
+  bakiraka: o => { drawFolk(Object.assign({ torso: 'CLOAK', legs: 'CLOAK', head: 'bare', skin: 'LEATHER', weap: 'knife', cloak: 'CLOAK', bw: 0.9 }, o)); const { T, H } = kHead(o); kHood(H); kMask(H, 'BONE'); kKatar(T(10, -8, 12 + (o.atk || 0) * 22), 15); kKatar(T(4, 13, -2), 15) },
+  /* silat: lanky, long black hair, a mouth cover, the urumi's ten ribbon blades whipping from his hand */
+  silat: o => { drawFolk(Object.assign({ torso: 'CLOTH', head: 'bare', skin: 'LEATHER', hairM: 'HAIR', long: 1, weap: 'knife', cloak: 'TABARD', bw: 0.86 }, o)); const { T, H } = kHead(o); kVeil(H, 'CLOTH'); const Hd = T(10, -8, 12 + (o.atk || 0) * 22), t = o.t || 0
+    for (let r = 0; r < 10; r++) { let q = Hd; for (let i = 0; i < 6; i++) { const n = v3.add(q, [5 + i * 0.6, Math.sin(r * 0.63 + t * 4 + i * 0.5) * (3 + i * 1.6), -1 + Math.cos(r * 0.63 + i * 0.4) * (2 + i * 1.4)]); cap(q, n, 0.35, 0.3, MAT.STEEL, 1, 15); q = n } } },
+  /* daka: a deformed horned beast-soldier in scraps of kushan scale, with a curved blade */
+  daka: o => { drawFolk(Object.assign({ torso: 'FLESH', legs: 'CLOTH', skin: 'FLESH', head: 'bare', weap: 'sword', bw: 1.45 }, o)); const { T, H } = kHead(o)
+    for (const s of [1, -1]) { let q = v3.add(H, [-1, s * 4, 4]); for (let k = 0; k < 5; k++) { const n = v3.add(q, [-1.5 - k, s * (1.6 - k * 0.2), 2.4 - k * 1.4]); cap(q, n, 2.2 - k * 0.38, 2 - k * 0.38, MAT.BONE, 0.85, 13); q = n } }
+    cap(v3.add(H, [5, 0, -3]), v3.add(H, [10, 0, -6]), 3.4, 2.4, MAT.DARK, 0.1, 13); for (const s of [1, -1]) sph(v3.add(H, [6, s * 2.2, 1]), 1.1, MAT.EYE, 1, 13); cap(T(1, -11, 26), T(1, 11, 26), 4, 4, MAT.MAIL, 0.85, 14, { tex: kScales }) },
+  /* sorcerer: an old sage under a huge cream turban, a long white beard, a glowing staff */
+  sorcerer: o => { drawFolk(Object.assign({ torso: 'TABARD', legs: 'CLOAK', head: 'bare', skin: 'LEATHER', weap: 'staff', cloak: 'CLOAK', bw: 0.88 }, o)); const { T, H } = kHead(o); kTurban(H, 'BONE', 1.25); cap(v3.add(H, [4.6, 0, -3]), v3.add(H, [5, 0, -16]), 3.6, 0.8, MAT.BONE, 0.95, 13); for (let k = 0; k < 3; k++) sph(T(16, -6, 54 + k * 3), 2.4 - k * 0.4, MAT.EYE, 1, 16) },
+}
+/* the war elephant of the columns: hide and tusk, a painted caparison, a howdah with a canopy and an archer riding it */
+function drawElephant(o) {
+  const p = o.walk || 0, mv = o.mv == null ? 1 : o.mv, hide = MAT.FLESH, ht = (x, y) => 0.82 + (n2(x * 0.15, y * 0.3) - 0.5) * 0.3
+  for (const [fx, s] of [[18, 1], [18, -1], [-20, 1], [-20, -1]]) { const ph = (s > 0) === (fx > 0) ? p : p + Math.PI, f = [fx + Math.sin(ph) * 7 * mv, s * 12, Math.max(0, Math.cos(ph)) * 4 * mv]; cap([fx, s * 12, 46], f, 8, 7, hide, 0.7, s > 0 ? 3 : 1, { tex: ht }); sph(f, 7.4, MAT.BONE, 0.7, s > 0 ? 3 : 1, { sq: 0.4 }) }
+  sph([0, 0, 56], 28, hide, 0.7, 5, { sq: 0.82, tex: ht }); sph([-14, 0, 56], 24, hide, 0.68, 4, { sq: 0.85, tex: ht })
+  const Hh = [30, 0, 66 + (o.atk || 0) * 6]; sph(Hh, 15, hide, 0.72, 7, { tex: ht }); for (const s of [1, -1]) tri(v3.add(Hh, [-4, s * 8, 10]), v3.add(Hh, [-10, s * 26, 6]), v3.add(Hh, [-6, s * 15, -18]), hide, 0.6, 6)
+  let q = v3.add(Hh, [12, 0, -4]); for (let i = 0; i < 7; i++) { const n = v3.add(q, [2.2 + (o.atk || 0) * 2, Math.sin(p + i) * 0.8, -6.4 + (o.atk || 0) * 5]); cap(q, n, 5 - i * 0.5, 4.5 - i * 0.5, hide, 0.75, 8, { tex: (x, y, t) => ((i + t) % 1 < 0.3 ? 0.8 : 1) }); q = n }
+  for (const s of [1, -1]) { cap(v3.add(Hh, [10, s * 6, -8]), v3.add(Hh, [28, s * 10, -2]), 2.6, 0.6, MAT.BONE, 0.95, 9); sph(v3.add(Hh, [10, s * 7, 4]), 1.4, MAT.EYE, 1, 9) }
+  quad([-24, -26, 74], [22, -26, 74], [22, -30, 40], [-24, -30, 40], MAT.TABARD, 0.8, 6, { n: [0, -1, 0.2] }); quad([-24, 26, 74], [22, 26, 74], [22, 30, 40], [-24, 30, 40], MAT.TABARD, 0.8, 6, { n: [0, 1, 0.2] })
+  const B = [-6, 0, 84]; quad(v3.add(B, [-16, -14, 0]), v3.add(B, [16, -14, 0]), v3.add(B, [16, 14, 0]), v3.add(B, [-16, 14, 0]), MAT.WOOD, 0.8, 9, { n: [0, 0, 1] }); for (const s of [1, -1]) for (const x of [-14, 14]) cap(v3.add(B, [x, s * 12, 0]), v3.add(B, [x, s * 12, 22]), 1.1, 1.1, MAT.WOOD, 0.8, 11)
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; tri(v3.add(B, [0, 0, 34]), v3.add(B, [Math.cos(a) * 19, Math.sin(a) * 17, 22]), v3.add(B, [Math.cos(a + 1.05) * 19, Math.sin(a + 1.05) * 17, 22]), MAT.TABARD, 0.85, 12) }
+  sph(v3.add(B, [2, 0, 8]), 4, MAT.MAIL, 0.8, 11); sph(v3.add(B, [3, 0, 14]), 4.4, MAT.BONE, 0.9, 11, { sq: 0.8 })
+}
+/* emperor ganishka's fog form: a towering cloud that takes the shape of his face, his tall tiered crown on top, a beard of
+   mist, lightning crawling over it; the one weak point between the eyes glows red */
+function drawGanishka(o) {
+  const t = o.t || 0, tx = (x, y) => 0.7 + n2(x * 0.12 + t, y * 0.12) * 0.45, lift = (o.atk || 0) * 10
+  for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU + t * 0.2, r = 30 + (i % 3) * 14; sph([Math.cos(a) * r, Math.sin(a) * r, 20 + (i % 4) * 22], 18 + (i % 3) * 6, MAT.GHOST, 0.55, 1, { tex: tx }) }
+  cap([0, 0, 40], [6, 0, 150], 44, 36, MAT.GHOST, 0.6, 3, { tex: tx }); for (const s of [1, -1]) cap([6, s * 40, 140], [30 + lift, s * 56, 80 + lift * 3], 16, 10, MAT.GHOST, 0.62, 4, { tex: tx })
+  const H = [18, 0, 200]; sph(H, 30, MAT.GHOST, 0.7, 6, { tex: tx }); sph(v3.add(H, [16, 0, -26]), 20, MAT.GHOST, 0.7, 6, { tex: tx })
+  for (let i = 0; i < 8; i++) cap(v3.add(H, [18, (i - 3.5) * 5, -32]), v3.add(H, [16 + (i % 2) * 4, (i - 3.5) * 6, -62 - (i % 3) * 8]), 3.4, 1, MAT.GHOST, 0.65, 7)
+  for (const s of [1, -1]) { sph(v3.add(H, [26, s * 11, 6]), 4, MAT.DARK, 0.1, 8); sph(v3.add(H, [29, s * 11, 6]), 1.6, MAT.EYE, 1, 9); cap(v3.add(H, [24, s * 4, 14]), v3.add(H, [22, s * 18, 18]), 2.4, 1.6, MAT.GHOST, 0.85, 8) }
+  sph(v3.add(H, [30, 0, 12]), 2.6, MAT.BRAND, 1, 9)
+  for (let i = 0; i < 4; i++) cap(v3.add(H, [0, 0, 24 + i * 12]), v3.add(H, [0, 0, 36 + i * 12]), 22 - i * 4.5, 18 - i * 4.5, MAT.EYE, 0.85, 8, { tex: (x, y) => (y % 4 === 0 ? 0.7 : 1) })
+  cap(v3.add(H, [0, 0, 72]), v3.add(H, [0, 0, 96]), 3, 0.4, MAT.EYE, 0.9, 9); for (const s of [1, -1]) tri(v3.add(H, [0, s * 18, 28]), v3.add(H, [-6, s * 44, 56]), v3.add(H, [0, s * 20, 48]), MAT.EYE, 0.8, 8)
+  for (let i = 0; i < 4; i++) { let q = [Math.cos(i * 1.7 + t) * 50, Math.sin(i * 1.7 + t) * 50, 60 + i * 30]; for (let j = 0; j < 5; j++) { const n = v3.add(q, [(h1(i * 9 + j) - 0.5) * 20, (h1(i * 5 + j) - 0.5) * 20, -14]); cap(q, n, 0.9, 0.9, MAT.SMEAR, 1, 10); q = n } }
+}
+/* wyald's apostle form: a headless ape-beast's body with his own small torso sprouting from the top, a wide mouth gaping
+   across its chest, an eye on each shoulder and a vertical one up the belly; the maw opens wider as he grabs */
+function drawWyald(o) {
+  const t = o.t || 0, p = o.walk || 0, mv = o.mv == null ? 1 : o.mv, gape = 7 + (o.atk || 0) * 6, fur = (x, y) => 0.72 + n2(x * 0.4, y * 0.9) * 0.45
+  for (const s of [1, -1]) { const ph = s > 0 ? p : p + Math.PI, f = [Math.sin(ph) * 14 * mv, s * 22, Math.max(0, Math.cos(ph)) * 8 * mv]; cap([0, s * 20, 70], [8, s * 24, 36], 16, 12, MAT.HAIR, 0.7, s > 0 ? 3 : 1, { tex: fur }); cap([8, s * 24, 36], f, 12, 8, MAT.FLESH, 0.75, s > 0 ? 3 : 1); sph(f, 8, MAT.FLESH, 0.75, s > 0 ? 3 : 1, { sq: 0.5 }) }
+  sph([0, 0, 96], 44, MAT.HAIR, 0.72, 5, { sq: 0.9, tex: fur }); sph([18, 0, 100], 34, MAT.FLESH, 0.78, 6, { tex: veins })
+  cap([44, -22, 104], [46, 22, 104], gape, gape, MAT.DARK, 0.1, 7); for (let i = 0; i < 10; i++) { sph([48, -20 + i * 4.4, 104 + gape * 0.9], 1.8, MAT.BONE, 1, 8); sph([48, -18 + i * 4, 104 - gape * 0.9], 1.8, MAT.BONE, 1, 8) }
+  cap([50, 0, 64], [50, 0, 84], 3, 3, MAT.EYE, 1, 8); for (const s of [1, -1]) sph([24, s * 40, 128], 5, MAT.EYE, 1, 8)
+  for (const s of [1, -1]) { const S = [4, s * 42, 126], E = [36, s * 58, 82], reach = (o.atk || 0) * 30, Hd = [56 + reach, s * (50 - reach * 0.6), 20 + Math.sin(t * 2 + s) * 4 + reach]; cap(S, E, 14, 11, MAT.HAIR, 0.75, s > 0 ? 3 : 13, { tex: fur }); cap(E, Hd, 11, 8, MAT.FLESH, 0.78, s > 0 ? 3 : 13); for (let i = -1; i <= 1; i++) cap(Hd, v3.add(Hd, [10, i * 4, -6]), 2.4, 0.6, MAT.BONE, 0.95, s > 0 ? 3 : 13) }
+  cap([4, 0, 136], [8, 0, 156], 8, 9, MAT.SKIN, 0.85, 9); for (const s of [1, -1]) cap([8, s * 8, 154], [16, s * 14, 166 + Math.sin(t * 3 + s) * 4], 2.6, 2, MAT.SKIN, 0.85, 10)
+  const H = [10, 0, 166]; sph(H, 6, MAT.SKIN, 0.85, 11); cap(v3.add(H, [4, 0, -3]), v3.add(H, [7, 0, -4]), 3, 2, MAT.DARK, 0.1, 11); for (let i = 0; i < 12; i++) cap(v3.add(H, [-2, (h1(i) - 0.5) * 10, 4]), v3.add(H, [-12 - h1(i + 4) * 8, (h1(i) - 0.5) * 22, -6 - h1(i + 8) * 14]), 2, 0.5, MAT.HAIR, 0.8, 10, { tex: fur })
+}
+/* rosine's true form, a giant luna moth: broad pale wings with eyespots and long trailing hind tails, feathered antennae,
+   a girl's body hanging beneath, and the proboscis she fights with */
+function drawMoth(o) {
+  const t = o.t || 0, z = 40 + Math.sin(t * 7) * 3, fl = 0.3 + 0.3 * Math.sin(t * 6) + (o.atk || 0) * 0.3, lance = 28 + (o.atk || 0) * 20
+  const wtx = (x, y, u, v) => { const ex = (u - 0.45) ** 2 + (v - 0.35) ** 2; return ex < 0.012 ? 0.4 : ex < 0.02 ? 1.2 : 0.82 + n2(x * 0.2, y * 0.2) * 0.25 }
+  for (const s of [1, -1]) { const R = [0, s * 4, z + 46]
+    tri(R, [-6, s * 70, z + 94 + fl * 20], [-26, s * 58, z + 28 + fl * 10], MAT.GHOST, 0.85, s > 0 ? 1 : 14, { tex: wtx }); tri(R, [-26, s * 58, z + 28 + fl * 10], [-6, s * 70, z + 94 + fl * 20], MAT.GHOST, 0.85, s > 0 ? 1 : 14, { tex: wtx })
+    tri(R, [-26, s * 58, z + 28 + fl * 10], [-14, s * 20, z + 18], MAT.GHOST, 0.8, s > 0 ? 1 : 14, { tex: wtx }); tri(R, [-14, s * 20, z + 18], [-26, s * 58, z + 28 + fl * 10], MAT.GHOST, 0.8, s > 0 ? 1 : 14, { tex: wtx })
+    tri([-6, s * 4, z + 34], [-34, s * 34, z + 10], [-20, s * 10, z + 20], MAT.GHOST, 0.75, s > 0 ? 1 : 14); tri([-6, s * 4, z + 34], [-20, s * 10, z + 20], [-34, s * 34, z + 10], MAT.GHOST, 0.75, s > 0 ? 1 : 14)
+    cap([-30, s * 30, z + 12], [-56, s * 40, z - 30], 3, 0.6, MAT.GHOST, 0.8, s > 0 ? 1 : 14); sph([-12, s * 40, z + 60 + fl * 8], 5, MAT.BRAND, 0.8, s > 0 ? 2 : 15) }
+  cap([0, 0, z + 20], [2, 0, z + 54], 6, 7, MAT.GHOST, 0.85, 6, { tex: (x, y) => (y % 3 === 0 ? 0.7 : 1) }); cap([2, 0, z + 20], [-2, 0, z - 6], 4, 2, MAT.SKIN, 0.85, 6); for (const s of [1, -1]) cap([0, s * 3, z + 22], [4, s * 5, z - 8], 1.6, 1, MAT.SKIN, 0.85, 7)
+  for (let i = 0; i < 3; i++) for (const s of [1, -1]) cap([4, s * 5, z + 32 + i * 6], [14, s * 12, z + 20 + i * 4], 0.8, 0.4, MAT.DARK, 0.3, 7)
+  const H = [6, 0, z + 62]; sph(H, 6.4, MAT.SKIN, 0.85, 9); for (const s of [1, -1]) sph(v3.add(H, [4, s * 3, 0.6]), 2.6, MAT.GORE, 0.45, 10); cap(v3.add(H, [6, 0, -2]), v3.add(H, [6 + lance, 0, -14 - fl * 6]), 1.2, 0.3, MAT.BONE, 0.95, 11)
+  for (const s of [1, -1]) { let q = v3.add(H, [1, s * 3, 5]); for (let i = 0; i < 5; i++) { const n = v3.add(q, [2 + i, s * 3, 4 - i]); cap(q, n, 0.7, 0.5, MAT.DARK, 0.4, 11); cap(n, v3.add(n, [-2, s * 2, 3]), 0.4, 0.2, MAT.DARK, 0.4, 11); q = n } }
+  cap(v3.add(H, [-1, 0, 3]), v3.add(H, [-6, 0, -14]), 4, 2.6, MAT.GHOST, 0.8, 8)
+}
+/* rosine's elves: children turned elf, big pupilless eyes, long pointed ears, small moth wings */
+function drawElfling(o) {
+  const t = o.t || 0, z = 22 + Math.sin(t * 9) * 2
+  cap([0, 0, z], [2, 0, z + 20], 3.6, 4.6, MAT.SKIN, 0.85, 5); for (const s of [1, -1]) cap([0, s * 2.6, z], [-2, s * 3.4, z - 16], 2, 1.4, MAT.SKIN, 0.8, 4)
+  const H = [3, 0, z + 30]; sph(H, 7, MAT.SKIN, 0.88, 8); for (const s of [1, -1]) { sph(v3.add(H, [5, s * 2.8, 0.8]), 2.8, MAT.EYE, 1, 9); cap(v3.add(H, [0, s * 6, 1]), v3.add(H, [-3, s * 12, 6]), 1.8, 0.3, MAT.SKIN, 0.9, 9); cap(v3.add(H, [1, s * 2, 6]), v3.add(H, [6, s * 7, 15]), 0.5, 0.3, MAT.DARK, 0.3, 9) }
+  const fl = Math.sin(t * 18) * 0.4; for (const s of [1, -1]) { tri([-2, s * 3, z + 20], [-12, s * 22, z + 32 + fl * 10], [-14, s * 14, z + 6 + fl * 6], MAT.BONE, 0.8, s > 0 ? 1 : 14, { tex: (x, y) => 0.8 + n2(x * 0.3, y * 0.3) * 0.35 }); tri([-2, s * 3, z + 14], [-12, s * 14, z + 4], [-8, s * 8, z - 8], MAT.BONE, 0.75, s > 0 ? 1 : 14) }
+  for (const s of [1, -1]) cap([2, s * 5, z + 18], [9, s * 8, z + 6 - (o.atk || 0) * 4], 1.5, 1.1, MAT.SKIN, 0.85, 12)
+}

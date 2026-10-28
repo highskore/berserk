@@ -201,7 +201,11 @@ GP.damage = function (e, dmg, kx, ky, kb, o) {
   if (kb) { const l = Math.hypot(kx, ky) || 1, m = Math.sqrt(e.d.mass); e.kx += (kx / l) * kb / m; e.ky += (ky / l) * kb / m }
   if ((dmg >= 10 && !o.quiet && g.texts.length < 36) || crit) g.text(e.x + (g.R() - 0.5) * 6, e.y, e.d.h + 2, Math.round(dmg), crit ? 'crit' : 'dmg')
   g.blood(e.x, e.y, e.d.h * 0.55, Math.min(8, 2 + dmg / 8), kx, ky, e.d.spirit)
-  if (e.d.boss) { g.hitstop = Math.max(g.hitstop, 0.03); g.shake = Math.max(g.shake, 2) } else if (g.armorT > 0) g.shake = Math.max(g.shake, 1.5)
+  if (e.d.boss) {
+    g.hitstop = Math.max(g.hitstop, 0.03); g.shake = Math.max(g.shake, 2); e.flinch = 0.12
+    /* a burst of damage between moves staggers an apostle */
+    if (e.ai && e.ai.plan === null) { e.burst = (e.burst || 0) + dmg; if (e.burst > e.maxHp * 0.07) { e.burst = 0; e.stagger = 0.6; e.ai.cd = Math.max(e.ai.cd || 0, 0.6) } }
+  } else if (g.armorT > 0) g.shake = Math.max(g.shake, 1.5)
   if (e.hp <= 0) g.kill(e, kx, ky)
 }
 GP.kill = function (e, kx, ky) {
@@ -222,7 +226,7 @@ GP.kill = function (e, kx, ky) {
     g.pools.push({ x: e.x + (g.R() - 0.5) * 4, y: e.y + 2, s: Math.floor(g.R() * 6), r: e.d.boss ? 2 : e.type === 'troll' ? 1 : 0, t: 0 }); if (g.pools.length > 420) g.pools.shift()
     /* cut in half along the swing: the top flies off, the legs fall over */
     const l = Math.hypot(kx || 0, ky || 0) || 1, dx = (kx || g.R() - 0.5) / l, dy = (ky || g.R() - 0.5) / l
-    g.corpses.push({ type: e.type, v: e.type === 'soldier' && e.ph > Math.PI ? 1 : 0, elite: e.elite, x: e.x, y: e.y, face: e.face, frame: Math.floor(e.anim) & 3, t: 0, vx: dx * (60 + g.R() * 60), vy: dy * (40 + g.R() * 40), z: 0, vz: 70 + g.R() * 60, a: 0, va: (g.R() < 0.5 ? -1 : 1) * (5 + g.R() * 5), fall: g.R() < 0.5 ? -1 : 1 })
+    g.corpses.push({ type: e.type, dying: BOSS[e.type] ? 1 : 0, v: e.type === 'soldier' && e.ph > Math.PI ? 1 : 0, elite: e.elite, x: e.x, y: e.y, face: e.face, frame: Math.floor(e.anim) & 3, t: 0, vx: dx * (60 + g.R() * 60), vy: dy * (40 + g.R() * 40), z: 0, vz: 70 + g.R() * 60, a: 0, va: (g.R() < 0.5 ? -1 : 1) * (5 + g.R() * 5), fall: g.R() < 0.5 ? -1 : 1 })
     if (g.corpses.length > 70) g.corpses.shift()
   }
   if (g.rageOn) { if (g.armorT > 0) { g.rage += 1.6 * g.rageMul; if (g.hunger) g.heal(g.hunger) } else g.rage = Math.min(100, g.rage + 0.35 * g.rageMul) }
@@ -444,7 +448,7 @@ GP.updateFx = function (dt) {
   for (const w of g.wisps) { w.t += dt; w.x += w.vx * dt; w.y += w.vy * dt; w.z += w.vz * dt } g.wisps = g.wisps.filter(w => w.t < 0.8)
   for (const t of g.texts) t.t += dt; g.texts = g.texts.filter(t => t.t < 0.8)
   for (const f of g.fx) f.t += dt; g.fx = g.fx.filter(f => f.t < f.d)
-  for (const c of g.corpses) { c.t += dt; if (c.z > 0 || c.t < 0.1) { c.vz -= 380 * dt; c.x2 = (c.x2 || 0) + c.vx * dt; c.y2 = (c.y2 || 0) + c.vy * dt; c.z = Math.max(0, c.z + c.vz * dt); c.a += c.va * dt; if (c.z === 0) { c.va = 0; c.vx *= 0.3; c.vy *= 0.3 } } }
+  for (const c of g.corpses) { if (c.dying > 0) { c.dying -= dt; continue } c.t += dt; if (c.z > 0 || c.t < 0.1) { c.vz -= 380 * dt; c.x2 = (c.x2 || 0) + c.vx * dt; c.y2 = (c.y2 || 0) + c.vy * dt; c.z = Math.max(0, c.z + c.vz * dt); c.a += c.va * dt; if (c.z === 0) { c.va = 0; c.vx *= 0.3; c.vy *= 0.3 } } }
   g.corpses = g.corpses.filter(c => c.t < 9)
   for (const pl of g.pools) if (pl.t < 1) pl.t += dt * 1.5
   if (g.shake > 0) g.shake = Math.max(0, g.shake - dt * 30)
@@ -459,7 +463,7 @@ GP.updateEnemies = function (dt) {
   for (let i = 0; i < en.length; i++) { const e = en[i], cx = Math.floor((e.x - ox) / CS), cy = Math.floor((e.y - oy) / CS); e._c = -1; if (cx < 0 || cy < 0 || cx >= GW || cy >= GH) continue; const c = cy * GW + cx; e._c = c; g.gridN[i] = g.gridH[c]; g.gridH[c] = i }
   for (let i = 0; i < en.length; i++) {
     const e = en[i]; if (e.dead) continue; const d = e.d
-    e.anim += dt * (d.fly ? 7 : e.spd * 0.11); if (e.flash > 0) e.flash -= dt
+    e.anim += dt * (d.fly ? 7 : e.spd * 0.11); if (e.flash > 0) e.flash -= dt; if (e.flinch > 0) e.flinch -= dt; if (e.burst) e.burst *= Math.pow(0.3, dt)
     const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1
     if (e.stun > 0) e.stun -= dt
     else if (d.ai) BOSSAI[d.ai](g, e, dt, dx, dy, dist)

@@ -88,8 +88,10 @@ function drawWorld(g, st) {
   }
   for (const e of g.en) {
     const B = BOSS[e.type]; if (!onScreen(e.x, e.y, B ? 160 : 70)) continue
-    if (B) { if (!e.warm) { e.warm = 1; bossWarm(e.type, dirOf(e.face)) } L.push({ y: e.y, s: sprite(e.type + ':' + (e.pose || B.idle), dirOf(e.face), 4), x: e.x, z: e.z || 0, sh: B.shadow, e }); continue }
-    const s = sprite(e.type, dirOf(e.face), e.stun > 0 ? 4 : Math.floor(e.anim) & 3, e.type === 'soldier' ? (e.ph > Math.PI ? 1 : 0) : 0); L.push({ y: e.y, s, x: e.x, sh: e.d.r, e }); if (e.lantern) LIGHTS.push({ x: e.x + Math.cos(e.face + 1.2) * 8, y: e.y + Math.sin(e.face + 1.2) * 8, z: 20, r: 60, c: [255, 200, 120], i: 0.85 + 0.15 * Math.sin(g.rt * 9 + e.ph) }) }
+    if (B) { if (!e.warm) { e.warm = 1; bossWarm(e.type, dirOf(e.face)) } const [an, k] = bossFrame(e, g.rt); e._spr = bossSprite(e.type, an, Math.min(k, BFRAMES[an] - 1), dirOf(e.face)); L.push({ y: e.y, s: e._spr, x: e.x, z: e.z || 0, sh: B.shadow, e }); continue }
+    /* in reach of guts they swing: two attack frames alternate */
+    const near = Math.hypot(e.x - g.p.x, e.y - g.p.y) < e.d.r + 22, f = e.stun > 0 ? 4 : near ? 5 + (Math.floor(g.rt * 4 + e.ph) & 1) : Math.floor(e.anim) & 3
+    const s = sprite(e.type, dirOf(e.face), f, e.type === 'soldier' ? (e.ph > Math.PI ? 1 : 0) : 0); L.push({ y: e.y, s, x: e.x, sh: e.d.r, e }); if (e.lantern) LIGHTS.push({ x: e.x + Math.cos(e.face + 1.2) * 8, y: e.y + Math.sin(e.face + 1.2) * 8, z: 20, r: 60, c: [255, 200, 120], i: 0.85 + 0.15 * Math.sin(g.rt * 9 + e.ph) }) }
   for (const c of g.corpses) if (onScreen(c.x, c.y, 80)) L.push({ y: c.y - 1, c })
   for (const a of g.allies) L.push({ y: a.y, s: sprite(a.id, dirOf(a.face), a.moving ? Math.floor(a.anim) & 3 : 4), x: a.x, sh: 8, a })
   for (const r of g.riders) L.push({ y: r.y, s: sprite('skullknight', dirOf(r.face), Math.floor(r.anim) & 3), x: r.x, sh: 10 })
@@ -153,7 +155,9 @@ function drawWorld(g, st) {
 }
 /* corpse halves: the legs topple, the torso flies and lands; a gore stripe marks the cut */
 function drawCorpse(c, st) {
-  const s = sprite(c.type, dirOf(c.face), BOSS[c.type] ? 4 : c.frame, c.v), cv2 = s[st], cut = s.cut, a = c.t > 7 ? 1 - (c.t - 7) / 2 : 1, gore = st === 'ink' ? COL.ink.blood : '#741c1c', bone = st === 'ink' ? '#efe8da' : '#e8dcb8'
+  /* an apostle first collapses (three frames), and only then splits */
+  if (c.dying > 0) { const k = Math.min(2, Math.floor((1 - c.dying) * 3)), s = bossSprite(c.type, 'death', k, dirOf(c.face)); ctx.drawImage(s[st], SX(c.x) - s.px, SY(c.y) - s.py); return }
+  const s = BOSS[c.type] ? bossSprite(c.type, 'death', 2, dirOf(c.face)) : sprite(c.type, dirOf(c.face), c.frame, c.v), cv2 = s[st], cut = s.cut, a = c.t > 7 ? 1 - (c.t - 7) / 2 : 1, gore = st === 'ink' ? COL.ink.blood : '#741c1c', bone = st === 'ink' ? '#efe8da' : '#e8dcb8'
   const stripe = () => { ctx.fillStyle = gore; ctx.fillRect(cut.x0, cut.y - 1, cut.x1 - cut.x0 + 1, 2); ctx.fillStyle = bone; ctx.fillRect(((cut.x0 + cut.x1) >> 1), cut.y - 1, 1, 1) }
   ctx.globalAlpha = a
   const fall = c.fall * ease((c.t - 0.25) / 0.45) * 1.3, fx = SX(c.x), fy = SY(c.y)
@@ -179,7 +183,7 @@ function drawNight(g, n) {
   }
   ctx.globalCompositeOperation = 'multiply'; ctx.imageSmoothingEnabled = true; ctx.drawImage(LM, 0, 0, W, H); ctx.imageSmoothingEnabled = false; ctx.globalCompositeOperation = 'source-over'
   /* out in the dark, demons are only their eyes */
-  if (n > 0.4) { ctx.globalCompositeOperation = 'lighter'; for (const e of g.en) { const c = EYES[e.type]; if (!c || !onScreen(e.x, e.y, 10)) continue; const s = sprite(e.type, dirOf(e.face), 4, 0), x = SX(e.x) + Math.round(Math.cos(e.face) * 2 * e.d.sc), y = SY(e.y) - s.py + s.top + Math.round(3 * e.d.sc), a = (n - 0.4) * 1.6
+  if (n > 0.4) { ctx.globalCompositeOperation = 'lighter'; for (const e of g.en) { const c = EYES[e.type]; if (!c || !onScreen(e.x, e.y, 10)) continue; const s = e._spr || sprite(e.type, dirOf(e.face), 4, 0), x = SX(e.x) + Math.round(Math.cos(e.face) * 2 * e.d.sc), y = SY(e.y) - s.py + s.top + Math.round(3 * e.d.sc), a = (n - 0.4) * 1.6
       ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${Math.min(1, a)})`; ctx.fillRect(x - 2, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillStyle = `rgba(${c[0]},${c[1] >> 1},${c[2] >> 2},${Math.min(0.5, a * 0.5)})`; ctx.fillRect(x - 3, y - 1, 6, 3) }
     ctx.globalCompositeOperation = 'source-over' }
 }

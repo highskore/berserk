@@ -76,7 +76,7 @@ function bzZoddHead(H, jaw, p) {
   }
 }
 function drawZodd(o) {
-  const P = ZODD[o.v || 'A'], fly = P.fly || 0, T = torsoF(P.hz + fly, P.lean, P.tw), fm = MAT.FLESH
+  const P = o.P || ZODD[o.v || 'A'], fly = P.fly || 0, T = torsoF(P.hz + fly, P.lean, P.tw), fm = MAT.FLESH
   for (const s of [1, -1]) bzBatWing(T(-16, s * 16, 74), s, P.wing[3], P.wing[0], P.wing[1], P.wing[2], 1, MAT.DARK, fm)
   const tl = bzBez(T(-16, 0, -2), v3.add(P.tail[0], [0, 0, 0]), P.tail[1], 10); bzChain(tl, 13, 3, fm, 0.75, 3, { tex: bzFur }); for (let k = 0; k < 6; k++) cap(tl[10], v3.add(tl[10], [(h1(k) - 0.5) * 22, (h1(k + 4) - 0.5) * 22, -6 - h1(k + 8) * 14]), 3.4, 0.5, MAT.HAIR, 0.75, 3)
   P.feet.forEach((f, k) => {
@@ -128,7 +128,7 @@ function bzDragonHead(H, d, jaw, fire, p) {
   bzCrystal(L(10, 0, 18), v3.add(up, d, -0.4), 22, 5, p + 1, 2.2)
 }
 function drawGrunbeld(o) {
-  const P = GRUN[o.v || 'A'], hide = MAT.IRON, Hc = P.hip, ax = [Math.cos(P.pitch), 0, Math.sin(P.pitch)], Cc = v3.add(Hc, ax, 150), dn = [Math.sin(P.pitch), 0, -Math.cos(P.pitch)]
+  const P = o.P || GRUN[o.v || 'A'], hide = MAT.IRON, Hc = P.hip, ax = [Math.cos(P.pitch), 0, Math.sin(P.pitch)], Cc = v3.add(Hc, ax, 150), dn = [Math.sin(P.pitch), 0, -Math.cos(P.pitch)]
   /* tail, body and belly plates */
   const tl = bzBez(v3.add(Hc, ax, -30), P.tail[0], P.tail[1], 12); bzChain(tl, 36, 5, hide, 0.76, 2, { tex: bzScale })
   for (let i = 1; i < 12; i += 1) { const d = v3.norm(v3.sub(tl[i + 1], tl[i])), up = v3.norm(v3.cross(d, v3.cross([0, 0, 1], d))), r = lerp(36, 5, i / 12); bzCrystal(v3.add(tl[i], up, r * 0.7), v3.add(up, d, -0.6), r * 1.1 + 6, r * 0.32 + 1.5, 3, i * 0.7) }
@@ -181,7 +181,7 @@ function bzCountMan(B, sc, arms, p) {
     for (let i = -1; i <= 1; i++) cap(Hh, v3.add(Hh, [3 * sc, i * 2 * sc, arms === 'up' ? 5 * sc : -4 * sc]), 1.1 * sc, 0.5 * sc, sk, 0.9, p + 2) }
 }
 function drawCount(o) {
-  const P = COUNT[o.v || 'A'], fm = MAT.FLESH, N = 16, fat = P.fat || 1
+  const P = o.P || COUNT[o.v || 'A'], fm = MAT.FLESH, N = 16, fat = P.fat || 1
   const rad = i => { const t = i / N; return P.rf * (0.3 + 0.7 * Math.sin(Math.PI * (0.12 + 0.72 * t))) * (t > 0.2 && t < 0.8 ? fat : 1) }
   const S = bzBez(P.sp[0], P.sp[1], P.sp[2], N).map((q, i) => [q[0], q[1], Math.max(q[2], rad(i) * 0.62)])
   /* the foot: a wide wet skirt on the ground */
@@ -249,7 +249,7 @@ function bzMothWing(R, s, L, rise, sweep, th0, th1, hind, p) {
 /* her body is drawn at 1.5x by widening the projection scale (positions and radii together); always restored */
 function drawRosine(o) { const u0 = CAM.u; CAM.u = u0 * 1.5; try { rosineBody(o) } finally { CAM.u = u0 } }
 function rosineBody(o) {
-  const P = ROSINE[o.v || 'A'], T = torsoF(P.hz, P.lean, 0), sk = MAT.SKIN, ch = MAT.BONE
+  const P = o.P || ROSINE[o.v || 'A'], T = torsoF(P.hz, P.lean, 0), sk = MAT.SKIN, ch = MAT.BONE
   for (const s of [1, -1]) { bzMothWing(T(-5, s * 5, 30), s, P.fore[0], P.fore[1], P.fore[2], -0.25, 1.3, 0, 1); bzMothWing(T(-5, s * 5, 22), s, P.hind[0], P.fore[1] - 0.25, P.fore[2] + 0.15, -1.45, -0.2, 1, 2) }
   if (P.abd) { const a = P.abd; for (let k = 0; k < 6; k++) sph(T(-6 - k * 7 * a, 0, -2 - k * 6 * a), (10 - k * 1.2) * a, k % 2 ? MAT.LEATHER : ch, 0.8, 3, { tex: (x, y) => (y % 3 === 0 ? 0.75 : 1) }) }
   P.feet.forEach((f, k) => { const s = k ? -1 : 1, hip = T(0, s * 6, -2), kn = ik3(hip, f, 30, 30, P.drill ? [0, s * 0.2, 1] : [1, 0, 0]); cap(hip, kn, 5, 3.4, ch, 0.86, s > 0 ? 4 : 5); cap(kn, f, 3.4, 1, ch, 0.86, s > 0 ? 4 : 5) })
@@ -283,14 +283,17 @@ const bb = (f, b) => ((f.bb = b), f)
 const SHP = {
   circle: (cx, cy, r) => bb((X, Y) => (Math.hypot(X - cx, Y - cy) < r ? 1 : 0), [cx - r, cy - r, cx + r, cy + r]),
   ring: (cx, cy, r0, r1) => bb((X, Y) => { const d = Math.hypot(X - cx, Y - cy); return d > r0 && d < r1 ? 1 : 0 }, [cx - r1, cy - r1, cx + r1, cy + r1]),
-  sector: (cx, cy, ang, hw, r0, r1) => bb((X, Y) => { const dx = X - cx, dy = Y - cy, d = Math.hypot(dx, dy); if (d < r0 || d > r1) return 0; return Math.abs(angDiff(ang, Math.atan2(dy, dx))) < hw ? 1 : 0 }, [cx - r1, cy - r1, cx + r1, cy + r1]),
+  /* the box hugs the arc (sampled), so the rasteriser only visits the wedge */
+  sector: (cx, cy, ang, hw, r0, r1) => { const xs = [], ys = []; for (let i = 0; i <= 12; i++) { const a = ang - hw + (2 * hw * i) / 12; for (const r of [r0, r1]) { xs.push(cx + Math.cos(a) * r); ys.push(cy + Math.sin(a) * r) } }
+    return bb((X, Y) => { const dx = X - cx, dy = Y - cy, d = Math.hypot(dx, dy); if (d < r0 || d > r1) return 0; return Math.abs(angDiff(ang, Math.atan2(dy, dx))) < hw ? 1 : 0 }, [Math.min(...xs) - 2, Math.min(...ys) - 2, Math.max(...xs) + 2, Math.max(...ys) + 2]) },
   /* a lane along ang with chevrons every chev px pointing the way it will be travelled */
   lane: (x0, y0, ang, L, hw, chev) => { const c = Math.cos(ang), s = Math.sin(ang), x1 = x0 + c * L, y1 = y0 + s * L
     return bb((X, Y) => { const dx = X - x0, dy = Y - y0, a = dx * c + dy * s, b = -dx * s + dy * c; if (a < 0 || a > L || Math.abs(b) > hw) return 0
       if (chev) { const m = (a - Math.abs(b) * 0.9) % chev; if (a > chev * 0.5 && a < L - chev * 0.3 && Math.abs(b) < hw * 0.62 && m > 0 && m < chev * 0.22) return 3 } return 1 }, [Math.min(x0, x1) - hw, Math.min(y0, y1) - hw, Math.max(x0, x1) + hw, Math.max(y0, y1) + hw]) },
   path: (pts, hw) => bb((X, Y) => { let m = 1e9; for (let i = 0; i + 1 < pts.length; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], vx = x1 - x0, vy = y1 - y0, t = clamp(((X - x0) * vx + (Y - y0) * vy) / (vx * vx + vy * vy || 1), 0, 1); m = Math.min(m, Math.hypot(X - x0 - vx * t, Y - y0 - vy * t)) } return m < hw ? 1 : 0 },
     [Math.min(...pts.map(p => p[0])) - hw, Math.min(...pts.map(p => p[1])) - hw, Math.max(...pts.map(p => p[0])) + hw, Math.max(...pts.map(p => p[1])) + hw]),
-  union: (...fs) => bb((X, Y) => { let r = 0; for (const f of fs) { const v = f(X, Y); if (v === 3) return 3; if (v === 1) r = 1; else if (v === 2 && !r) r = 2 } return r }, [Math.min(...fs.map(f => f.bb[0])), Math.min(...fs.map(f => f.bb[1])), Math.max(...fs.map(f => f.bb[2])), Math.max(...fs.map(f => f.bb[3]))]),
+  /* parts whose box misses the point are skipped, which keeps big unions of small shapes cheap to rasterise */
+  union: (...fs) => bb((X, Y) => { let r = 0; for (const f of fs) { const b = f.bb; if (X < b[0] || X > b[2] || Y < b[1] || Y > b[3]) continue; const v = f(X, Y); if (v === 3) return 3; if (v === 1) r = 1; else if (v === 2 && !r) r = 2 } return r }, [Math.min(...fs.map(f => f.bb[0])), Math.min(...fs.map(f => f.bb[1])), Math.max(...fs.map(f => f.bb[2])), Math.max(...fs.map(f => f.bb[3]))]),
   later: f => bb((X, Y) => { const v = f(X, Y); return v === 1 ? 2 : v }, f.bb),
 }
 const inside = (sh, x, y) => { const v = sh(x, y); return v === 1 || v === 3 }
@@ -317,8 +320,9 @@ const BMOVE = {
     /* A: fire breath swept across two cones, one after the other */
     A: { near: 2, far: 1.5, plan: (g, e, a) => ({ dur: 1.9, st: [{ t: 1, sh: SHP.sector(e.x, e.y, a, 0.26, 30, 190), dmg: 16, fire: 1 }, { t: 1.5, sh: SHP.sector(e.x, e.y, a + 0.52, 0.26, 30, 190), dmg: 16, fire: 1 }] }) },
     /* B: crystal spikes burst out along the four diagonals, near ones first */
-    B: { near: 1, far: 2, plan: (g, e) => { const cell = rg => { const C = []; for (let k = 0; k < 4; k++) { const an = Math.PI / 4 + (k * Math.PI) / 2; for (let j = rg ? 3 : 0; j < (rg ? 8 : 3); j++) { const r = 75 + j * 28; C.push([e.x + Math.cos(an) * r, e.y + Math.sin(an) * r, an]) } }
-        return bb((X, Y) => { for (const [x, y, an] of C) { const dx = X - x, dy = Y - y, u = dx * Math.cos(an) + dy * Math.sin(an), w = -dx * Math.sin(an) + dy * Math.cos(an); if (Math.abs(u) / 15 + Math.abs(w) / 11 < 1) return 1 } return 0 }, [e.x - 290, e.y - 290, e.x + 290, e.y + 290]) }
+    B: { near: 1, far: 2, plan: (g, e) => { const cell = rg => { const C = []; for (let k = 0; k < 4; k++) { const an = Math.PI / 4 + (k * Math.PI) / 2; for (let j = rg ? 3 : 0; j < (rg ? 8 : 3); j++) { const r = 75 + j * 28, x = e.x + Math.cos(an) * r, y = e.y + Math.sin(an) * r, ca = Math.cos(an), sa = Math.sin(an)
+          C.push(bb((X, Y) => { const dx = X - x, dy = Y - y; return Math.abs(dx * ca + dy * sa) / 15 + Math.abs(-dx * sa + dy * ca) / 11 < 1 ? 1 : 0 }, [x - 16, y - 16, x + 16, y + 16])) } }
+        return SHP.union(...C) }
       return { dur: 1.9, st: [{ t: 1, sh: cell(0), dmg: 18 }, { t: 1.5, sh: cell(1), dmg: 18 }] } } },
     /* C: a 270 degree tail sweep behind and around him, then a bite into the wedge in front */
     C: { near: 3, far: 0.2, plan: (g, e, a) => ({ dur: 1.8, st: [{ t: 0.9, sh: SHP.sector(e.x, e.y, a + Math.PI, Math.PI * 0.75, 25, 150), dmg: 18, kb: 220 }, { t: 1.4, sh: SHP.sector(e.x, e.y, a, 0.35, 0, 110), dmg: 24 }] }) },
@@ -362,9 +366,10 @@ const BMOVE = {
    below 40% hp everything runs faster and moves chain into each other */
 function apostleAI(g, e, dt, dx, dy, dist) {
   const A = e.ai, M = BMOVE[e.type], low = e.hp / e.maxHp < 0.4, rate = low ? 1.35 : 1
+  if (e.stagger > 0) { e.stagger -= dt; e.walking = false; return }
   if (!A.plan) {
     e.pose = BOSS[e.type].idle; A.cd = (A.cd == null ? 1.2 : A.cd) - dt
-    if (dist > 80) { e.x += (dx / dist) * e.spd * dt; e.y += (dy / dist) * e.spd * dt }
+    e.walking = dist > 80; if (e.walking) { e.x += (dx / dist) * e.spd * dt; e.y += (dy / dist) * e.spd * dt; e.face = Math.atan2(dy, dx) }
     if (A.cd > 0) return
     const ks = Object.keys(M).filter(k => k !== A.last || g.R() < 0.25), w = ks.map(k => (dist < 120 ? M[k].near : M[k].far) * (low && (k === 'B' || k === 'D') ? 1.5 : 1))
     let x = g.R() * w.reduce((s, v) => s + v, 0), i = 0; while (i < w.length - 1 && (x -= w[i]) > 0) i++
@@ -388,6 +393,60 @@ function startMove(g, e, k) {
   const A = e.ai, dx = g.p.x - e.x, dy = g.p.y - e.y, a = Math.atan2(dy, dx)
   A.last = k; A.k = k; A.t = 0; e.ax = e.x; e.ay = e.y; e.tx = g.p.x; e.ty = g.p.y; e.pose = k; e.face = a
   A.plan = BMOVE[e.type][k].plan(g, e, a, Math.hypot(dx, dy)); A.plan.st.forEach(s => (s.done = false)); buildTel(e)
+}
+/* ---------- animation: a pose is two takes blended numerically, then nudged per frame (stride, gait, undulation,
+   wing beat, anticipation, recoil, collapse). every frame is baked once into the sprite cache. ---------- */
+const TAKES = { zodd: ZODD, grunbeld: GRUN, count: COUNT, rosine: ROSINE }
+const clone = o => JSON.parse(JSON.stringify(o))
+/* numbers and matching arrays interpolate; a hand target that switches frame ('T' torso to 'W' world) or any flag flips at the midpoint */
+function blendP(a, b, k) {
+  if (typeof a === 'number' && typeof b === 'number') return a + (b - a) * k
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && (typeof a[0] !== 'string' || a[0] === b[0]) ? a.map((v, i) => blendP(v, b[i], k)) : k < 0.5 ? a : b
+  if (a && b && typeof a === 'object' && typeof b === 'object') { const o = {}; for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) o[key] = key in a && key in b ? blendP(a[key], b[key], k) : k < 0.5 ? a[key] : b[key]; return o }
+  return k < 0.5 ? a : b
+}
+const bzStep = (q, i, dx, dz) => { q[i][0] += dx; q[i][2] += dz }
+const ANIM = {
+  /* zodd stomps: alternating strides with a heavy bob; in the air his wings beat */
+  zodd: { lean: 'lean', loco: (P, ph) => { const s = Math.sin(ph), c = Math.cos(ph); bzStep(P.feet, 0, s * 40, Math.max(0, c) * 26); bzStep(P.feet, 1, -s * 40, Math.max(0, -c) * 26); P.hz -= 12 * Math.abs(c); P.tw += 0.14 * s; P.lean += 0.05 * Math.abs(s); P.wing[1] += 0.05 * Math.sin(ph * 2) },
+    air: (P, ph) => { P.wing[1] += 0.45 * Math.sin(ph); P.wing[0] += 0.12 * Math.cos(ph) }, sink: (P, k) => { P.hz -= 64 * k; P.lean += 0.95 * k; P.tw += 0.4 * k; P.wing[1] -= 0.6 * k; P.wing[0] -= 0.4 * k } },
+  /* grunbeld lumbers on a diagonal gait, the head and tail swinging against it */
+  grunbeld: { lean: 'pitch', loco: (P, ph) => { const s = Math.sin(ph), c = Math.cos(ph); bzStep(P.hf, 0, s * 32, Math.max(0, c) * 26); bzStep(P.ff, 1, s * 32, Math.max(0, c) * 26); bzStep(P.hf, 1, -s * 32, Math.max(0, -c) * 26); bzStep(P.ff, 0, -s * 32, Math.max(0, -c) * 26); P.hip[2] += 8 * Math.abs(s); P.head[2] += 7 * Math.sin(ph * 2); P.tail[0][1] += 22 * s; P.tail[1][1] += 44 * s },
+    sink: (P, k) => { P.hip[2] -= 46 * k; P.pitch *= 1 - k; P.neck[2] -= 90 * k; P.head[2] -= 130 * k; P.ff.forEach(f => (f[0] += 30 * k)) } },
+  /* the count crawls in waves rolling down the slug, the body pulsing */
+  count: { loco: (P, ph) => { P.sp.forEach((q, i) => { q[2] += Math.sin(ph + i * 1.6) * 16; q[1] += Math.sin(ph + i * 1.2) * 18 }); P.rf += Math.sin(ph) * 7 },
+    rear: (P, k) => { P.sp[2][2] += 30 * k }, sink: (P, k) => { P.sp.forEach(q => (q[2] *= 1 - k * 0.45)); P.rf -= 8 * k } },
+  /* rosine hovers on a constant wing beat */
+  rosine: { lean: 'lean', loco: (P, ph) => { P.fore[1] += 0.6 * Math.sin(ph); P.fore[2] += 0.25 * Math.cos(ph); P.hz += 8 * Math.sin(ph) }, sink: (P, k) => { P.hz -= 24 * k; P.lean += 0.45 * k; P.fore[1] -= 0.3 * k } },
+}
+/* frames per anim: walk 4, idle 2 (breath), each move 4 (wind-up, wound, strike, recover), hurt 1, stagger 1, death 3 */
+const BFRAMES = { walk: 4, idle: 2, A: 4, B: 4, C: 4, D: 4, hurt: 1, stagger: 1, death: 3 }
+function bossPose(type, anim, k) {
+  const T = TAKES[type], X = ANIM[type], idle = T[BOSS[type].idle], L = X.lean
+  const lean = (P, d) => { if (L) P[L] += d; else if (X.rear) X.rear(P, -d * 3) }, jaw = (P, d) => { if ('jaw' in P) P.jaw += d; else if ('rf' in P) P.rf += d * 20 }
+  let P
+  if (anim === 'walk') { P = clone(idle); X.loco(P, (k / 4) * TAU) }
+  else if (anim === 'idle') { P = clone(idle); X.loco(P, k ? 0.5 : -0.3); lean(P, 0.03 * k); jaw(P, 0.08 * k) }
+  else if (anim === 'hurt' || anim === 'stagger') { P = clone(idle); lean(P, anim === 'hurt' ? -0.26 : -0.4); if (anim === 'stagger') X.sink(P, 0.25) }
+  else if (anim === 'death') { P = clone(idle); X.sink(P, (k + 1) / 3); lean(P, -0.1 * k) }
+  else {
+    const M = T[anim]
+    if (k === 0) { P = clone(blendP(idle, M, 0.5)); lean(P, -0.1) }
+    else if (k === 1) { P = clone(M); lean(P, -0.16); if (X.rear) X.rear(P, 0.6) }
+    else if (k === 2) { P = clone(M); lean(P, 0.12); jaw(P, 0.3) }
+    else P = clone(blendP(M, idle, 0.45))
+    if (type === 'zodd' && anim === 'B') X.air(P, (k / 4) * TAU)
+  }
+  return P
+}
+/* which frame an apostle shows right now: its move's phase, a flinch or stagger, a walk, or idle breath */
+function bossFrame(e, rt) {
+  const A = e.ai
+  if (A.plan) { const t0 = (A.plan.st[0] || { t: 0.8 }).t, t = A.t, hit = A.plan.st.some(s => t >= s.t && t < s.t + 0.22); return [A.k, hit ? 2 : t < t0 * 0.5 ? 0 : t < t0 ? 1 : 3] }
+  if (e.stagger > 0) return ['stagger', 0]
+  if (e.flinch > 0) return ['hurt', 0]
+  if (e.walking) return ['walk', Math.floor(e.anim) & 3]
+  return ['idle', Math.floor(rt * 1.4 + e.ph) & 1]
 }
 /* the telegraph on show: the next stage solid, any after it faint, plus their number labels */
 function buildTel(e) {

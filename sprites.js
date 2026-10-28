@@ -14,11 +14,15 @@ function halo(d, W, H, n) {
 function bake(draw, o, ang, sc, box, hl) {
   const u = U * sc, W = Math.ceil(box[0] * u), H = Math.ceil(box[1] * u), px = W >> 1, py = Math.ceil(H * box[2]), k = W + 'x' + H
   const b = GEO[k] || (GEO[k] = mkBuf(W, H)); clearBuf(b); D.b = b; D.g = 1 << 5; setCam({ u, ox: px, oy: py }); setFig(0, 0, ang); draw(o)
+  let y0 = H, y1 = -1, x0 = W, x1 = -1
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (b.mat[y * W + x] !== EMPTY) { if (y < y0) y0 = y; y1 = y; if (x < x0) x0 = x; if (x > x1) x1 = x }
+  if (x1 < 0) { x0 = x1 = px; y0 = y1 = py }
   /* the cut row sits halfway up the opaque body; its span lets the gore stripe hug the silhouette */
-  let y0 = H, y1 = 0; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (b.mat[y * W + x] !== EMPTY) { if (y < y0) y0 = y; y1 = y; break }
   const cy = Math.round(y1 - (y1 - y0) * 0.5); let cx0 = W, cx1 = 0; for (let x = 0; x < W; x++) if (b.mat[cy * W + x] !== EMPTY) { cx0 = Math.min(cx0, x); cx1 = x }
-  const out = { px, py, w: W, h: H, top: y0, cut: { y: cy, x0: cx0, x1: cx1 } }
-  for (const s of ['golden', 'ink']) { const c = mkCanvas(W, H), ctx = c.getContext('2d'), img = ctx.createImageData(W, H); shadeBuf(b, CS[s], img.data); if (s === 'ink') halo(img.data, W, H, hl || 1); ctx.putImageData(img, 0, 0); out[s] = c }
+  /* canvases are cropped to the silhouette plus the halo, which keeps hundreds of animation frames cheap */
+  const m = (hl || 1) + 1, X0 = Math.max(0, x0 - m), Y0 = Math.max(0, y0 - m), cw = Math.min(W, x1 + m + 1) - X0, ch = Math.min(H, y1 + m + 1) - Y0
+  const out = { px: px - X0, py: py - Y0, w: cw, h: ch, top: y0 - Y0, cut: { y: cy - Y0, x0: cx0 - X0, x1: cx1 - X0 } }
+  for (const s of ['golden', 'ink']) { const c = mkCanvas(cw, ch), ctx = c.getContext('2d'), img = ctx.createImageData(W, H); shadeBuf(b, CS[s], img.data); if (s === 'ink') halo(img.data, W, H, hl || 1); ctx.putImageData(img, -X0, -Y0, X0, Y0, cw, ch); out[s] = c }
   return out
 }
 const FOLKBOX = [200, 190, 0.66]
@@ -33,16 +37,23 @@ const SPEC = {
   serpico: { draw: FOLK.serpico, sc: 0.95, box: FOLKBOX }, isidro: { draw: FOLK.isidro, sc: 0.78, box: FOLKBOX }, schierke: { draw: FOLK.schierke, sc: 0.68, box: FOLKBOX }, sellsword: { draw: FOLK.sellsword, sc: 1.05, box: FOLKBOX },
   skullknight: { draw: FOLK.skullknight, sc: 1.1, box: FOLKBOX }, puck: { draw: drawPuck, sc: 1, box: [60, 60, 0.75] },
 }
-/* apostles: one cached sprite per move pose ('zodd:C'), and the plain type is the pose they hold between moves */
-for (const b in BOSS) { const B = BOSS[b]; for (const v of 'ABCD') SPEC[b + ':' + v] = { draw: o => B.draw({ v, t: 1 + o.t * 0.1 }), sc: B.sc, box: B.box }; SPEC[b] = SPEC[b + ':' + B.idle] }
-/* queue every pose of an apostle for background baking the moment one appears */
-const bossWarm = (type, dir) => { for (const v of 'ABCD') for (let d = 0; d < 8; d++) { const dd = (dir + d) % 8; WARM.push(() => sprite(type + ':' + v, dd, 4)) } }
+/* apostles: every animation frame (walk, idle, each move's wind-up/strike/recover, hurt, stagger, death) per direction */
+function bossSprite(type, anim, k, dir) {
+  const key = 'B' + type + anim + k + '|' + dir; let s = SPR.get(key); if (s) return s
+  const B = BOSS[type], P = bossPose(type, anim, k); s = bake(() => B.draw({ P, t: 1 }), {}, dir * (Math.PI / 4), B.sc, B.box); SPR.set(key, s); return s
+}
+for (const b in BOSS) SPEC[b] = { draw: o => BOSS[b].draw({ P: bossPose(b, 'death', 2), t: 1 }), sc: BOSS[b].sc, box: BOSS[b].box }
+/* the moment an apostle appears, queue all its frames for background baking: the ones it shows first, first */
+const bossWarm = (type, dir) => {
+  const order = ['walk', 'idle', 'hurt', 'stagger', 'A', 'B', 'C', 'D', 'death']
+  for (let d = 0; d < 8; d++) { const dd = (dir + d + 8) % 8; for (const an of order) for (let k = 0; k < BFRAMES[an]; k++) WARM.push(() => bossSprite(type, an, k, dd)) }
+}
 const SPR = new Map()
 const dirOf = a => ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8
-/* frame f in 0..3 is a walk phase; f 4 is standing */
+/* frame f in 0..3 is a walk phase, 4 is standing, 5 and 6 are the two halves of an attack */
 function sprite(type, dir, f, v) {
   const key = type + dir + '|' + f + '|' + (v || 0); let s = SPR.get(key); if (s) return s
-  const sp = SPEC[type]; s = bake(sp.draw, { t: f * 0.4 + dir, walk: f * (Math.PI / 2), mv: f < 4 ? 1 : 0, v }, dir * (Math.PI / 4), sp.sc, sp.box); SPR.set(key, s); return s
+  const sp = SPEC[type]; s = bake(sp.draw, { t: f * 0.4 + dir, walk: f * (Math.PI / 2), mv: f < 4 ? 1 : 0, atk: f > 4 ? (f - 4) * 0.5 : 0, v }, dir * (Math.PI / 4), sp.sc, sp.box); SPR.set(key, s); return s
 }
 /* guts: idle, 8-phase walk, 9-phase swing (blade angle relative to his facing), all per direction */
 const GSW = 9, gutsSw = k => -1.6 + k * 0.4

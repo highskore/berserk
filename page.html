@@ -1,5 +1,5 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Cinzel:wght@600;800&family=IM+Fell+English+SC&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap" rel="stylesheet">
 <style>
   :root { --ink: #0e0d0c; --paper: #efe8da; --blood: #b3141a; --gold: #f0c48a; --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif }
   * { box-sizing: border-box }
@@ -35,7 +35,7 @@ __HUDCSS__
   @media (max-width: 520px) { .cards { grid-template-columns: 1fr; gap: 9px } .card { min-height: 0; padding: 10px } .card .ico { width: 56px; height: 56px } .card .ico img { width: 52px; height: 52px } .card b { font-size: 18px } }
 </style>
 <canvas id="cv" aria-label="Berserk survivor game"></canvas>
-<div id="hud" data-skin="a" hidden>
+<div id="hud" hidden>
   <div class="vit">
     <div class="bar hp"><i class="chip" id="hpc"></i><i class="fill" id="hpb"></i><em>HP</em><span id="hpt"></span></div>
     <div class="bar brand" id="mb" hidden><i class="fill" id="mbf"></i><em>BRAND</em></div>
@@ -46,7 +46,7 @@ __HUDCSS__
       <circle class="trk" cx="60" cy="60" r="46" stroke-width="9" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 60 60)"/><circle class="val chip" id="sgc" cx="60" cy="60" r="46" stroke-width="9" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="0" transform="rotate(135 60 60)"/><circle class="val hpv" id="sgh" cx="60" cy="60" r="46" stroke-width="9" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="0" transform="rotate(135 60 60)"/>
       <circle class="trk" cx="60" cy="60" r="36" stroke-width="5" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 60 60)"/><circle class="val brv" id="sgb" cx="60" cy="60" r="36" stroke-width="5" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="75" transform="rotate(135 60 60)"/>
       <circle class="trk" cx="60" cy="60" r="30" stroke-width="3" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 60 60)"/><circle class="val rgv" id="sgr" cx="60" cy="60" r="30" stroke-width="3" pathLength="100" stroke-dasharray="75 100" stroke-dashoffset="75" transform="rotate(135 60 60)"/>
-      <path class="mark" d="M60 74 L60 44 C60 38 68 37 70 42 C71 46 66 48 62 46 M49 52 L71 52 M60 70 C54 76 52 80 47 84 M60 70 C66 76 68 80 73 84"/></svg>
+      <path class="mark" id="brandmark" d=""/></svg>
     <img id="portrait" alt=""><b id="sigtext"></b>
   </div>
   <div class="tc"><b id="clock">00:00</b><span id="phase"></span></div>

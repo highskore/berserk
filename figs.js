@@ -90,7 +90,7 @@ function drawGuts(o) {
   else { HR = T(11, -9, 17 + Math.sin(p) * mv); d = v3.norm(v3.sub(v3.add(SR, [-2, 0, 9]), HR)); w = v3.norm(v3.cross(d, eyeLocal())); HL = T(3 - Math.sin(p) * 7 * mv, 16, -2) }
   const eR = ik3(SR, HR, 16, 16.5, [-0.3, -1, -0.5]), eL = ik3(SL, HL, 16, 16, [-0.4, 1, -0.4])
   cap(SL, eL, 5.6, 4.6, A ? MAT.IRON : MAT.CLOTH, 0.45, 2); cap(eL, HL, 4.4, 3.8, MAT.IRON, 0.7, 3, { tex: (x, y, tt) => (Math.floor(tt * 5) % 2 ? 0.72 : 1) }); sph(eL, 3.2, MAT.IRON, 0.8, 3); sph(HL, 3.6, MAT.IRON, 0.75, 4)
-  dragonslayer(HR, d, w, o.bloody)
+  if (!o.noSword) dragonslayer(HR, d, w, o.bloody)
   cap(SR, eR, 6, 5, A ? MAT.IRON : MAT.CLOTH, 0.55, 18, { tex: clothFold }); cap(eR, HR, 5, 3.8, PL, 0.68, 19, { tex: grime(0.12) }); sph(eR, 3.8, PL, 0.75, 19); sph(HR, 3.8, A ? MAT.IRON : MAT.LEATHER, 0.6, 19)
 }
 function gutsHead(H, t) {

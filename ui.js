@@ -266,7 +266,6 @@ function render(dt) {
   if (wipe) { wipe.t += dt; const r = ease(wipe.t / 0.9) * Math.hypot(W, H), x = SX(g.p.x), y = SY(g.p.y) - 20; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(x, y, r, 0, TAU, true); ctx.clip('evenodd'); world(wipe.from); ctx.restore(); ctx.strokeStyle = '#0e0d0c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); ctx.lineWidth = 1; if (wipe.t > 0.9) wipe = null }
   if (g.biome().mist && st === 'golden') drawMist(g, n)
   for (const e of g.en) if (e.tel) drawTel(e, st)
-  if (SKIN === 'd' && state === 'play') feetRings(g, st)
   /* the frenzy pulses red at the edges of the screen */
   if (g.armorT > 0) { const k = 0.28 + 0.14 * Math.sin(g.rt * 6), gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.hypot(W, H) * 0.55); gr.addColorStop(0, 'rgba(179,20,26,0)'); gr.addColorStop(1, `rgba(179,20,26,${k.toFixed(3)})`); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H) }
   if (g.flashT > 0) { ctx.globalAlpha = Math.min(1, g.flashT) * 0.6; ctx.fillStyle = st === 'ink' && g.flashC !== '#0e0d0c' ? (g.flashC === '#b3141a' || g.flashC === '#e81010' ? '#b3141a' : '#efe8da') : g.flashC; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1 }
@@ -274,12 +273,9 @@ function render(dt) {
   const gray = g.sense >= 1 && st === 'golden' ? 'grayscale(1)' : ''; if (cv.style.filter !== gray) cv.style.filter = gray
 }
 
-/* ---------- hud: one set of elements, four skins in hud.css. state rides on classes: ink, night, sense, hot brand, frenzy, hit, level-up ---------- */
+/* ---------- hud: the brand sigil (hud.css). state rides on classes: ink, night, sense, hot brand, frenzy, hit, level-up ---------- */
 const hudSet = (el, k, v) => { if (el['_' + k] !== v) { el['_' + k] = v; if (k === 'text') el.textContent = v; else if (k === 'w') el.style.width = v; else if (k === 'hide') el.hidden = v; else if (k === 'cls') el.className = v; else if (k === 'off') el.setAttribute('stroke-dashoffset', v) } }
 const pct = v => (clamp(v, 0, 1) * 100).toFixed(1) + '%'
-let SKIN = (location.hash.match(/hud=([a-d])/) || [])[1] || 'a'
-const setSkin = s => { SKIN = s; $('hud').dataset.skin = s }
-setSkin(SKIN)
 /* the xp bar eases toward its target; on a level-up it runs to full, wraps to empty, flashes and throws sparks */
 const XP = { shown: 0, lvl: 1, wrap: 0, t: 0, flash: 0 }
 function xpBar(p, dt) {
@@ -310,18 +306,15 @@ function hud() {
   hudSet($('hpb'), 'w', pct(hpv)); hudSet($('hpc'), 'w', pct(hc)); hudSet($('hpt'), 'text', Math.ceil(p.hp) + ' / ' + Math.round(p.maxHp))
   hudSet($('mb'), 'hide', !g.branded); hudSet($('mbf'), 'w', pct(g.brand / 100))
   hudSet($('mr'), 'hide', !g.rageOn); hudSet($('mrl'), 'text', g.armorT > 0 ? 'FRENZY' : 'RAGE'); hudSet($('mrf'), 'w', pct(g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100)); hudSet($('mro'), 'w', pct(g.armorT > 0 ? g.rage / 100 : 0))
-  /* hud b: the same values as rings round the sigil */
-  if (SKIN === 'b') {
-    hudSet($('sgh'), 'off', (75 - 75 * clamp(hpv, 0, 1)).toFixed(1)); hudSet($('sgc'), 'off', (75 - 75 * clamp(hc, 0, 1)).toFixed(1)); hudSet($('sgb'), 'off', (75 - 75 * (g.branded ? g.brand / 100 : 0)).toFixed(1))
-    hudSet($('sgr'), 'off', (75 - 75 * clamp(g.rageOn ? (g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100) : 0, 0, 1)).toFixed(1)); hudSet($('sigtext'), 'text', Math.ceil(p.hp) + ' · LV ' + p.lvl)
-    /* the portrait: his head and shoulders cut from the facing-you idle frame (the head sits ~39px above the feet) */
-    if (!$('portrait').src) { const s = gutsSprite(2, 'i', 0), c = mkCanvas(30, 30); c.getContext('2d').drawImage(s.golden, -(s.px - 15), -(s.py - 39 - 13)); $('portrait').src = c.toDataURL() }
-  }
+  /* the same values as rings round the brand sigil */
+  hudSet($('sgh'), 'off', (75 - 75 * clamp(hpv, 0, 1)).toFixed(1)); hudSet($('sgc'), 'off', (75 - 75 * clamp(hc, 0, 1)).toFixed(1)); hudSet($('sgb'), 'off', (75 - 75 * (g.branded ? g.brand / 100 : 0)).toFixed(1))
+  hudSet($('sgr'), 'off', (75 - 75 * clamp(g.rageOn ? (g.armorT > 0 ? g.armorT / g.armorDur : g.rage / 100) : 0, 0, 1)).toFixed(1)); hudSet($('sigtext'), 'text', Math.ceil(p.hp) + ' · LV ' + p.lvl)
   xpBar(p, dt); hudSet($('clock'), 'text', fmtT(g.t))
   hudSet($('phase'), 'text', g.pit ? 'THE PIT · NIGHT ' + g.nightN : ph.k === 'day' ? 'DAY ' + g.dayN + ' · ' + g.biome().name : ph.k === 'night' ? (g.nightN === 1 ? 'THE ECLIPSE' : 'NIGHT ' + g.nightN) : ph.k.toUpperCase())
   hudSet($('kills'), 'text', p.kills + ' slain'); hudSet($('gold'), 'text', p.gold + ' gold')
   let m = ''
-  if (g.inkMode) m += '<span class="tag red">THE BRAND BURNS · BLEEDING</span>'
+  if (!$('portrait').src) $('portrait').src = portrait()
+  if (g.inkMode) m += '<span class="tag red">' + BRANDICON + 'THE BRAND BURNS · BLEEDING</span>'
   if (g.sense) m += '<span class="tag">SENSE LOSS ' + 'I'.repeat(g.sense) + ' · ' + SENSECUE[g.sense - 1] + '</span>'
   for (const a of g.allies) m += '<span class="tag' + (a.brand ? ' red' : '') + '">' + ALLY[a.id].name + ' ' + a.lvl + '</span>'
   if (!g.eclipsed && g.t > 100) m += '<span class="tag red">ECLIPSE ' + fmtT(DAY1 + DUSK - g.t) + '</span>'
@@ -330,18 +323,35 @@ function hud() {
   const ban = g.ban; hudSet($('ban'), 'hide', !ban); if (ban) { hudSet($('bant'), 'text', ban.t); hudSet($('bans'), 'text', ban.sub); $('ban').style.opacity = Math.min(1, ban.a * 4, (ban.d - ban.a) * 2) }
 }
 const SENSECUE = ['COLOUR DRAINS', 'SIGHT FADES', 'ONLY INK REMAINS']
-/* hud d: the meters live on the ground at Guts' feet. hp is the front arc, the brand the back arc, rage the inner ring */
-function feetRings(g, st) {
-  const p = g.p, x = SX(p.x), y = SY(p.y) + 1, R = 26, ry = R * KY * 1.15, ink = st === 'ink', a = g.sense >= 2 ? 0.55 : 1, rt = g.rt
-  const arc = (r, a0, a1, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.ellipse(x, y, r, r * KY * 1.15, 0, a0, a1); ctx.stroke() }
-  ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round'
-  /* the front of the ellipse (screen angles 0.05pi..0.95pi pass under his feet); hp drains from right to left, over a dark (paper, in ink) track */
-  const hv = clamp(p.hp / p.maxHp, 0, 1), hc = CHIP.hp, F0 = Math.PI * 0.05, F1 = Math.PI * 0.95, span = F1 - F0
-  arc(R, F0, F1, 7, ink ? '#efe8da' : '#000000aa'); arc(R, F0, F1, 4, ink ? '#0e0d0c' : '#1a0a08')
-  if (hc > 0) arc(R, F1 - span * hc, F1, 3, ink ? '#efe8da' : '#f3d7a0'); if (hv > 0) arc(R, F1 - span * hv, F1, 3, ink ? '#b3141a' : '#e0281c')
-  if (g.branded) { const bv = g.brand / 100, pulse = g.inkMode || bv > 0.7 ? 0.6 + 0.4 * Math.sin(rt * 9) : 1; arc(R, Math.PI * 1.15, Math.PI * 1.85, 4, ink ? '#0e0d0c' : '#000000aa'); ctx.globalAlpha = a * pulse; arc(R, Math.PI * 1.15, Math.PI * (1.15 + 0.7 * bv), 2.5, ink ? '#b3141a' : '#ff6a2a'); ctx.globalAlpha = a }
-  if (g.rageOn) { const fr = g.armorT > 0, rv = fr ? g.armorT / g.armorDur : g.rage / 100; arc(R - 6, 0, TAU, 3, ink ? '#efe8da66' : '#00000066'); arc(R - 6, -Math.PI / 2, -Math.PI / 2 + TAU * rv, 2, fr ? (Math.sin(rt * 30) > 0 ? (ink ? '#efe8da' : '#ffd060') : (ink ? '#b3141a' : '#ff4010')) : ink ? '#0e0d0c' : '#f0c060') }
-  ctx.restore(); ptext(String(Math.ceil(p.hp)), x, y + ry + 4, ink ? '#efe8da' : '#f8dcae', '#0e0d0c')
+/* the brand of sacrifice, drawn as carved strokes. one unit is its height; it is 0.625 wide. a stem with a small pointed
+   crown; two arms start just off the stem near the top, swing out to elbows and back in to meet it at 0.4; from there a
+   closed lower diamond flares out and comes to a point at the foot. arms are thickest at the elbows and taper to fine ends */
+const BRAND = [
+  [[0, -0.03, 0.008], [0, 0.07, 0.045], [0, 0.4, 0.058], [0, 0.98, 0.05]],
+  [[-0.02, 0.08, 0.012], [-0.06, 0.04, 0.006]], [[0.02, 0.08, 0.012], [0.06, 0.04, 0.006]],
+  [[-0.125, 0.045, 0.016], [-0.275, 0.195, 0.078], [-0.012, 0.4, 0.05]], [[0.125, 0.045, 0.016], [0.275, 0.195, 0.078], [0.012, 0.4, 0.05]],
+  [[-0.01, 0.41, 0.06], [-0.29, 0.68, 0.075], [0, 0.985, 0.045]], [[0.01, 0.41, 0.06], [0.29, 0.68, 0.075], [0, 0.985, 0.045]],
+]
+/* one stroke becomes a polygon: offset each sampled point along the normal by half its width, with a seeded wobble */
+function brandPath(cx, top, H, seed) {
+  let d = '', k = seed || 1
+  const jit = () => { k = (k * 16807) % 2147483647; return (k / 2147483647 - 0.5) * 0.009 }
+  for (const S of BRAND) {
+    const pts = []; for (let i = 0; i + 1 < S.length; i++) { const [x0, y0, w0] = S[i], [x1, y1, w1] = S[i + 1], n = 7; for (let j = i ? 1 : 0; j <= n; j++) { const t = j / n; pts.push([x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, w0 + (w1 - w0) * t]) } }
+    const L = [], Rr = []
+    pts.forEach((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, w = p[2] / 2
+      L.push([p[0] + nx * (w + jit()), p[1] + ny * (w + jit())]); Rr.push([p[0] - nx * (w + jit()), p[1] - ny * (w + jit())]) })
+    const poly = L.concat(Rr.reverse()).map(([x, y]) => (cx + x * H).toFixed(2) + ' ' + (top + y * H).toFixed(2))
+    d += 'M' + poly.join('L') + 'Z'
+  }
+  return d
+}
+$('brandmark').setAttribute('d', brandPath(60, 37, 46, 7))
+const BRANDICON = `<svg class="bicon" viewBox="0 0 14 22" aria-hidden="true"><path d="${brandPath(7, 1, 20, 3)}"/></svg>`
+/* the portrait: a proper bust of guts, swordless, half-turned toward you, rendered big and cropped to head and shoulders */
+function portrait() {
+  const s = bake(o => drawGuts(o), { t: 0, noSword: 1 }, 1.95, 2.2, [120, 160, 0.92]), u = U * 2.2, hy = s.py - 84 * u * CAM.kz, sz = Math.round(30 * u)
+  const c = mkCanvas(sz, sz); c.getContext('2d').drawImage(s.golden, -(s.px - sz / 2), -(hy - sz * 0.42)); return c.toDataURL()
 }
 
 /* ---------- menus ---------- */
@@ -415,7 +425,7 @@ function frame(now) {
 }
 resize(); game = new Game({ god: true, seed: 1 }); game.view = { w: W, h: H }; game.ban = null; showOv('ovTitle'); $('hud').hidden = true; requestAnimationFrame(frame)
 /* test hooks for the headless smoke run; harmless in play */
-window.__BZ = { get g() { return game }, start, hud: setSkin, auto: on => (AUTO.on = on), speed: v => (speed = v), perf: () => { const r = { frames: PERF.frames, ms: PERF.ms }; PERF.frames = 0; PERF.ms = 0; return r }, warmLeft: () => WARM.length,
+window.__BZ = { get g() { return game }, start, auto: on => (AUTO.on = on), speed: v => (speed = v), perf: () => { const r = { frames: PERF.frames, ms: PERF.ms }; PERF.frames = 0; PERF.ms = 0; return r }, warmLeft: () => WARM.length,
   /* step + render n frames back to back, reading a pixel each frame so the gpu work is counted too */
   bench: n => { const t0 = performance.now(); for (let i = 0; i < n; i++) { game.step(1 / 60); render(1 / 60); ctx.getImageData(0, 0, 1, 1) } return (performance.now() - t0) / n },
   horde: (n, types) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, r = 60 + Math.random() * 200; game.spawn(types[i % types.length], game.p.x + Math.cos(a) * r, game.p.y + Math.sin(a) * r * 0.9) } } }

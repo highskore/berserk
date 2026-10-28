@@ -9,10 +9,10 @@ const setHTML = () => '<h2>Settings</h2>' + SETNAMES.map(([k, n, d]) => `<button
 let PANEL = null, abarKey = '', partyKey = '', altarT = 0, gearSel = null, talSel = null, talTab = 'sword'
 const abURL = id => iconURL('ab:' + id)
 function altarBuild(g) {
-  const ids = ABORDER.filter(id => g.ab[id]), key = ids.join(',')
+  const ids = ABORDER, key = ABORDER.map(id => (g.ab[id] ? 1 : 0)).join('')
   if (key !== abarKey) {
     abarKey = key
-    $('abar').innerHTML = ids.map(id => `<div class="ab${ABIL[id].ult ? ' ult' : ''}" data-id="${id}" title="${ABIL[id].name}"><i class="sk"><img src="${abURL(id)}" alt=""><i class="sw"></i></i><b class="secs"></b><em class="ch"></em><kbd>${ABKEY[id]}</kbd></div>`).join('')
+    $('abar').innerHTML = ids.map(id => `<div class="ab${ABIL[id].ult ? ' ult' : ''}${g.ab[id] ? '' : ' locked'}" data-id="${id}" title="${ABIL[id].name}${g.ab[id] ? '' : id === 'armor' ? ': unlocks with the Berserker Armor card' : ': unlock from level-up cards'}"><i class="sk"><img src="${abURL(id)}" alt=""><i class="sw"></i></i><b class="secs"></b><em class="ch"></em><kbd>${ABKEY[id]}</kbd></div>`).join('')
     $('quick').innerHTML = FLORDER.map(id => `<div class="qs" data-id="${id}" title="${FLASK[id].name}"><img src="${iconURL(FLASK[id].icon)}" alt=""><em></em><kbd>${FLASK[id].key}</kbd></div>`).join('')
   }
   const pk = g.allies.filter(a => !a.leave && a.doom == null).map(a => a.id + a.lvl).join(',')
@@ -20,7 +20,7 @@ function altarBuild(g) {
 }
 function altarHud(g, dt) {
   altarBuild(g)
-  for (const el of $('abar').children) { const id = el.dataset.id, a = g.ab[id], max = g.abCharges(id), ready = a.ch >= 1 && !(id === 'armor' && !(g.rageOn && g.rage >= 50 && g.armorT <= 0))
+  for (const el of $('abar').children) { const id = el.dataset.id, a = g.ab[id]; if (!a) continue; const max = g.abCharges(id), ready = a.ch >= 1 && !(id === 'armor' && !(g.rageOn && g.rage >= 50 && g.armorT <= 0))
     const left = a.ch < max ? (1 - a.t) * ABIL[id].cd * g.abCdMul(id) : 0
     el.style.setProperty('--cd', (a.ch >= 1 ? 0 : (1 - a.t) * 100).toFixed(1) + '%'); el.classList.toggle('ready', ready)
     hudSet(el.querySelector('.secs'), 'text', a.ch >= 1 ? '' : Math.ceil(left) + ''); hudSet(el.querySelector('.ch'), 'text', max > 1 ? a.ch + '' : '') }
@@ -50,7 +50,7 @@ const itemCell = (it, act) => `<button class="cell r-${it.rar}" data-act="${act}
 function itemTip(g, it, worn) {
   const lines = Object.entries(it.mods).map(([k, v]) => statLine(k, v)), cmp = !worn && g.worn[it.slot]
   let c = ''; if (cmp) { const d = {}; for (const [k, v] of Object.entries(it.mods)) d[k] = (d[k] || 0) + v; for (const [k, v] of Object.entries(cmp.mods)) d[k] = (d[k] || 0) - v; c = '<p class="cmp">' + Object.entries(d).filter(([, v]) => Math.abs(v) > 1e-6).map(([k, v]) => { const l = statLine(k, v); return `<span class="${l.neg ? 'dn' : 'up'}">${l.neg ? '▼' : '▲'} ${l.t}</span>` }).join('') + '</p>' }
-  return `<div class="tip r-${it.rar}"><small>${it.rar.toUpperCase()} · ${it.slot.toUpperCase()} · ILVL ${it.lvl}</small><b>${it.name}</b><p>${lines.map(l => `<span class="${l.neg ? 'dn' : ''}">${l.t}</span>`).join('<br>')}</p>${c}<div class="acts">${worn ? `<button data-act="unequip" data-slot="${it.slot}">Unequip</button>` : `<button data-act="equip" data-uid="${it.uid}">Equip</button><button data-act="sell" data-uid="${it.uid}">Sell · ${Math.round(it.price * 0.35)} gold</button>`}</div></div>`
+  return `<div class="tip r-${it.rar}"><small>${it.rar.toUpperCase()} · ${it.slot.toUpperCase()} · ILVL ${it.lvl}</small><b>${it.cursed ? '<em class="curse">CURSED</em> ' : ''}${it.name}</b>${it.text ? `<p class="fx">${it.text}</p>` : ''}${it.set ? `<p class="set">${SETS2[it.set].name} · ${g.setCount(it.set)}/3 worn<br>2: ${SETS2[it.set].b2}<br>3: ${SETS2[it.set].b3}</p>` : ''}<p>${lines.map(l => `<span class="${l.neg ? 'dn' : ''}">${l.t}</span>`).join('<br>')}</p>${c}<div class="acts">${worn ? `<button data-act="unequip" data-slot="${it.slot}">Unequip</button>` : `<button data-act="equip" data-uid="${it.uid}">Equip</button><button data-act="sell" data-uid="${it.uid}">Sell · ${Math.round(it.price * 0.35)} gold</button>`}</div></div>`
 }
 function gearHTML(g) {
   const sel = gearSel && (gearSel.worn ? g.worn[gearSel.slot] : g.pack.find(i => i.uid === gearSel.uid))
@@ -60,11 +60,11 @@ function gearHTML(g) {
 }
 /* ---------- talent screen: three trees, rows unlocked by points spent in the tree ---------- */
 function talHTML(g) {
-  const cx = c => 50 + c * 100, cy = r => 34 + r * 84, LINKS = [[0, 2], [1, 2], [2, 3], [2, 4], [3, 4], [4, 5]]
+  const cx = c => 50 + c * 100, cy = r => 30 + r * 62
   const sel = talSel && TNODE[talSel]
-  return `<h2>Talents <small>${g.tp} point${g.tp === 1 ? '' : 's'} to spend</small></h2><div class="tabs">${TREES.map(([tid, tn]) => `<button data-act="tab" data-t="${tid}" class="${talTab === tid ? 'on' : ''}">${tn}</button>`).join('')}</div><div class="trees">${TREES.map(([tid, tn, ticon, nodes]) => `<div class="tree ${talTab === tid ? 'on' : ''}"><h3><img src="${iconURL(ticon)}" alt="">${tn}<small>${g.treeSpent(tid)} pts</small></h3><div class="tw"><svg class="links" viewBox="0 0 300 420">${LINKS.map(([a, b]) => `<line x1="${cx(nodes[a][5])}" y1="${cy(nodes[a][4])}" x2="${cx(nodes[b][5])}" y2="${cy(nodes[b][4])}" class="${g.tal[nodes[b][0]] ? '' : 'dim'}"/>`).join('')}</svg>${nodes.map(([id, n, icon, max, row, col]) => { const r = g.tal[id] || 0, open = g.treeSpent(tid) >= ROWREQ[row]
-    return `<button class="tn ${row === 3 ? 'cap' : row === 4 ? 'rep' : ''} ${r ? 'got' : open ? 'open' : 'off'} ${g.canTalent(id) ? 'can' : ''} ${talSel === id ? 'sel' : ''}" data-act="node" data-id="${id}" style="left:${cx(col) - 26}px;top:${cy(row) - 26}px"><img src="${iconURL(icon)}" alt=""><em>${max === Infinity ? '∞ ' + r : r + '/' + max}</em><span>${n}</span><i class="plus">+</i></button>` }).join('')}</div></div>`).join('')}</div>
-    ${sel ? `<div class="tip"><small>${TREES.find(t => t[0] === sel.tree)[1].toUpperCase()} · ${sel.row === 3 ? 'CAPSTONE' : sel.row === 4 ? 'REPEATABLE' : 'TIER ' + (sel.row + 1)}${ROWREQ[sel.row] ? ' · NEEDS ' + ROWREQ[sel.row] + ' IN THE TREE' : ''}</small><b>${sel.name}</b><p>${sel.desc(Math.max(1, g.tal[talSel] || 0))}</p><div class="acts"><button data-act="take" data-id="${talSel}" ${g.canTalent(talSel) ? '' : 'disabled'}>Take · 1 point</button></div></div>` : '<p class="hint">Points come every second level and from every boss. Rows open as you spend in a tree; the last node takes points forever.</p>'}
+  return `<h2>Talents <small>${g.tp} point${g.tp === 1 ? '' : 's'} to spend</small></h2><div class="tabs">${TREES.map(([tid, tn]) => `<button data-act="tab" data-t="${tid}" class="${talTab === tid ? 'on' : ''}">${tn}</button>`).join('')}</div><div class="trees">${TREES.map(([tid, tn, ticon, nodes]) => `<div class="tree ${talTab === tid ? 'on' : ''}"><h3><img src="${iconURL(ticon)}" alt="">${tn}<small>${g.treeSpent(tid)} pts</small></h3><div class="tw"><svg class="links" viewBox="0 0 300 420">${nodes.flatMap(b => nodes.filter(a => a[4] === b[4] - 1 && Math.abs(a[5] - b[5]) <= 1).map(a => `<line x1="${cx(a[5])}" y1="${cy(a[4])}" x2="${cx(b[5])}" y2="${cy(b[4])}" class="${g.tal[b[0]] ? '' : 'dim'}"/>`)).join('')}</svg>${nodes.map(([id, n, icon, max, row, col]) => { const r = g.tal[id] || 0, open = g.treeSpent(tid) >= ROWREQ[row]
+    return `<button class="tn ${row === 5 ? 'cap' : row === 6 ? 'rep' : ''} ${r ? 'got' : open ? 'open' : 'off'} ${g.canTalent(id) ? 'can' : ''} ${talSel === id ? 'sel' : ''}" data-act="node" data-id="${id}" style="left:${cx(col) - 26}px;top:${cy(row) - 26}px"><img src="${iconURL(icon)}" alt=""><em>${max === Infinity ? '∞ ' + r : r + '/' + max}</em><span>${n}</span><i class="plus">+</i></button>` }).join('')}</div></div>`).join('')}</div>
+    ${sel ? `<div class="tip"><small>${TREES.find(t => t[0] === sel.tree)[1].toUpperCase()} · ${sel.row === 5 ? 'CAPSTONE' : sel.row === 6 ? 'REPEATABLE' : sel.choice ? 'FORK · TAKE ONE' : 'TIER ' + (sel.row + 1)}${ROWREQ[sel.row] ? ' · NEEDS ' + ROWREQ[sel.row] + ' IN THE TREE' : ''}</small><b>${sel.name}</b><p>${sel.desc(Math.max(1, g.tal[talSel] || 0))}</p><div class="acts"><button data-act="take" data-id="${talSel}" ${g.canTalent(talSel) ? '' : 'disabled'}>Take · 1 point</button></div></div>` : '<p class="hint">Points come every second level and from every boss. Rows open as you spend in a tree; the last node takes points forever.</p>'}
     <button class="btn close" data-act="close">Close <kbd>N</kbd></button>`
 }
 function openPanel(p) { if (state !== 'play' || game.over || game.pending) return; PANEL = PANEL === p ? null : p; gearSel = null; talSel = null; pver = -1; drawPanel() }

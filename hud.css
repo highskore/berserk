@@ -129,3 +129,8 @@
   /* while the eclipse sun crowns the screen: the timer sits in its black disc, the title just under the corona, the boss below */
   #hud.sun .tc { top: calc(var(--sunY) - 15px) } #hud.sun .tc b { color: #ffe8b0 } #hud.sun .tc span { margin-top: calc(var(--sunR) * 0.8 - 6px) }
   #hud.sun #boss { top: calc(var(--sunY) + var(--sunR) * 1.8 + 24px) }
+
+  /* abilities not yet unlocked: a dark socket with a lock, so it's clear they come from cards */
+  #hud .ab.locked .sk img { filter: grayscale(1) brightness(.25) } #hud .ab.locked .sk { border-color: #3a2e20 }
+  #hud .ab.locked::after { content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 9px; margin: -2px 0 0 -6px; background: #a89880; border-radius: 2px; box-shadow: 0 0 0 1px #000 }
+  #hud .ab.locked::before { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 7px; margin: -9px 0 0 -5px; border: 2px solid #a89880; border-bottom: 0; border-radius: 5px 5px 0 0 }
